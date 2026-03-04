@@ -1,0 +1,29 @@
+{
+  "name": "@femtech/contracts",
+  "version": "1.0.0",
+  "description": "Stellar Soroban smart contracts for Femtech Africa",
+  "private": true,
+  "scripts": {
+    "build": "soroban contract build",
+    "build:release": "soroban contract build --profile release",
+    "test": "cargo test",
+    "test:coverage": "cargo tarpaulin --out Html",
+    "deploy:testnet": "ts-node scripts/deploy-testnet.ts",
+    "deploy:mainnet": "ts-node scripts/deploy-mainnet.ts",
+    "optimize": "soroban contract optimize --wasm target/wasm32-unknown-unknown/release/*.wasm",
+    "clean": "cargo clean && rimraf target",
+    "lint": "cargo clippy -- -D warnings",
+    "fmt": "cargo fmt",
+    "fmt:check": "cargo fmt --check"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^11.2.2",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

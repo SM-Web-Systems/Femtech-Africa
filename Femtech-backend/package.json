@@ -1,0 +1,37 @@
+{
+  "name": "@femtech/backend",
+  "version": "1.0.0",
+  "description": "Femtech Africa Backend Monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build --filter=./packages/*",
+    "dev": "turbo run dev --parallel --filter=./packages/*",
+    "dev:auth": "turbo run dev --filter=@femtech/auth-service",
+    "dev:health": "turbo run dev --filter=@femtech/health-service",
+    "dev:milestone": "turbo run dev --filter=@femtech/milestone-service",
+    "dev:token": "turbo run dev --filter=@femtech/token-service",
+    "dev:redemption": "turbo run dev --filter=@femtech/redemption-service",
+    "start": "turbo run start --filter=./packages/*",
+    "start:prod": "turbo run start:prod --filter=./packages/*",
+    "test": "turbo run test --filter=./packages/*",
+    "test:unit": "turbo run test:unit --filter=./packages/*",
+    "test:integration": "turbo run test:integration --filter=./packages/*",
+    "test:coverage": "turbo run test:coverage --filter=./packages/*",
+    "lint": "turbo run lint --filter=./packages/*",
+    "lint:fix": "turbo run lint:fix --filter=./packages/*",
+    "typecheck": "turbo run typecheck --filter=./packages/*",
+    "clean": "turbo run clean --filter=./packages/*"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.1.3",
+    "typescript": "^5.3.3"
+  }
+}

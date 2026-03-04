@@ -1,0 +1,42 @@
+{
+  "name": "@femtech/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types and interfaces across all packages",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api/index.js",
+      "require": "./dist/api/index.js",
+      "types": "./dist/api/index.d.ts"
+    },
+    "./models": {
+      "import": "./dist/models/index.js",
+      "require": "./dist/models/index.js",
+      "types": "./dist/models/index.d.ts"
+    },
+    "./events": {
+      "import": "./dist/events/index.js",
+      "require": "./dist/events/index.js",
+      "types": "./dist/events/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.build.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
+  }
+}

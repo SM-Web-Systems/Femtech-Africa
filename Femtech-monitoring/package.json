@@ -1,0 +1,17 @@
+{
+  "name": "@femtech/monitoring",
+  "version": "1.0.0",
+  "description": "Monitoring, alerting, and observability configurations",
+  "private": true,
+  "scripts": {
+    "grafana:up": "docker-compose -f docker/grafana.yml up -d",
+    "prometheus:up": "docker-compose -f docker/prometheus.yml up -d",
+    "alertmanager:up": "docker-compose -f docker/alertmanager.yml up -d",
+    "all:up": "docker-compose -f docker/monitoring-stack.yml up -d",
+    "all:down": "docker-compose -f docker/monitoring-stack.yml down",
+    "clean": "rimraf data logs"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@femtech/auth-service",
+  "version": "1.0.0",
+  "description": "Authentication and authorization service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "start:prod": "NODE_ENV=production node dist/index.js",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@femtech/shared": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^4.18.3",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "libphonenumber-js": "^1.10.57",
+    "otplib": "^12.0.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "speakeasy": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@types/passport": "^1.0.16",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/speakeasy": "^2.0.10",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@femtech/infrastructure",
+  "version": "1.0.0",
+  "description": "Infrastructure as Code (Terraform) for Femtech Africa",
+  "private": true,
+  "scripts": {
+    "tf:init": "cd terraform && terraform init",
+    "tf:plan": "cd terraform && terraform plan",
+    "tf:apply": "cd terraform && terraform apply",
+    "tf:destroy": "cd terraform && terraform destroy",
+    "tf:fmt": "cd terraform && terraform fmt -recursive",
+    "tf:validate": "cd terraform && terraform validate",
+    "docker:build": "docker-compose -f docker/docker-compose.yml build",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down",
+    "clean": "rimraf terraform/.terraform"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}

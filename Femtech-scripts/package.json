@@ -1,0 +1,33 @@
+{
+  "name": "@femtech/scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for development and deployment",
+  "private": true,
+  "scripts": {
+    "setup:dev": "ts-node scripts/setup-dev-environment.ts",
+    "setup:db": "ts-node scripts/setup-database.ts",
+    "generate:types": "ts-node scripts/generate-api-types.ts",
+    "generate:docs": "ts-node scripts/generate-docs.ts",
+    "migrate:data": "ts-node scripts/migrate-data.ts",
+    "backup:db": "ts-node scripts/backup-database.ts",
+    "restore:db": "ts-node scripts/restore-database.ts",
+    "health:check": "ts-node scripts/health-check.ts",
+    "clean": "rimraf output logs"
+  },
+  "dependencies": {
+    "@femtech/shared": "workspace:*",
+    "axios": "^1.6.7",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.5",
+    "inquirer": "^9.2.15",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.11.24",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

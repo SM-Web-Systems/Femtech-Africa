@@ -1,0 +1,73 @@
+{
+  "name": "femtech-africa",
+  "version": "1.0.0",
+  "description": "Femtech Africa - Maternal Health Platform with Token Rewards",
+  "private": true,
+  "workspaces": [
+    "Femtech-backend",
+    "Femtech-backend/packages/*",
+    "Femtech-admin",
+    "Femtech-web",
+    "Femtech-mobile",
+    "Femtech-shared-types",
+    "Femtech-database",
+    "Femtech-contracts"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "dev:backend": "turbo run dev --filter=@femtech/backend...",
+    "dev:web": "turbo run dev --filter=@femtech/web",
+    "dev:admin": "turbo run dev --filter=@femtech/admin",
+    "start": "turbo run start",
+    "start:prod": "turbo run start:prod",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e --filter=@femtech/e2e-tests",
+    "test:coverage": "turbo run test:coverage",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rimraf node_modules",
+    "clean:cache": "turbo clean",
+    "db:generate": "npm run db:generate --workspace=@femtech/database",
+    "db:migrate": "npm run db:migrate --workspace=@femtech/database",
+    "db:migrate:prod": "npm run db:migrate:prod --workspace=@femtech/database",
+    "db:seed": "npm run db:seed --workspace=@femtech/database",
+    "db:reset": "npm run db:reset --workspace=@femtech/database",
+    "db:studio": "npm run db:studio --workspace=@femtech/database",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.6.1",
+    "@commitlint/config-conventional": "^18.6.2",
+    "@types/node": "^20.11.24",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "turbo": "^1.12.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.4.0",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
