@@ -235,7 +235,7 @@ export class RedemptionService extends BaseService {
       }
 
       const inStock = product.stockQuantity === null || product.stockQuantity >= item.quantity;
-      
+
       if (!inStock) {
         errors.push(`${product.name} has insufficient stock`);
       }
@@ -484,7 +484,7 @@ export class RedemptionService extends BaseService {
    */
   async cancelExpiredRedemptions(): Promise<number> {
     const count = await this.redemptionRepo.cancelExpired();
-    
+
     this.logger.info({ count }, 'Cancelled expired redemptions');
 
     return count;
