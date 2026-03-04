@@ -1,0 +1,82 @@
+# .github/CODEOWNERS
+
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║                    MOMENTUM AFRICA - CODEOWNERS                   ║
+# ╚═══════════════════════════════════════════════════════════════════╝
+
+# Default - Tech Leads must review everything
+* @momentum-africa/tech-leads
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 1: BACKEND
+# ═══════════════════════════════════════════════════════════════════
+/momentum-backend/packages/api-gateway/        @momentum-africa/backend
+/momentum-backend/packages/auth-service/       @momentum-africa/backend
+/momentum-backend/packages/health-service/     @momentum-africa/backend
+/momentum-backend/packages/milestone-service/  @momentum-africa/backend
+/momentum-backend/packages/community-service/  @momentum-africa/backend
+/momentum-backend/packages/notification-service/ @momentum-africa/backend
+/momentum-backend/packages/content-service/    @momentum-africa/backend
+/momentum-backend/packages/sync-service/       @momentum-africa/backend
+/momentum-backend/packages/redemption-service/ @momentum-africa/backend
+/momentum-backend/packages/ussd-gateway/       @momentum-africa/backend
+/momentum-backend/packages/integration-service/ @momentum-africa/backend
+/momentum-backend/packages/shared/             @momentum-africa/backend
+
+/momentum-shared-types/                        @momentum-africa/backend @momentum-africa/frontend
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 2: FRONTEND
+# ═══════════════════════════════════════════════════════════════════
+/momentum-mobile/                              @momentum-africa/frontend
+/momentum-web/                                 @momentum-africa/frontend
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 3: BLOCKCHAIN
+# ═══════════════════════════════════════════════════════════════════
+/momentum-contracts/                           @momentum-africa/blockchain
+/momentum-backend/packages/token-service/      @momentum-africa/blockchain
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 4: ADMIN & ANALYTICS
+# ═══════════════════════════════════════════════════════════════════
+/momentum-admin/                               @momentum-africa/admin-analytics
+/momentum-backend/packages/admin-service/      @momentum-africa/admin-analytics
+/momentum-backend/packages/analytics-service/  @momentum-africa/admin-analytics
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 5: DATABASE & AI
+# ═══════════════════════════════════════════════════════════════════
+/momentum-infrastructure/                      @momentum-africa/database-ai
+/momentum-database/                            @momentum-africa/database-ai
+/momentum-ml/                                  @momentum-africa/database-ai
+/momentum-backend/packages/risk-engine/        @momentum-africa/database-ai
+
+# ═══════════════════════════════════════════════════════════════════
+# TEAM 6: LINK ALL & ACCESS (QA/DevOps)
+# ═══════════════════════════════════════════════════════════════════
+/momentum-e2e-tests/                           @momentum-africa/link-all
+/momentum-security/                            @momentum-africa/link-all
+/momentum-localizations/                       @momentum-africa/link-all
+/momentum-monitoring/                          @momentum-africa/link-all
+/momentum-scripts/                             @momentum-africa/link-all
+/momentum-docs/                                @momentum-africa/link-all
+/.github/                                      @momentum-africa/link-all
+
+# ═══════════════════════════════════════════════════════════════════
+# CROSS-TEAM FILES (Multiple approvers required)
+# ═══════════════════════════════════════════════════════════════════
+
+# API contracts need Backend + Frontend approval
+/momentum-docs/api/                            @momentum-africa/backend @momentum-africa/frontend
+
+# Database migrations need Backend + Database & AI approval
+/momentum-database/postgres/migrations/        @momentum-africa/backend @momentum-africa/database-ai
+
+# Shared types need Backend + Frontend approval
+/momentum-shared-types/                        @momentum-africa/backend @momentum-africa/frontend
+
+# Root configs need Link All approval
+/docker-compose*.yml                           @momentum-africa/link-all
+/turbo.json                                    @momentum-africa/link-all
+/pnpm-workspace.yaml                           @momentum-africa/link-all
