@@ -1,0 +1,263 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Databases
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: momentum
+      POSTGRES_PASSWORD: momentum_dev
+      POSTGRES_DB: momentum
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U momentum"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend Services
+  api-gateway:
+    build:
+      context: ./packages/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+
+  auth-service:
+    build:
+      context: ./packages/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev_jwt_secret_change_in_production
+      - JWT_REFRESH_SECRET=dev_refresh_secret_change_in_production
+    volumes:
+      - ./packages/auth-service/src:/app/src
+
+  health-service:
+    build:
+      context: ./packages/health-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      risk-engine:
+        condition: service_started
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+      - RISK_ENGINE_URL=http://risk-engine:8000
+    volumes:
+      - ./packages/health-service/src:/app/src
+
+  milestone-service:
+    build:
+      context: ./packages/milestone-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./packages/milestone-service/src:/app/src
+
+  token-service:
+    build:
+      context: ./packages/token-service
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+      - POLYGON_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/your-key
+    volumes:
+      - ./packages/token-service/src:/app/src
+
+  community-service:
+    build:
+      context: ./packages/community-service
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URL=mongodb://mongodb:27017/momentum
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./packages/community-service/src:/app/src
+
+  notification-service:
+    build:
+      context: ./packages/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "3006:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    volumes:
+      - ./packages/notification-service/src:/app/src
+
+  content-service:
+    build:
+      context: ./packages/content-service
+      dockerfile: Dockerfile
+    ports:
+      - "3007:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URL=mongodb://mongodb:27017/momentum
+    volumes:
+      - ./packages/content-service/src:/app/src
+
+  risk-engine:
+    build:
+      context: ./packages/risk-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - MODEL_PATH=/app/models
+    volumes:
+      - ./packages/risk-engine/src:/app/src
+      - ./packages/risk-engine/models:/app/models
+
+  ussd-gateway:
+    build:
+      context: ./packages/ussd-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3008:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - USER_SERVICE_URL=http://auth-service:3000
+      - HEALTH_SERVICE_URL=http://health-service:3000
+      - TOKEN_SERVICE_URL=http://token-service:3000
+    volumes:
+      - ./packages/ussd-gateway/src:/app/src
+
+  redemption-service:
+    build:
+      context: ./packages/redemption-service
+      dockerfile: Dockerfile
+    ports:
+      - "3009:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://momentum:momentum_dev@postgres:5432/momentum
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./packages/redemption-service/src:/app/src
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  default:
+    name: momentum-network

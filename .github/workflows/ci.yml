@@ -1,0 +1,553 @@
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+  RUST_VERSION: '1.75'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # CHANGE DETECTION
+  # ═══════════════════════════════════════════════════════════════
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend-mobile: ${{ steps.changes.outputs.frontend-mobile }}
+      frontend-web: ${{ steps.changes.outputs.frontend-web }}
+      blockchain: ${{ steps.changes.outputs.blockchain }}
+      admin: ${{ steps.changes.outputs.admin }}
+      database-ai: ${{ steps.changes.outputs.database-ai }}
+      link-all: ${{ steps.changes.outputs.link-all }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'momentum-backend/**'
+              - 'momentum-shared-types/**'
+              - '!momentum-backend/packages/token-service/**'
+              - '!momentum-backend/packages/admin-service/**'
+              - '!momentum-backend/packages/analytics-service/**'
+              - '!momentum-backend/packages/risk-engine/**'
+            frontend-mobile:
+              - 'momentum-mobile/**'
+            frontend-web:
+              - 'momentum-web/**'
+            blockchain:
+              - 'momentum-contracts/**'
+              - 'momentum-backend/packages/token-service/**'
+            admin:
+              - 'momentum-admin/**'
+              - 'momentum-backend/packages/admin-service/**'
+              - 'momentum-backend/packages/analytics-service/**'
+            database-ai:
+              - 'momentum-infrastructure/**'
+              - 'momentum-database/**'
+              - 'momentum-ml/**'
+              - 'momentum-backend/packages/risk-engine/**'
+            link-all:
+              - 'momentum-e2e-tests/**'
+              - 'momentum-security/**'
+              - 'momentum-localizations/**'
+              - 'momentum-monitoring/**'
+              - 'momentum-scripts/**'
+              - 'momentum-docs/**'
+              - '.github/**'
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: BACKEND
+  # ═══════════════════════════════════════════════════════════════
+  backend-lint:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/backend-*" lint
+      - run: pnpm --filter "@momentum/shared-types" lint
+
+  backend-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: momentum_test
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+      rabbitmq:
+        image: rabbitmq:3.12
+        ports:
+          - 5672:5672
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/backend-*" test
+        env:
+          DATABASE_URL: postgres://postgres:test@localhost:5432/momentum_test
+          REDIS_URL: redis://localhost:6379
+          MONGO_URL: mongodb://localhost:27017/momentum_test
+          RABBITMQ_URL: amqp://localhost:5672
+
+  backend-build:
+    needs: [backend-lint, backend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/backend-*" build
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: FRONTEND - MOBILE
+  # ═══════════════════════════════════════════════════════════════
+  mobile-lint:
+    needs: changes
+    if: needs.changes.outputs.frontend-mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/mobile" lint
+      - run: pnpm --filter "@momentum/mobile" typecheck
+
+  mobile-test:
+    needs: changes
+    if: needs.changes.outputs.frontend-mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/mobile" test
+
+  mobile-build-android:
+    needs: [mobile-lint, mobile-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: cd momentum-mobile && pnpm android:build:debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: momentum-mobile/android/app/build/outputs/apk/debug/
+
+  mobile-build-ios:
+    needs: [mobile-lint, mobile-test]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: cd momentum-mobile/ios && pod install
+      - run: cd momentum-mobile && pnpm ios:build:debug
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: FRONTEND - WEB
+  # ═══════════════════════════════════════════════════════════════
+  web-lint:
+    needs: changes
+    if: needs.changes.outputs.frontend-web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/web" lint
+      - run: pnpm --filter "@momentum/web" typecheck
+
+  web-test:
+    needs: changes
+    if: needs.changes.outputs.frontend-web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/web" test
+
+  web-build:
+    needs: [web-lint, web-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/web" build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: momentum-web/.next/
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: BLOCKCHAIN
+  # ═══════════════════════════════════════════════════════════════
+  blockchain-contracts-test:
+    needs: changes
+    if: needs.changes.outputs.blockchain == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: stellar/actions/setup-soroban@v1
+      - run: |
+          cd momentum-contracts/soroban
+          cargo build --release --target wasm32-unknown-unknown
+          cargo test
+
+  blockchain-contracts-audit:
+    needs: blockchain-contracts-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cargo audit
+        run: |
+          cd momentum-contracts/soroban
+          cargo audit
+
+  blockchain-token-service-test:
+    needs: changes
+    if: needs.changes.outputs.blockchain == 'true'
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/token-service" test
+        env:
+          REDIS_URL: redis://localhost:6379
+          STELLAR_NETWORK: testnet
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: ADMIN & ANALYTICS
+  # ═══════════════════════════════════════════════════════════════
+  admin-lint:
+    needs: changes
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/admin" lint
+      - run: pnpm --filter "@momentum/admin-service" lint
+      - run: pnpm --filter "@momentum/analytics-service" lint
+
+  admin-test:
+    needs: changes
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/admin" test
+      - run: pnpm --filter "@momentum/admin-service" test
+      - run: pnpm --filter "@momentum/analytics-service" test
+
+  admin-build:
+    needs: [admin-lint, admin-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/admin" build
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: DATABASE & AI
+  # ═══════════════════════════════════════════════════════════════
+  database-migrations-check:
+    needs: changes
+    if: needs.changes.outputs.database-ai == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: momentum_test
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run migrations
+        run: |
+          for f in momentum-database/postgres/migrations/*.sql; do
+            psql postgres://postgres:test@localhost:5432/momentum_test -f "$f"
+          done
+
+  ml-risk-engine-test:
+    needs: changes
+    if: needs.changes.outputs.database-ai == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: |
+          cd momentum-backend/packages/risk-engine
+          pip install -r requirements.txt
+          pytest
+
+  ml-models-test:
+    needs: changes
+    if: needs.changes.outputs.database-ai == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: |
+          cd momentum-ml
+          pip install -r requirements.txt
+          pytest
+
+  terraform-validate:
+    needs: changes
+    if: needs.changes.outputs.database-ai == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: |
+          cd momentum-infrastructure/terraform
+          terraform init -backend=false
+          terraform validate
+
+  # ═══════════════════════════════════════════════════════════════
+  # TEAM: LINK ALL & ACCESS
+  # ═══════════════════════════════════════════════════════════════
+  e2e-tests:
+    needs: [backend-build, web-build]
+    if: always() && needs.changes.outputs.link-all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@momentum/e2e-tests" test
+
+  security-scan:
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          
+  dependency-review:
+    needs: changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v3
+
+  docs-lint:
+    needs: changes
+    if: needs.changes.outputs.link-all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint markdown
+        uses: DavidAnson/markdownlint-cli2-action@v14
+        with:
+          globs: 'momentum-docs/**/*.md'
+
+  localization-check:
+    needs: changes
+    if: needs.changes.outputs.link-all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for missing translations
+        run: |
+          cd momentum-scripts
+          ./utils/check-translations.sh
+
+  # ═══════════════════════════════════════════════════════════════
+  # FINAL STATUS CHECK
+  # ═══════════════════════════════════════════════════════════════
+  ci-success:
+    needs: [
+      backend-build,
+      mobile-build-android,
+      web-build,
+      blockchain-contracts-test,
+      blockchain-token-service-test,
+      admin-build,
+      database-migrations-check,
+      ml-risk-engine-test,
+      terraform-validate,
+      security-scan
+    ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          results=(
+            "${{ needs.backend-build.result }}"
+            "${{ needs.mobile-build-android.result }}"
+            "${{ needs.web-build.result }}"
+            "${{ needs.blockchain-contracts-test.result }}"
+            "${{ needs.blockchain-token-service-test.result }}"
+            "${{ needs.admin-build.result }}"
+            "${{ needs.database-migrations-check.result }}"
+            "${{ needs.ml-risk-engine-test.result }}"
+            "${{ needs.terraform-validate.result }}"
+            "${{ needs.security-scan.result }}"
+          )
+          
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" ]]; then
+              echo "❌ One or more jobs failed"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All checks passed!"

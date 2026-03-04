@@ -1,0 +1,178 @@
+# .github/workflows/deploy.yml
+
+name: Deploy Momentum
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: af-south-1
+  ECR_REPOSITORY: momentum
+  EKS_CLUSTER: momentum-cluster
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run SAST scan
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: javascript, typescript
+
+  build:
+    needs: [test, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - health-service
+          - milestone-service
+          - token-service
+          - community-service
+          - notification-service
+          - content-service
+          - risk-engine
+          - ussd-gateway
+          - redemption-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-${{ matrix.service }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY-${{ matrix.service }}:latest \
+            ./packages/${{ matrix.service }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY-${{ matrix.service }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY-${{ matrix.service }}:latest
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }}-staging
+
+      - name: Deploy to staging
+        run: |
+          kubectl set image deployment/auth-service \
+            auth-service=${{ secrets.ECR_REGISTRY }}/momentum-auth-service:${{ github.sha }} \
+            -n momentum-staging
+          # Repeat for other services...
+          kubectl rollout status deployment -n momentum-staging
+
+  deploy-production:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }}-prod
+
+      - name: Deploy to production (Blue-Green)
+        run: |
+          # Deploy to green environment
+          kubectl apply -f k8s/production/green/ -n momentum-prod
+          
+          # Wait for green deployment to be ready
+          kubectl rollout status deployment -n momentum-prod -l env=green
+          
+          # Switch traffic to green
+          kubectl patch service momentum-lb -n momentum-prod \
+            -p '{"spec":{"selector":{"env":"green"}}}'
+          
+          # Scale down blue
+          kubectl scale deployment -l env=blue --replicas=0 -n momentum-prod
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+        env:
+          API_URL: ${{ secrets.PRODUCTION_API_URL }}
+
+      - name: Notify deployment
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Momentum deployed to production: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

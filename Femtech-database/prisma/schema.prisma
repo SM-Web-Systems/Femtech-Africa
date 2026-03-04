@@ -1,0 +1,986 @@
+// ============================================
+// MOMENTUM AFRICA - PRISMA SCHEMA
+// ============================================
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma-client"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, postgis]
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserStatus {
+  pending_verification
+  active
+  suspended
+  deactivated
+}
+
+enum UserRole {
+  mother
+  support_member
+  verifier
+  partner
+  admin
+  super_admin
+}
+
+enum CountryCode {
+  ZA  // South Africa
+  KE  // Kenya
+  NG  // Nigeria
+  GH  // Ghana
+  TZ  // Tanzania
+  UG  // Uganda
+  RW  // Rwanda
+}
+
+enum LanguageCode {
+  en
+  zu
+  xh
+  af
+  sw
+  yo
+  ha
+  ig
+  am
+  fr
+  pt
+}
+
+enum ConsentType {
+  terms_of_service
+  privacy_policy
+  health_data_processing
+  marketing_communications
+  data_sharing_partners
+  biometric_data
+}
+
+enum OtpPurpose {
+  registration
+  login
+  password_reset
+  phone_change
+  transaction_verification
+  emergency_access
+}
+
+enum PregnancyStatus {
+  active
+  delivered
+  miscarriage
+  stillbirth
+  terminated
+  transferred
+}
+
+enum BloodType {
+  A_positive
+  A_negative
+  B_positive
+  B_negative
+  AB_positive
+  AB_negative
+  O_positive
+  O_negative
+  unknown
+}
+
+enum ConditionType {
+  allergy
+  chronic_disease
+  previous_pregnancy_complication
+  surgical_history
+  medication
+  family_history
+}
+
+enum AppointmentType {
+  anc_visit
+  ultrasound
+  lab_test
+  vaccination
+  postnatal
+  specialist
+  emergency
+}
+
+enum AppointmentStatus {
+  scheduled
+  confirmed
+  completed
+  cancelled
+  no_show
+  rescheduled
+}
+
+enum FacilityType {
+  public_hospital
+  private_hospital
+  clinic
+  health_center
+  pharmacy
+  lab
+  mobile_unit
+}
+
+enum MilestoneCategory {
+  clinical
+  wellness
+  education
+  community
+  nutrition
+  mental_health
+}
+
+enum MilestoneStatus {
+  locked
+  available
+  in_progress
+  pending_verification
+  completed
+  expired
+  skipped
+}
+
+enum VerifierType {
+  healthcare_worker
+  community_health_worker
+  facility_admin
+  partner_staff
+  system
+}
+
+enum TokenTxType {
+  mint_milestone
+  mint_referral
+  mint_bonus
+  mint_airdrop
+  burn_redemption
+  burn_penalty
+  transfer_in
+  transfer_out
+  clawback
+}
+
+enum TokenTxStatus {
+  pending
+  submitted
+  confirmed
+  failed
+  reversed
+}
+
+enum PartnerType {
+  mobile_money
+  transport
+  pharmacy
+  grocery
+  healthcare
+  education
+  utility
+}
+
+enum RedemptionStatus {
+  initiated
+  pending_burn
+  burn_confirmed
+  processing
+  completed
+  failed
+  refunded
+  expired
+}
+
+enum NotificationType {
+  appointment_reminder
+  milestone_available
+  milestone_completed
+  reward_received
+  redemption_complete
+  health_alert
+  community_message
+  system_announcement
+  emergency
+}
+
+enum NotificationChannel {
+  push
+  sms
+  email
+  in_app
+  ussd
+}
+
+enum CircleRole {
+  owner
+  admin
+  member
+  viewer
+}
+
+enum ArticleCategory {
+  pregnancy_health
+  nutrition
+  mental_health
+  newborn_care
+  breastfeeding
+  family_planning
+  emergency_signs
+  rights_resources
+}
+
+// ============================================
+// CORE IDENTITY MODELS
+// ============================================
+
+model User {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone           String     @unique @db.VarChar(20)
+  phoneVerified   Boolean    @default(false) @map("phone_verified")
+  email           String?    @db.VarChar(255)
+  emailVerified   Boolean    @default(false) @map("email_verified")
+  country         CountryCode
+  language        LanguageCode @default(en)
+  status          UserStatus @default(pending_verification)
+  role            UserRole   @default(mother)
+  walletAddress   String?    @unique @map("wallet_address") @db.VarChar(56)
+  walletCreatedAt DateTime?  @map("wallet_created_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  profile          UserProfile?
+  consents         Consent[]
+  sessions         Session[]
+  otpCodes         OtpCode[]
+  pregnancies      Pregnancy[]
+  milestones       UserMilestone[]
+  tokenTransactions TokenTransaction[]
+  notifications    Notification[]
+  circleMembers    CircleMember[]
+  quizAttempts     QuizAttempt[]
+  redemptions      Redemption[]
+  verifier         Verifier?
+
+  @@index([phone])
+  @@index([country, status])
+  @@index([walletAddress])
+  @@map("users")
+}
+
+model UserProfile {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  firstNameEncrypted  Bytes    @map("first_name_encrypted")
+  lastNameEncrypted   Bytes    @map("last_name_encrypted")
+  dateOfBirthEncrypted Bytes?  @map("date_of_birth_encrypted")
+  nationalIdEncrypted Bytes?   @map("national_id_encrypted")
+  addressEncrypted    Bytes?   @map("address_encrypted")
+  avatarUrl           String?  @map("avatar_url") @db.VarChar(500)
+  encryptionKeyId     String   @map("encryption_key_id") @db.VarChar(100)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Consent {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  consentType ConsentType @map("consent_type")
+  version     String      @db.VarChar(20)
+  grantedAt   DateTime    @map("granted_at")
+  revokedAt   DateTime?   @map("revoked_at")
+  ipAddress   String?     @map("ip_address") @db.Inet
+  userAgent   String?     @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, consentType, version])
+  @@index([userId, consentType])
+  @@map("consents")
+}
+
+model Session {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  deviceId         String   @map("device_id") @db.VarChar(100)
+  deviceType       String   @map("device_type") @db.VarChar(50)
+  deviceName       String?  @map("device_name") @db.VarChar(100)
+  osVersion        String?  @map("os_version") @db.VarChar(50)
+  appVersion       String?  @map("app_version") @db.VarChar(20)
+  refreshTokenHash String   @map("refresh_token_hash") @db.VarChar(100)
+  expiresAt        DateTime @map("expires_at")
+  lastActiveAt     DateTime @default(now()) @map("last_active_at")
+  ipAddress        String?  @map("ip_address") @db.Inet
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model OtpCode {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone     String     @db.VarChar(20)
+  codeHash  String     @map("code_hash") @db.VarChar(100)
+  purpose   OtpPurpose
+  attempts  Int        @default(0)
+  maxAttempts Int      @default(3) @map("max_attempts")
+  expiresAt DateTime   @map("expires_at")
+  usedAt    DateTime?  @map("used_at")
+  userId    String?    @map("user_id") @db.Uuid
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+// ============================================
+// HEALTH & PREGNANCY MODELS
+// ============================================
+
+model Facility {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String       @db.VarChar(200)
+  type             FacilityType
+  country          CountryCode
+  province         String?      @db.VarChar(100)
+  district         String?      @db.VarChar(100)
+  address          String?      @db.VarChar(500)
+  latitude         Decimal?     @db.Decimal(10, 8)
+  longitude        Decimal?     @db.Decimal(11, 8)
+  phone            String?      @db.VarChar(20)
+  email            String?      @db.VarChar(255)
+  isPartner        Boolean      @default(false) @map("is_partner")
+  verificationCode String?      @unique @map("verification_code") @db.VarChar(20)
+  operatingHours   Json?        @map("operating_hours")
+  services         String[]     @default([])
+  isActive         Boolean      @default(true) @map("is_active")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  pregnancies   Pregnancy[]
+  appointments  Appointment[]
+  verifiers     Verifier[]
+
+  @@index([country, type])
+  @@index([isPartner, isActive])
+  @@map("facilities")
+}
+
+model Pregnancy {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String          @map("user_id") @db.Uuid
+  status                PregnancyStatus @default(active)
+  lmpDate               DateTime?       @map("lmp_date") @db.Date
+  eddDate               DateTime?       @map("edd_date") @db.Date
+  conceptionDate        DateTime?       @map("conception_date") @db.Date
+  deliveryDate          DateTime?       @map("delivery_date") @db.Date
+  gravida               Int             @default(1)
+  parity                Int             @default(0)
+  isHighRisk            Boolean         @default(false) @map("is_high_risk")
+  riskFactors           String[]        @default([]) @map("risk_factors")
+  bloodType             BloodType       @default(unknown) @map("blood_type")
+  primaryFacilityId     String?         @map("primary_facility_id") @db.Uuid
+  momConnectRegistered  Boolean         @default(false) @map("momconnect_registered")
+  momConnectId          String?         @map("momconnect_id") @db.VarChar(50)
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primaryFacility Facility?         @relation(fields: [primaryFacilityId], references: [id])
+  medicalHistory  MedicalHistory[]
+  appointments    Appointment[]
+  kickSessions    KickSession[]
+  emergencyContacts EmergencyContact[]
+  milestones      UserMilestone[]
+
+  @@index([userId, status])
+  @@index([eddDate])
+  @@map("pregnancies")
+}
+
+model MedicalHistory {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pregnancyId     String        @map("pregnancy_id") @db.Uuid
+  conditionType   ConditionType @map("condition_type")
+  icdCode         String?       @map("icd_code") @db.VarChar(10)
+  description     String        @db.VarChar(500)
+  severity        String?       @db.VarChar(20)
+  diagnosedDate   DateTime?     @map("diagnosed_date") @db.Date
+  notesEncrypted  Bytes?        @map("notes_encrypted")
+  verifiedBy      String?       @map("verified_by") @db.Uuid
+  verifiedAt      DateTime?     @map("verified_at")
+  isActive        Boolean       @default(true) @map("is_active")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  verifier  Verifier? @relation(fields: [verifiedBy], references: [id])
+
+  @@index([pregnancyId, conditionType])
+  @@map("medical_history")
+}
+
+model Appointment {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pregnancyId      String            @map("pregnancy_id") @db.Uuid
+  facilityId       String            @map("facility_id") @db.Uuid
+  type             AppointmentType
+  status           AppointmentStatus @default(scheduled)
+  scheduledDate    DateTime          @map("scheduled_date") @db.Date
+  scheduledTime    DateTime?         @map("scheduled_time") @db.Time()
+  actualDate       DateTime?         @map("actual_date") @db.Date
+  notesEncrypted   Bytes?            @map("notes_encrypted")
+  reminderSent     Boolean           @default(false) @map("reminder_sent")
+  verifiedBy       String?           @map("verified_by") @db.Uuid
+  verificationHash String?           @map("verification_hash") @db.VarChar(100)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  facility  Facility  @relation(fields: [facilityId], references: [id])
+  verifier  Verifier? @relation(fields: [verifiedBy], references: [id])
+
+  @@index([pregnancyId, status])
+  @@index([scheduledDate])
+  @@index([facilityId])
+  @@map("appointments")
+}
+
+model KickSession {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pregnancyId   String    @map("pregnancy_id") @db.Uuid
+  startedAt     DateTime  @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  kickCount     Int       @default(0) @map("kick_count")
+  targetKicks   Int       @default(10) @map("target_kicks")
+  durationMinutes Int?    @map("duration_minutes")
+  reachedTarget Boolean   @default(false) @map("reached_target")
+  alertTriggered Boolean  @default(false) @map("alert_triggered")
+  notes         String?   @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+
+  @@index([pregnancyId])
+  @@index([startedAt])
+  @@map("kick_sessions")
+}
+
+model EmergencyContact {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pregnancyId  String   @map("pregnancy_id") @db.Uuid
+  name         String   @db.VarChar(100)
+  relationship String   @db.VarChar(50)
+  phone        String   @db.VarChar(20)
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  canAccessHealth Boolean @default(false) @map("can_access_health")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  pregnancy Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+
+  @@index([pregnancyId])
+  @@map("emergency_contacts")
+}
+
+// ============================================
+// MILESTONE & REWARD MODELS
+// ============================================
+
+model MilestoneDefinition {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                    String            @unique @db.VarChar(50)
+  name                    String            @db.VarChar(200)
+  description             String            @db.Text
+  category                MilestoneCategory
+  rewardAmount            Int               @map("reward_amount")
+  gestationalWeekMin      Int?              @map("gestational_week_min")
+  gestationalWeekMax      Int?              @map("gestational_week_max")
+  daysSinceDeliveryMin    Int?              @map("days_since_delivery_min")
+  daysSinceDeliveryMax    Int?              @map("days_since_delivery_max")
+  maxClaimsPerPregnancy   Int               @default(1) @map("max_claims_per_pregnancy")
+  requiresVerification    Boolean           @default(true) @map("requires_verification")
+  verificationTypes       String[]          @default([]) @map("verification_types")
+  autoComplete            Boolean           @default(false) @map("auto_complete")
+  autoCompleteConditions  Json?             @map("auto_complete_conditions")
+  countries               CountryCode[]     @default([])
+  isActive                Boolean           @default(true) @map("is_active")
+  sortOrder               Int               @default(0) @map("sort_order")
+  iconUrl                 String?           @map("icon_url") @db.VarChar(500)
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  userMilestones UserMilestone[]
+
+  @@index([category, isActive])
+  @@index([gestationalWeekMin, gestationalWeekMax])
+  @@map("milestone_definitions")
+}
+
+model UserMilestone {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String          @map("user_id") @db.Uuid
+  pregnancyId         String          @map("pregnancy_id") @db.Uuid
+  milestoneDefinitionId String        @map("milestone_definition_id") @db.Uuid
+  status              MilestoneStatus @default(locked)
+  progressPercent     Int             @default(0) @map("progress_percent")
+  progressData        Json?           @map("progress_data")
+  unlockedAt          DateTime?       @map("unlocked_at")
+  startedAt           DateTime?       @map("started_at")
+  completedAt         DateTime?       @map("completed_at")
+  verifiedAt          DateTime?       @map("verified_at")
+  verifiedBy          String?         @map("verified_by") @db.Uuid
+  rewardAmount        Int?            @map("reward_amount")
+  rewardTxId          String?         @map("reward_tx_id") @db.Uuid
+  expiresAt           DateTime?       @map("expires_at")
+  claimNumber         Int             @default(1) @map("claim_number")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pregnancy           Pregnancy           @relation(fields: [pregnancyId], references: [id], onDelete: Cascade)
+  milestoneDefinition MilestoneDefinition @relation(fields: [milestoneDefinitionId], references: [id])
+  verifier            Verifier?           @relation(fields: [verifiedBy], references: [id])
+  rewardTransaction   TokenTransaction?   @relation(fields: [rewardTxId], references: [id])
+  verifications       Verification[]
+
+  @@unique([userId, pregnancyId, milestoneDefinitionId, claimNumber])
+  @@index([userId, status])
+  @@index([pregnancyId])
+  @@index([status, expiresAt])
+  @@map("user_milestones")
+}
+
+model Verifier {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String       @unique @map("user_id") @db.Uuid
+  type             VerifierType
+  facilityId       String?      @map("facility_id") @db.Uuid
+  verificationCode String       @unique @map("verification_code") @db.VarChar(20)
+  credentialsHash  String?      @map("credentials_hash") @db.VarChar(100)
+  specializations  String[]     @default([])
+  verificationCount Int         @default(0) @map("verification_count")
+  isActive         Boolean      @default(true) @map("is_active")
+  approvedAt       DateTime?    @map("approved_at")
+  approvedBy       String?      @map("approved_by") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facility        Facility?       @relation(fields: [facilityId], references: [id])
+  verifications   Verification[]
+  medicalHistory  MedicalHistory[]
+  appointments    Appointment[]
+  milestones      UserMilestone[]
+
+  @@index([verificationCode])
+  @@index([facilityId])
+  @@map("verifiers")
+}
+
+model Verification {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userMilestoneId String   @map("user_milestone_id") @db.Uuid
+  verifierId      String   @map("verifier_id") @db.Uuid
+  verificationType String  @map("verification_type") @db.VarChar(50)
+  verificationHash String  @map("verification_hash") @db.VarChar(100)
+  qrCodeData      String?  @map("qr_code_data") @db.VarChar(500)
+  latitude        Decimal? @db.Decimal(10, 8)
+  longitude       Decimal? @db.Decimal(11, 8)
+  photoUrl        String?  @map("photo_url") @db.VarChar(500)
+  notes           String?  @db.VarChar(500)
+  deviceId        String?  @map("device_id") @db.VarChar(100)
+  isValid         Boolean  @default(true) @map("is_valid")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  userMilestone UserMilestone @relation(fields: [userMilestoneId], references: [id], onDelete: Cascade)
+  verifier      Verifier      @relation(fields: [verifierId], references: [id])
+
+  @@index([userMilestoneId])
+  @@index([verifierId])
+  @@index([verificationHash])
+  @@map("verifications")
+}
+
+// ============================================
+// TOKEN & BLOCKCHAIN MODELS
+// ============================================
+
+model TokenTransaction {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String         @map("user_id") @db.Uuid
+  type            TokenTxType
+  status          TokenTxStatus  @default(pending)
+  amount          BigInt
+  balanceBefore   BigInt?        @map("balance_before")
+  balanceAfter    BigInt?        @map("balance_after")
+  stellarTxHash   String?        @unique @map("stellar_tx_hash") @db.VarChar(64)
+  stellarLedger   Int?           @map("stellar_ledger")
+  memoHash        String?        @map("memo_hash") @db.VarChar(64)
+  milestoneId     String?        @map("milestone_id") @db.Uuid
+  redemptionId    String?        @map("redemption_id") @db.Uuid
+  referenceId     String?        @map("reference_id") @db.VarChar(100)
+  errorMessage    String?        @map("error_message") @db.VarChar(500)
+  retryCount      Int            @default(0) @map("retry_count")
+  feePaid         BigInt?        @map("fee_paid")
+  feeSponsored    Boolean        @default(true) @map("fee_sponsored")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  confirmedAt     DateTime?      @map("confirmed_at")
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones    UserMilestone[]
+  redemption    Redemption?    @relation(fields: [redemptionId], references: [id])
+
+  @@index([userId, type])
+  @@index([stellarTxHash])
+  @@index([status, createdAt])
+  @@map("token_transactions")
+}
+
+// ============================================
+// PARTNER & REDEMPTION MODELS
+// ============================================
+
+model Partner {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String      @db.VarChar(200)
+  type              PartnerType
+  country           CountryCode
+  logoUrl           String?     @map("logo_url") @db.VarChar(500)
+  description       String?     @db.Text
+  apiBaseUrl        String?     @map("api_base_url") @db.VarChar(500)
+  apiKeyEncrypted   Bytes?      @map("api_key_encrypted")
+  webhookUrl        String?     @map("webhook_url") @db.VarChar(500)
+  webhookSecret     String?     @map("webhook_secret") @db.VarChar(100)
+  contactEmail      String?     @map("contact_email") @db.VarChar(255)
+  contactPhone      String?     @map("contact_phone") @db.VarChar(20)
+  commissionPercent Decimal     @default(0) @map("commission_percent") @db.Decimal(5, 2)
+  isActive          Boolean     @default(true) @map("is_active")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  products PartnerProduct[]
+
+  @@index([type, country, isActive])
+  @@map("partners")
+}
+
+model PartnerProduct {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partnerId       String      @map("partner_id") @db.Uuid
+  name            String      @db.VarChar(200)
+  description     String?     @db.Text
+  category        String      @db.VarChar(50)
+  tokenCost       Int         @map("token_cost")
+  fiatValue       Decimal?    @map("fiat_value") @db.Decimal(10, 2)
+  currency        String      @default("ZAR") @db.VarChar(3)
+  imageUrl        String?     @map("image_url") @db.VarChar(500)
+  stockQuantity   Int?        @map("stock_quantity")
+  maxPerUser      Int?        @map("max_per_user")
+  maxPerMonth     Int?        @map("max_per_month")
+  requiresKyc     Boolean     @default(false) @map("requires_kyc")
+  externalSku     String?     @map("external_sku") @db.VarChar(100)
+  sortOrder       Int         @default(0) @map("sort_order")
+  isActive        Boolean     @default(true) @map("is_active")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  partner     Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  redemptions RedemptionItem[]
+
+  @@index([partnerId, isActive])
+  @@index([category, isActive])
+  @@map("partner_products")
+}
+
+model Redemption {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String           @map("user_id") @db.Uuid
+  status            RedemptionStatus @default(initiated)
+  totalTokens       Int              @map("total_tokens")
+  burnTxId          String?          @map("burn_tx_id") @db.Uuid
+  externalReference String?          @map("external_reference") @db.VarChar(100)
+  failureReason     String?          @map("failure_reason") @db.VarChar(500)
+  completedAt       DateTime?        @map("completed_at")
+  expiresAt         DateTime?        @map("expires_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        RedemptionItem[]
+  transactions TokenTransaction[]
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("redemptions")
+}
+
+model RedemptionItem {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  redemptionId  String   @map("redemption_id") @db.Uuid
+  productId     String   @map("product_id") @db.Uuid
+  quantity      Int      @default(1)
+  tokenCost     Int      @map("token_cost")
+  voucherCode   String?  @map("voucher_code") @db.VarChar(100)
+  deliveryData  Json?    @map("delivery_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  redemption Redemption     @relation(fields: [redemptionId], references: [id], onDelete: Cascade)
+  product    PartnerProduct @relation(fields: [productId], references: [id])
+
+  @@index([redemptionId])
+  @@map("redemption_items")
+}
+
+// ============================================
+// COMMUNITY MODELS
+// ============================================
+
+model SupportCircle {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  isPrivate   Boolean  @default(true) @map("is_private")
+  maxMembers  Int      @default(10) @map("max_members")
+  country     CountryCode?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members CircleMember[]
+
+  @@index([country, isPrivate])
+  @@map("support_circles")
+}
+
+model CircleMember {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  circleId  String     @map("circle_id") @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  role      CircleRole @default(member)
+  joinedAt  DateTime   @default(now()) @map("joined_at")
+  leftAt    DateTime?  @map("left_at")
+  isMuted   Boolean    @default(false) @map("is_muted")
+
+  // Relations
+  circle SupportCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([circleId, userId])
+  @@index([userId])
+  @@map("circle_members")
+}
+
+model DigitalDoula {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String       @db.VarChar(100)
+  bio            String?      @db.Text
+  avatarUrl      String?      @map("avatar_url") @db.VarChar(500)
+  country        CountryCode
+  languages      LanguageCode[]
+  specializations String[]    @default([])
+  isAvailable    Boolean      @default(true) @map("is_available")
+  responseTimeMinutes Int     @default(60) @map("response_time_minutes")
+  totalChats     Int          @default(0) @map("total_chats")
+  avgRating      Decimal      @default(0) @map("avg_rating") @db.Decimal(3, 2)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([country, isAvailable])
+  @@map("digital_doulas")
+}
+
+// ============================================
+// CONTENT & EDUCATION MODELS
+// ============================================
+
+model Article {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                String          @unique @db.VarChar(200)
+  title               String          @db.VarChar(300)
+  summary             String          @db.VarChar(500)
+  content             String          @db.Text
+  category            ArticleCategory
+  tags                String[]        @default([])
+  gestationalWeekMin  Int?            @map("gestational_week_min")
+  gestationalWeekMax  Int?            @map("gestational_week_max")
+  imageUrl            String?         @map("image_url") @db.VarChar(500)
+  audioUrl            String?         @map("audio_url") @db.VarChar(500)
+  videoUrl            String?         @map("video_url") @db.VarChar(500)
+  readTimeMinutes     Int             @default(5) @map("read_time_minutes")
+  countries           CountryCode[]   @default([])
+  languages           LanguageCode[]  @default([en])
+  viewCount           Int             @default(0) @map("view_count")
+  isPublished         Boolean         @default(false) @map("is_published")
+  publishedAt         DateTime?       @map("published_at")
+  authorName          String?         @map("author_name") @db.VarChar(100)
+  reviewedBy          String?         @map("reviewed_by") @db.VarChar(100)
+  seoTitle            String?         @map("seo_title") @db.VarChar(60)
+  seoDescription      String?         @map("seo_description") @db.VarChar(160)
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  @@index([category, isPublished])
+  @@index([gestationalWeekMin, gestationalWeekMax])
+  @@index([tags], type: Gin)
+  @@map("articles")
+}
+
+model Quiz {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug               String       @unique @db.VarChar(200)
+  title              String       @db.VarChar(300)
+  description        String?      @db.VarChar(500)
+  category           ArticleCategory
+  passingScore       Int          @default(70) @map("passing_score")
+  rewardTokens       Int          @default(10) @map("reward_tokens")
+  timeLimitMinutes   Int?         @map("time_limit_minutes")
+  gestationalWeekMin Int?         @map("gestational_week_min")
+  gestationalWeekMax Int?         @map("gestational_week_max")
+  countries          CountryCode[] @default([])
+  languages          LanguageCode[] @default([en])
+  isPublished        Boolean      @default(false) @map("is_published")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([category, isPublished])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quizId         String   @map("quiz_id") @db.Uuid
+  questionText   String   @map("question_text") @db.Text
+  questionType   String   @map("question_type") @db.VarChar(20) // multiple_choice, true_false, multi_select
+  options        Json     // Array of { id, text, isCorrect }
+  explanation    String?  @db.Text
+  points         Int      @default(1)
+  sortOrder      Int      @default(0) @map("sort_order")
+  imageUrl       String?  @map("image_url") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, sortOrder])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quizId        String    @map("quiz_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  score         Int
+  maxScore      Int       @map("max_score")
+  passed        Boolean
+  answers       Json      // Array of { questionId, selectedOptions, correct, points }
+  timeTakenSec  Int?      @map("time_taken_sec")
+  rewardGranted Boolean   @default(false) @map("reward_granted")
+  completedAt   DateTime  @default(now()) @map("completed_at")
+
+  // Relations
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@index([userId])
+  @@map("quiz_attempts")
+}
+
+// ============================================
+// NOTIFICATION MODEL
+// ============================================
+
+model Notification {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  type        NotificationType
+  channel     NotificationChannel
+  title       String              @db.VarChar(200)
+  body        String              @db.Text
+  payload     Json?
+  isRead      Boolean             @default(false) @map("is_read")
+  readAt      DateTime?           @map("read_at")
+  sentAt      DateTime?           @map("sent_at")
+  failedAt    DateTime?           @map("failed_at")
+  errorMessage String?            @map("error_message") @db.VarChar(500)
+  scheduledFor DateTime?          @map("scheduled_for")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([scheduledFor, sentAt])
+  @@index([type, channel])
+  @@map("notifications")
+}
+
+model SmsMessage {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone         String   @db.VarChar(20)
+  message       String   @db.Text
+  provider      String   @db.VarChar(50) // africas_talking, twilio, etc
+  providerMsgId String?  @map("provider_msg_id") @db.VarChar(100)
+  status        String   @db.VarChar(20) // queued, sent, delivered, failed
+  costAmount    Decimal? @map("cost_amount") @db.Decimal(10, 6)
+  costCurrency  String?  @map("cost_currency") @db.VarChar(3)
+  errorMessage  String?  @map("error_message") @db.VarChar(500)
+  sentAt        DateTime? @map("sent_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@index([providerMsgId])
+  @@index([status, createdAt])
+  @@map("sms_messages")
+}
