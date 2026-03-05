@@ -506,3 +506,51 @@ ML Models - Risk prediction, symptom NLP, content recommendation
 Deployment Scripts - Terraform modules, Kubernetes manifests
 Monitoring Setup - Prometheus, Grafana, alerting rules
 Document generated: March 2026 Version: 1.0 Status: Development Phase
+
+# March 5, 2026
+
+PostgreSQL Database Deployed on Linux Server • Installed PostgreSQL on remote server (68.183.44.159) • Created femtech database user and granted permissions • Enabled required extensions: uuid-ossp, pgcrypto
+
+Database Migrations Successfully Executed • Ran five migration files (001_initial_schema.sql through 005_redemption_tables.sql) • Created all core tables: users, pregnancies, milestones, partners, products, redemptions • Set up indexes, triggers, foreign keys, and enum types
+
+Database Seeded with Test Data • 16 users across ZA, KE, UG (mothers, clinicians, CHWs, doulas, admin) • 16 partners (mobile money, healthcare, retail, transport) • 18 partner products (airtime, vouchers, data bundles) • 22 milestone definitions (clinical, wellness, education, community) • 8 pregnancies with various risk profiles • 15 user milestones in different states
+
+Prisma Client Generated • Used Prisma 5.10.0 for stability (avoiding v7 breaking changes) • Pulled schema from live database • Fixed enum mapping issues (blood_type, partner_type, country_code)
+
+API Server Built and Deployed • Express.js API with full CRUD endpoints • JWT authentication with OTP verification flow • Public endpoints: /health, /users, /partners, /products, /milestones, /pregnancies • Protected endpoints: /my/milestones, /my/pregnancies, /my/transactions, /my/redemptions • Deployed to Linux server using PM2 for process management
+
+Live API Accessible • URL: https://api.mamatokens.com:3000 • Health check confirmed: database connected, 16 users active • Authentication tested successfully with JWT token generation
+
+Environment Configuration Centralized • Single .env file at FEMTECH-AFRICA root • All services reference this central configuration • 42 environment variables loaded
+
+Row Level Security Configured • RLS disabled on users, pregnancies, user_milestones tables for development • Full DML permissions granted to femtech user
+
+Endpoint	URL
+Health	https://api.mamatokens.com:3000/health
+Users	https://api.mamatokens.com:3000/api/v1/users
+Partners	https://api.mamatokens.com:3000/api/v1/partners
+Products	https://api.mamatokens.com:3000/api/v1/products
+Milestones	https://api.mamatokens.com:3000/api/v1/milestones
+Request OTP	POST https://api.mamatokens.com:3000/api/v1/auth/request-otp
+Verify OTP	POST https://api.mamatokens.com:3000/api/v1/auth/verify-otp
+
+Server Status: All Systems Operational
+
+Service	Status	Port
+PostgreSQL	✓ Active	5432
+Redis	✓ Active	6379
+MongoDB	✓ Active	27017
+RabbitMQ	✓ Active	5672, 15672
+Nginx	✓ Active	80
+Femtech API	✓ Online	3000
+Access URLs:
+
+API: https://api.mamatokens.com/health
+RabbitMQ Management: https://api.mamatokens.com:15672 (user: femtech / pass: femtech2026)
+Configured:
+
+Nginx reverse proxy (port 80 → 3000)
+UFW firewall (ports 22, 80, 443, 5432, 15672)
+PM2 process manager with auto-restart
+Daily database backups at 2 AM (7-day retention)
+Central .env configuration
