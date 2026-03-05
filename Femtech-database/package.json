@@ -1,36 +1,16 @@
-{
-  "name": "@femtech/database",
+﻿{
+  "name": "femtech-database",
   "version": "1.0.0",
-  "description": "Database schemas, migrations, and seed data",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -w -p tsconfig.build.json",
-    "clean": "rimraf dist",
-    "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate --schema=./prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema=./prisma/schema.prisma",
-    "db:migrate:prod": "prisma migrate deploy --schema=./prisma/schema.prisma",
-    "db:seed": "ts-node prisma/seed.ts",
-    "db:seed:postgres": "psql $DATABASE_URL -f postgres/seeds/001_partners.sql && psql $DATABASE_URL -f postgres/seeds/001_milestone_definitions.sql && psql $DATABASE_URL -f postgres/seeds/002_partner_products.sql && psql $DATABASE_URL -f postgres/seeds/003_test_users.sql && psql $DATABASE_URL -f postgres/seeds/004_test_pregnancies.sql && psql $DATABASE_URL -f postgres/seeds/005_test_verifiers.sql && psql $DATABASE_URL -f postgres/seeds/006_test_milestones.sql && psql $DATABASE_URL -f postgres/seeds/007_test_redemptions.sql && psql $DATABASE_URL -f postgres/seeds/008_test_health_data.sql && psql $DATABASE_URL -f postgres/seeds/009_test_consents.sql",
-    "db:seed:mongodb": "mongosh $MONGODB_URL mongodb/seeds/symptom_logs.js",
-    "db:reset": "prisma migrate reset --schema=./prisma/schema.prisma",
-    "db:studio": "prisma studio --schema=./prisma/schema.prisma",
-    "db:push": "prisma db push --schema=./prisma/schema.prisma",
-    "postinstall": "prisma generate --schema=./prisma/schema.prisma"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^5.10.0"
+    "@prisma/client": "5.10.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24",
-    "prisma": "^5.10.0",
-    "rimraf": "^5.0.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
-  "prisma": {
-    "schema": "prisma/schema.prisma"
+    "prisma": "5.10.0"
   }
 }
