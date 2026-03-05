@@ -562,3 +562,131 @@ Mint API Endpoint - POST /api/v1/mint for milestone rewards
 
 Stellar Token: View: https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
 
+# MAMA Token Minting Flow
+# Prerequisites
+- User must be authenticated (JWT token)
+- User must have a Stellar wallet address linked to their account
+- Milestone must be status: "completed" and reward_minted: false
+
+# Step 1: User Wallet Setup (First time only)
+If user has no wallet, frontend should:
+
+POST /api/v1/wallet/create
+Or manually:
+
+- Generate Stellar keypair client-side
+- Fund via Friendbot (testnet): https://friendbot.stellar.org?addr={PUBLIC_KEY}
+- Create trustline for MAMA token
+- Save public key to user profile
+
+# Step 2: Check Available Milestones
+GET /api/v1/my/milestones
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "f1000000-0000-4000-8000-000000000001",
+      "status": "completed",
+      "reward_minted": false,
+      "rewardAmount": 20,
+      "milestone_definitions": {
+        "code": "PROFILE_COMPLETE",
+        "name": "Complete Profile",
+        "rewardAmount": 20
+      }
+    }
+  ]
+}
+Mintable milestones: Filter where status === "completed" AND reward_minted === false
+
+# Step 3: Mint Tokens
+POST /api/v1/mint
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "milestoneId": "f1000000-0000-4000-8000-000000000001"
+}
+Success Response (200):
+
+{
+  "success": true,
+  "amount": 20,
+  "txHash": "feaace09b5f6a1867ec6804f49d58db35e7fc633604995fd5cc8275b091ec122",
+  "stellarExpert": "https://stellar.expert/explorer/testnet/tx/feaace09..."
+}
+Error Responses:
+
+# Status	Error	Cause
+- 400	User has no wallet address	User needs wallet setup
+- 400	Reward already minted	Milestone already claimed
+- 404	Milestone not found	Invalid milestone ID or not owned by user
+- 401	No token provided	Missing JWT
+- 401	Invalid token	Expired or invalid JWT
+
+# Step 4: Verify Transaction (Optional)
+User can view transaction on Stellar Explorer:
+
+https://stellar.expert/explorer/testnet/tx/{txHash}
+Or check wallet balance:
+
+https://stellar.expert/explorer/testnet/account/{USER_WALLET_ADDRESS}
+Frontend UI Flow
+┌─────────────────────────────────────────────────────────┐
+│                    MILESTONES SCREEN                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ ✅ Complete Profile           20 MAMA           │   │
+│  │    Status: Completed                            │   │
+│  │    [CLAIM REWARD]  ← Button enabled             │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ ✅ First ANC Visit           100 MAMA           │   │
+│  │    Status: Completed                            │   │
+│  │    [CLAIMED ✓]  ← Already minted                │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ 🔄 Nutrition Quiz             25 MAMA           │   │
+│  │    Status: In Progress (60%)                    │   │
+│  │    [CONTINUE]  ← Can't claim yet                │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+         ↓ User taps "CLAIM REWARD" ↓
+
+┌─────────────────────────────────────────────────────────┐
+│                   CLAIMING REWARD...                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│                      🔄 Loading                         │
+│                                                         │
+│              Minting 20 MAMA tokens...                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+         ↓ Success ↓
+
+┌─────────────────────────────────────────────────────────┐
+│                   REWARD CLAIMED! 🎉                    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│                       +20 MAMA                          │
+│                                                         │
+│              Complete Profile Milestone                 │
+│                                                         │
+│         [VIEW TRANSACTION]  [DONE]                      │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+Token Details
+Property	Value
+Asset Code	MAMA
+Network	Stellar Testnet
+Issuer	GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
+Explorer	https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
+
