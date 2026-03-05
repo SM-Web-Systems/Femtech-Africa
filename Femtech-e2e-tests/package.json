@@ -16,7 +16,7 @@
     "clean": "rimraf test-results playwright-report"
   },
   "dependencies": {
-    "@femtech/shared-types": "workspace:*",
+    "@femtech/shared-types": "*",
     "axios": "^1.6.7",
     "dotenv": "^16.4.5"
   },

@@ -19,7 +19,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@femtech/shared": "workspace:*",
+    "@femtech/shared": "*",
     "@stellar/stellar-sdk": "^11.2.2",
     "bignumber.js": "^9.1.2",
     "cors": "^2.8.5",

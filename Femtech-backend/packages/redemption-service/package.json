@@ -19,7 +19,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@femtech/shared": "workspace:*",
+    "@femtech/shared": "*",
     "axios": "^1.6.7",
     "axios-retry": "^4.0.0",
     "cors": "^2.8.5",
