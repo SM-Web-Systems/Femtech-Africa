@@ -19,7 +19,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@femtech/shared": "workspace:*",
+    "@femtech/shared": "*",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "express": "^4.18.3",
