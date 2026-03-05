@@ -274,6 +274,139 @@ app.post('/api/v1/mint', authMiddleware, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// WALLET ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+// Create wallet for user
+app.post('/api/v1/wallet/create', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Check if user already has wallet
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user.walletAddress) {
+      return res.status(400).json({ error: 'User already has a wallet', walletAddress: user.walletAddress });
+    }
+
+    // Generate new keypair
+    const keypair = StellarSdk.Keypair.random();
+    const publicKey = keypair.publicKey();
+    const secretKey = keypair.secret();
+
+    // Fund account via Friendbot (testnet only)
+    console.log(`Funding wallet ${publicKey}...`);
+    const fundResponse = await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+    if (!fundResponse.ok) {
+      return res.status(500).json({ error: 'Failed to fund wallet on testnet' });
+    }
+
+    // Create trustline for MAMA token
+    console.log('Creating MAMA trustline...');
+    const account = await stellarServer.loadAccount(publicKey);
+    const trustlineTx = new StellarSdk.TransactionBuilder(account, {
+      fee: '100',
+      networkPassphrase: StellarSdk.Networks.TESTNET
+    })
+      .addOperation(StellarSdk.Operation.changeTrust({ asset: MAMA }))
+      .setTimeout(30)
+      .build();
+    trustlineTx.sign(keypair);
+    await stellarServer.submitTransaction(trustlineTx);
+
+    // Save wallet to user (only public key - secret should be stored securely by user)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { 
+        walletAddress: publicKey,
+        walletCreatedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      walletAddress: publicKey,
+      secretKey: secretKey, // IMPORTANT: User must save this! Show warning in frontend
+      message: 'Wallet created successfully. SAVE YOUR SECRET KEY - it cannot be recovered!',
+      stellarExpert: `https://stellar.expert/explorer/testnet/account/${publicKey}`
+    });
+
+  } catch (error) {
+    console.error('Wallet creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get wallet balance
+app.get('/api/v1/wallet/balance', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user.walletAddress) {
+      return res.status(400).json({ error: 'User has no wallet' });
+    }
+
+    const account = await stellarServer.loadAccount(user.walletAddress);
+    
+    const balances = account.balances.map(b => ({
+      asset: b.asset_type === 'native' ? 'XLM' : b.asset_code,
+      balance: b.balance,
+      issuer: b.asset_issuer || null
+    }));
+
+    const mamaBalance = balances.find(b => b.asset === 'MAMA') || { asset: 'MAMA', balance: '0' };
+
+    res.json({
+      walletAddress: user.walletAddress,
+      balances,
+      mamaBalance: mamaBalance.balance,
+      stellarExpert: `https://stellar.expert/explorer/testnet/account/${user.walletAddress}`
+    });
+
+  } catch (error) {
+    console.error('Balance check error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get wallet transactions
+app.get('/api/v1/wallet/transactions', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user.walletAddress) {
+      return res.status(400).json({ error: 'User has no wallet' });
+    }
+
+    const transactions = await stellarServer
+      .transactions()
+      .forAccount(user.walletAddress)
+      .order('desc')
+      .limit(20)
+      .call();
+
+    const txList = transactions.records.map(tx => ({
+      id: tx.id,
+      hash: tx.hash,
+      createdAt: tx.created_at,
+      memo: tx.memo || null,
+      stellarExpert: `https://stellar.expert/explorer/testnet/tx/${tx.hash}`
+    }));
+
+    res.json({
+      walletAddress: user.walletAddress,
+      transactions: txList,
+      count: txList.length
+    });
+
+  } catch (error) {
+    console.error('Transactions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // START SERVER
 // ═══════════════════════════════════════════════════════════════
 app.listen(PORT, () => {
