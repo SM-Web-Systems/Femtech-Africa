@@ -1,4 +1,4 @@
-require('dotenv').config({ path: 'D:/SM-WEB/FEMTECH-AFRICA/.env' });
+require('dotenv').config({ path: '/home/christopher-fourquier/Femtech-Africa/.env' });
 
 const express = require('express');
 const cors = require('cors');
@@ -423,4 +423,93 @@ app.listen(PORT, () => {
   console.log('    GET  /api/v1/my/redemptions');
   console.log('    POST /api/v1/my/redemptions');
   console.log('==================================================');
+});
+
+// ============ STELLAR INTEGRATION ============
+const StellarSdk = require('@stellar/stellar-sdk');
+
+const HORIZON_URL = 'https://horizon-testnet.stellar.org';
+const DISTRIBUTOR_SECRET = 'SDD3D5XDOIIZ4Y2T47BD3SZXUPLVW6QH46XTBUSCHDZDGGONBETP3AIM';
+const ISSUER_PUBLIC = 'GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V';
+const ASSET_CODE = 'MAMA';
+
+const stellarServer = new StellarSdk.Horizon.Server(HORIZON_URL);
+const distributorKeypair = StellarSdk.Keypair.fromSecret(DISTRIBUTOR_SECRET);
+const MAMA = new StellarSdk.Asset(ASSET_CODE, ISSUER_PUBLIC);
+
+async function mintTokens(userPublicKey, amount, memo = '') {
+  const distributorAccount = await stellarServer.loadAccount(distributorKeypair.publicKey());
+  
+  let txBuilder = new StellarSdk.TransactionBuilder(distributorAccount, {
+    fee: '100',
+    networkPassphrase: StellarSdk.Networks.TESTNET
+  })
+    .addOperation(StellarSdk.Operation.payment({
+      destination: userPublicKey,
+      asset: MAMA,
+      amount: amount.toString()
+    }))
+    .setTimeout(30);
+
+  if (memo) {
+    txBuilder = txBuilder.addMemo(StellarSdk.Memo.text(memo));
+  }
+
+  const tx = txBuilder.build();
+  tx.sign(distributorKeypair);
+  return await stellarServer.submitTransaction(tx);
+}
+
+// Endpoint to mint tokens for completed milestone
+app.post('/api/v1/mint', authMiddleware, async (req, res) => {
+  try {
+    const { milestoneId } = req.body;
+    const userId = req.user.userId;
+
+    // Get user wallet
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user.walletAddress) {
+      return res.status(400).json({ error: 'User has no wallet address' });
+    }
+
+    // Get milestone
+    const milestone = await prisma.userMilestone.findUnique({
+      where: { id: milestoneId },
+      include: { milestoneDefinition: true }
+    });
+
+    if (!milestone || milestone.userId !== userId) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    if (milestone.rewardMinted) {
+      return res.status(400).json({ error: 'Reward already minted' });
+    }
+
+    const amount = milestone.milestoneDefinition.rewardAmount;
+
+    // Mint tokens
+    const result = await mintTokens(user.walletAddress, amount, `Milestone: ${milestone.milestoneDefinition.code}`);
+
+    // Update milestone as minted
+    await prisma.userMilestone.update({
+      where: { id: milestoneId },
+      data: {
+        rewardMinted: true,
+        rewardTxHash: result.hash,
+        rewardMintedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      amount,
+      txHash: result.hash,
+      stellarExpert: `https://stellar.expert/explorer/testnet/tx/${result.hash}`
+    });
+
+  } catch (error) {
+    console.error('Mint error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
