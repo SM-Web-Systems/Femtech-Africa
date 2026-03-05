@@ -533,6 +533,7 @@ Products	https://api.mamatokens.com:3000/api/v1/products
 Milestones	https://api.mamatokens.com:3000/api/v1/milestones
 Request OTP	POST https://api.mamatokens.com:3000/api/v1/auth/request-otp
 Verify OTP	POST https://api.mamatokens.com:3000/api/v1/auth/verify-otp
+Mint Tokens (MAMA) POST https://api.mamatokens.com/api/v1/mint (protected)
 
 Server Status: All Systems Operational
 
@@ -554,3 +555,10 @@ UFW firewall (ports 22, 80, 443, 5432, 15672)
 PM2 process manager with auto-restart
 Daily database backups at 2 AM (7-day retention)
 Central .env configuration
+
+Stellar Testnet MAMA token
+Stellar MAMA Token - Created on testnet with 10M tokens
+Mint API Endpoint - POST /api/v1/mint for milestone rewards
+
+Stellar Token: View: https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
+
