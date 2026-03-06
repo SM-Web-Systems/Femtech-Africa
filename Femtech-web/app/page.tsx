@@ -1,3 +1,5 @@
+import FAQ from "./components/faq";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -8,7 +10,7 @@ export default function Home() {
             Your Mental Health Matters
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Supporting pregnant mothers through every step of their journey. Access resources, 
+            Supporting pregnant mothers through every step of their journey. Access resources,
             connect with professionals, and build a healthier pregnancy experience.
           </p>
           <div className="flex gap-4 justify-center pt-8">
@@ -58,6 +60,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQ />
 
       {/* CTA Section */}
       <section className="bg-blue-600 text-white px-4 py-20">
