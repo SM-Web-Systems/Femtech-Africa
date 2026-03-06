@@ -71,6 +71,26 @@ async function mintTokens(userPublicKey, amount, memo = '') {
   return await stellarServer.submitTransaction(tx);
 }
 
+// Burn tokens (user sends back to distributor for redemption)
+async function burnTokens(userSecretKey, amount, memo = "") {
+  const userKeypair = StellarSdk.Keypair.fromSecret(userSecretKey);
+  const userAccount = await stellarServer.loadAccount(userKeypair.publicKey());
+  let txBuilder = new StellarSdk.TransactionBuilder(userAccount, {
+    fee: "100",
+    networkPassphrase: StellarSdk.Networks.TESTNET
+  })
+    .addOperation(StellarSdk.Operation.payment({
+      destination: distributorKeypair.publicKey(),
+      asset: MAMA,
+      amount: amount.toString()
+    }))
+    .setTimeout(30);
+  if (memo) txBuilder = txBuilder.addMemo(StellarSdk.Memo.text(memo.substring(0, 28)));
+  const tx = txBuilder.build();
+  tx.sign(userKeypair);
+  return await stellarServer.submitTransaction(tx);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ═══════════════════════════════════════════════════════════════
@@ -1063,12 +1083,16 @@ app.get('/api/v1/products', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 // List user redemptions
-app.get('/api/v1/my/redemptions', authMiddleware, async (req, res) => {
+app.get("/api/v1/my/redemptions", authMiddleware, async (req, res) => {
   try {
+    const { status } = req.query;
+    const where = { userId: req.user.userId };
+    if (status) where.status = status;
+    
     const redemptions = await prisma.redemption.findMany({
-      where: { userId: req.user.userId },
+      where,
       include: { partners: true, items: { include: { product: true } } },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" }
     });
     res.json({ data: redemptions, count: redemptions.length });
   } catch (error) {
@@ -1076,49 +1100,189 @@ app.get('/api/v1/my/redemptions', authMiddleware, async (req, res) => {
   }
 });
 
-// Create redemption
-app.post('/api/v1/my/redemptions', authMiddleware, async (req, res) => {
+// Get single redemption
+app.get("/api/v1/my/redemptions/:id", authMiddleware, async (req, res) => {
   try {
-    const { partnerId, products } = req.body;
+    const redemption = await prisma.redemption.findFirst({
+      where: { id: req.params.id, userId: req.user.userId },
+      include: { partners: true, items: { include: { product: true } } }
+    });
+    if (!redemption) return res.status(404).json({ error: "Redemption not found" });
+    res.json({ data: redemption });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create redemption with token burn
+app.post("/api/v1/my/redemptions", authMiddleware, async (req, res) => {
+  try {
+    const { partnerId, products, recipientPhone, recipientName, userSecretKey } = req.body;
     
-    // Get user balance
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-    if (!user.walletAddress) return res.status(400).json({ error: 'User has no wallet' });
-    
-    const account = await stellarServer.loadAccount(user.walletAddress);
-    const mamaBalance = account.balances.find(b => b.asset_code === 'MAMA');
-    const balance = parseFloat(mamaBalance?.balance || '0');
-    
-    // Calculate total cost
-    const productIds = products.map(p => p.productId);
-    const productData = await prisma.partnerProduct.findMany({ where: { id: { in: productIds } } });
-    const totalTokens = products.reduce((sum, p) => {
-      const product = productData.find(pd => pd.id === p.productId);
-      return sum + (product?.tokenCost || 0) * (p.quantity || 1);
-    }, 0);
-    
-    if (balance < totalTokens) {
-      return res.status(400).json({ error: 'Insufficient balance', required: totalTokens, available: balance });
+    if (!userSecretKey) {
+      return res.status(400).json({ error: "User secret key required to burn tokens" });
     }
     
+    // Validate user and wallet
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user.walletAddress) {
+      return res.status(400).json({ error: "User has no wallet" });
+    }
+    
+    // Verify the secret key matches the wallet
+    try {
+      const keypair = StellarSdk.Keypair.fromSecret(userSecretKey);
+      if (keypair.publicKey() !== user.walletAddress) {
+        return res.status(400).json({ error: "Secret key does not match wallet address" });
+      }
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid secret key format" });
+    }
+    
+    // Get partner info
+    const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+    if (!partner || !partner.isActive) {
+      return res.status(400).json({ error: "Partner not found or inactive" });
+    }
+    
+    // Get product details and calculate total
+    const productIds = products.map(p => p.productId);
+    const productData = await prisma.partnerProduct.findMany({
+      where: { id: { in: productIds }, is_available: true }
+    });
+    
+    if (productData.length !== productIds.length) {
+      return res.status(400).json({ error: "One or more products not available" });
+    }
+    
+    const totalTokens = products.reduce((sum, p) => {
+      const product = productData.find(pd => pd.id === p.productId);
+      return sum + (product.tokenCost * (p.quantity || 1));
+    }, 0);
+    
+    // Check user balance on Stellar
+    const account = await stellarServer.loadAccount(user.walletAddress);
+    const mamaBalance = account.balances.find(b => b.asset_code === "MAMA");
+    const balance = parseFloat(mamaBalance?.balance || "0");
+    
+    if (balance < totalTokens) {
+      return res.status(400).json({
+        error: "Insufficient MAMA balance",
+        required: totalTokens,
+        available: balance
+      });
+    }
+    
+    // Burn tokens on Stellar
+    let burnResult;
+    try {
+      burnResult = await burnTokens(userSecretKey, totalTokens, "Redeem:" + partnerId.substring(0, 18));
+    } catch (stellarError) {
+      console.error("Stellar burn error:", stellarError);
+      return res.status(500).json({
+        error: "Failed to burn tokens on Stellar",
+        details: stellarError.message
+      });
+    }
+    
+    // Create redemption record
     const redemption = await prisma.redemption.create({
       data: {
         userId: req.user.userId,
-        partnerId,
+        partner_id: partnerId,
+        type: partner.type,
         totalTokens,
-        status: 'pending',
+        status: "processing",
+        recipient_phone: recipientPhone || user.phone,
+        recipient_name: recipientName || null,
+        burn_tx_hash: burnResult.hash,
+        burn_confirmed_at: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         items: {
-          create: products.map(p => ({
-            productId: p.productId,
-            quantity: p.quantity || 1,
-            tokenCost: productData.find(pd => pd.id === p.productId)?.tokenCost || 0
-          }))
+          create: products.map(p => {
+            const product = productData.find(pd => pd.id === p.productId);
+            return {
+              productId: p.productId,
+              quantity: p.quantity || 1,
+              tokenCost: product.tokenCost
+            };
+          })
         }
       },
-      include: { items: { include: { product: true } } }
+      include: { partners: true, items: { include: { product: true } } }
     });
     
-    res.status(201).json({ data: redemption });
+    // Record token transaction
+    await prisma.tokenTransaction.create({
+      data: {
+        userId: req.user.userId,
+        redemptionId: redemption.id,
+        type: "burn_redemption",
+        amount: -totalTokens,
+        tx_hash: burnResult.hash,
+        status: "confirmed"
+      }
+    });
+    
+    // For MVP, auto-complete with voucher codes (simulate partner fulfillment)
+    const voucherCodes = products.map((p, i) => ({
+      itemId: redemption.items[i].id,
+      code: "VOUCHER-" + Math.random().toString(36).substring(2, 10).toUpperCase()
+    }));
+    
+    // Update items with voucher codes
+    for (const vc of voucherCodes) {
+      await prisma.redemptionItem.update({
+        where: { id: vc.itemId },
+        data: { voucherCode: vc.code, voucher_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
+      });
+    }
+    
+    // Mark as completed
+    const completedRedemption = await prisma.redemption.update({
+      where: { id: redemption.id },
+      data: { status: "completed", completedAt: new Date() },
+      include: { partners: true, items: { include: { product: true } } }
+    });
+    
+    res.status(201).json({
+      success: true,
+      data: completedRedemption,
+      burnTxHash: burnResult.hash,
+      stellarExpert: "https://stellar.expert/explorer/testnet/tx/" + burnResult.hash,
+      message: "Redemption completed successfully"
+    });
+  } catch (error) {
+    console.error("Redemption error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cancel pending redemption (admin or if not yet processed)
+app.post("/api/v1/my/redemptions/:id/cancel", authMiddleware, async (req, res) => {
+  try {
+    const redemption = await prisma.redemption.findFirst({
+      where: { id: req.params.id, userId: req.user.userId }
+    });
+    
+    if (!redemption) {
+      return res.status(404).json({ error: "Redemption not found" });
+    }
+    
+    if (redemption.status === "completed") {
+      return res.status(400).json({ error: "Cannot cancel completed redemption" });
+    }
+    
+    if (redemption.burn_tx_hash) {
+      return res.status(400).json({ error: "Cannot cancel - tokens already burned on blockchain" });
+    }
+    
+    const cancelled = await prisma.redemption.update({
+      where: { id: req.params.id },
+      data: { status: "cancelled", error_message: "Cancelled by user" }
+    });
+    
+    res.json({ success: true, data: cancelled });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
