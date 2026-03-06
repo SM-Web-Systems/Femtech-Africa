@@ -20,8 +20,8 @@ MoSCoW is a prioritization framework that categorizes features into:
 
 ### ✅ Completed
 
-| Feature                   | Status   | Notes                           |
-|---------------------------|---------|--------------------------------- |
+| Feature                   | Status  | Notes                           |
+|---------------------------|---------|---------------------------------|
 | User Authentication (OTP) | ✅ Done | Phone-based OTP login           |
 | User Registration         | ✅ Done | Auto-create on first login      |
 | Pregnancy Tracking        | ✅ Done | CRUD endpoints working          |
