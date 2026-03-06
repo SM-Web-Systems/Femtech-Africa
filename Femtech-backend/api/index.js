@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('./generated/prisma-client');
 const StellarSdk = require('@stellar/stellar-sdk');
+const { encryptProfile, decryptProfile } = require('./utils/encryption');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -359,34 +360,36 @@ app.get('/api/v1/auth/me', authMiddleware, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 // Get Profile
-app.get('/api/v1/profile', authMiddleware, async (req, res) => {
+app.get("/api/v1/profile", authMiddleware, async (req, res) => {
   try {
     const profile = await prisma.userProfile.findUnique({
       where: { userId: req.user.userId }
     });
-    res.json({ data: profile });
+    const decrypted = decryptProfile(profile);
+    res.json({ data: decrypted });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Update Profile
-app.put('/api/v1/profile', authMiddleware, async (req, res) => {
+app.put("/api/v1/profile", authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, dateOfBirth, preferredName, avatarUrl } = req.body;
+    const { firstName, lastName, dateOfBirth, avatarUrl } = req.body;
+    const encrypted = encryptProfile({ firstName, lastName, dateOfBirth, avatarUrl });
     
     const profile = await prisma.userProfile.upsert({
       where: { userId: req.user.userId },
-      update: { firstName, lastName, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, preferredName, avatarUrl },
-      create: { userId: req.user.userId, firstName, lastName, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null, preferredName, avatarUrl }
+      update: encrypted,
+      create: { userId: req.user.userId, ...encrypted }
     });
     
-    res.json({ data: profile });
+    const decrypted = decryptProfile(profile);
+    res.json({ data: decrypted });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // PREGNANCIES
 // ═══════════════════════════════════════════════════════════════
@@ -481,7 +484,7 @@ app.put('/api/v1/my/pregnancies/:id', authMiddleware, async (req, res) => {
 app.get('/api/v1/my/medical-history', authMiddleware, async (req, res) => {
   try {
     const history = await prisma.medicalHistory.findMany({
-      where: { user_id: req.user.userId },
+      where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' }
     });
     res.json({ data: history, count: history.length });
@@ -685,7 +688,7 @@ app.post('/api/v1/my/kick-sessions/:id/kick', authMiddleware, async (req, res) =
 app.get('/api/v1/my/emergency-contacts', authMiddleware, async (req, res) => {
   try {
     const contacts = await prisma.emergencyContact.findMany({
-      where: { user_id: req.user.userId },
+      where: { userId: req.user.userId },
       orderBy: { priority: 'desc' }
     });
     res.json({ data: contacts, count: contacts.length });
