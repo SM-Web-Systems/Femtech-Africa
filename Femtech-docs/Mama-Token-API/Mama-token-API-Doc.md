@@ -1,25 +1,47 @@
-# MAMATOKENS API Documentation
+# MamaTokens API Documentation
 
-Base URL
-https://api.mamatokens.com
-Authentication
-Request OTP
+**Base URL:** `https://api.mamatokens.com`  
+**Version:** 2.0  
+**Last Updated:** 2026-03-06
 
-# POST /api/v1/auth/request-otp
+---
+
+## Table of Contents
+
+1. [Authentication](#authentication)
+2. [Wallet Management](#wallet-management)
+3. [User Profile](#user-profile)
+4. [Pregnancies](#pregnancies)
+5. [Milestones & Token Minting](#milestones--token-minting)
+6. [Medical History](#medical-history)
+7. [Appointments](#appointments)
+8. [Kick Sessions](#kick-sessions)
+9. [Emergency Contacts](#emergency-contacts)
+10. [Partners & Products](#partners--products)
+11. [Redemptions](#redemptions)
+12. [Facilities](#facilities)
+13. [Articles & Quizzes](#articles--quizzes)
+14. [Notifications](#notifications)
+15. [Digital Doula](#digital-doula)
+16. [Admin Endpoints](#admin-endpoints)
+
+---
+
+## Authentication
+
+### Request OTP
+# POST /api/v1/auth/request-otp 
 Content-Type: application/json
 
-{
-  "phone": "+27821234567",
-  "country": "ZA"
-}
-Response:
+{ "phone": "+27821234567", "country": "ZA" }
 
+Response:
 {
   "message": "OTP sent successfully",
   "debug_otp": "123456"
 }
 
-# Verify OTP & Login
+### Verify OTP & Login
 # POST /api/v1/auth/verify-otp
 Content-Type: application/json
 
@@ -27,11 +49,13 @@ Content-Type: application/json
   "phone": "+27821234567",
   "otp": "123456"
 }
+
 Response:
 
 {
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIs...",
+  "isNewUser": false,
   "user": {
     "id": "a1000000-0000-4000-8000-000000000001",
     "phone": "+27821234567",
@@ -41,7 +65,7 @@ Response:
   }
 }
 
-# Get Current User
+### Get Current User
 # GET /api/v1/auth/me
 Authorization: Bearer {JWT_TOKEN}
 Response:
@@ -58,9 +82,11 @@ Response:
     "milestones": [...]
   }
 }
-# Wallet Endpoints
-# Create Wallet
-# Creates a new Stellar wallet for the user, funds it on testnet, and sets up MAMA token trustline.
+
+## Wallet Endpoints
+### Create Wallet
+
+Creates a new Stellar wallet for the user, funds it on testnet, and sets up MAMA token trustline.
 
 # POST /api/v1/wallet/create
 Authorization: Bearer {JWT_TOKEN}
@@ -81,7 +107,8 @@ Error Response (400):
 }
 ⚠️ IMPORTANT: Display a prominent warning to users to save their secret key. It cannot be recovered!
 
-# Get Wallet Balance
+### Get Wallet Balance
+
 # GET /api/v1/wallet/balance
 Authorization: Bearer {JWT_TOKEN}
 Response:
@@ -101,7 +128,8 @@ Error Response (400):
   "error": "User has no wallet"
 }
 
-# Get Wallet Transactions
+### Get Wallet Transactions
+
 # GET /api/v1/wallet/transactions
 Authorization: Bearer {JWT_TOKEN}
 Response:
@@ -120,8 +148,121 @@ Response:
   "count": 1
 }
 
-# Milestone Endpoints
-# Get User Milestones
+## User Profile
+
+### Get Profile
+
+# GET /api/v1/profile
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "dateOfBirth": "1990-01-15",
+    "avatarUrl": "https://..."
+  }
+}
+Update Profile
+PUT /api/v1/profile
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-15"
+}
+
+## Pregnancies
+
+### List User's Pregnancies
+
+# GET /api/v1/my/pregnancies
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "status": "active",
+      "last_period_date": "2025-12-01",
+      "estimated_due_date": "2026-09-07",
+      "gravida": 1,
+      "parity": 0,
+      "isHighRisk": false,
+      "bloodType": "O_positive",
+      "milestones": [...],
+      "appointments": [...],
+      "kickSessions": [...]
+    }
+  ],
+  "count": 1
+}
+
+### Get Single Pregnancy
+
+# GET /api/v1/my/pregnancies/:id
+Authorization: Bearer {JWT_TOKEN}
+Create Pregnancy
+
+# POST /api/v1/my/pregnancies
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "lastPeriodDate": "2025-12-01",
+  "estimatedDueDate": "2026-09-07",
+  "gravida": 1,
+  "parity": 0,
+  "bloodType": "O_positive"
+}
+
+### Update Pregnancy
+
+# PUT /api/v1/my/pregnancies/:id
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "status": "active",
+  "isHighRisk": true,
+  "riskFactors": ["hypertension", "diabetes"]
+}
+
+### Milestones & Token Minting
+
+Get All Milestone Definitions (Public)
+
+# GET /api/v1/milestones
+
+# GET /api/v1/milestones?category=clinical&country=ZA
+Query Parameters:
+
+category (optional): clinical, wellness, education, community
+country (optional): ZA, KE, UG
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "code": "FIRST_ANC_VISIT",
+      "name": "First ANC Visit",
+      "description": "Complete your first antenatal care visit",
+      "category": "clinical",
+      "rewardAmount": 100,
+      "requiresVerification": true
+    }
+  ],
+  "count": 22
+}
+
+### Get User's Milestones
 
 # GET /api/v1/my/milestones
 Authorization: Bearer {JWT_TOKEN}
@@ -141,20 +282,44 @@ Response:
         "description": "Complete your health profile",
         "rewardAmount": 20,
         "category": "community"
-      }
+      },
+      "pregnancy": {...}
     }
   ],
   "count": 5
 }
-Milestone Statuses:
 
-# Status	Description
-- available	    Can be started
-- in_progress	Currently working on
-- completed	    Done, ready to mint
-- expired	    Time limit exceeded
+## Milestone Statuses:
 
-# Mint Tokens for Milestone
+Status	Description
+available	Can be started
+in_progress	Currently working on
+pending_verification	Awaiting verification
+completed	Done, ready to mint
+expired	Time limit exceeded
+
+### Start a Milestone
+
+# POST /api/v1/my/milestones
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "milestoneDefId": "uuid",
+  "pregnancyId": "uuid"
+}
+Update Milestone Progress
+PUT /api/v1/my/milestones/:id
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "progress": 50,
+  "status": "in_progress",
+  "progressData": { "daysCompleted": 3 }
+}
+
+### Mint Tokens for Milestone
 
 # POST /api/v1/mint
 Authorization: Bearer {JWT_TOKEN}
@@ -173,13 +338,589 @@ Success Response (200):
 }
 Error Responses:
 
-# Status	Error	Cause
-- 400	User has no wallet address	Call /api/v1/wallet/create first
-- 400	Reward already minted	Milestone already claimed
-- 404	Milestone not found	Invalid ID or not owned by user
+Status	Error	Cause
+400	User has no wallet address	Call /api/v1/wallet/create first
+400	Milestone not completed	Status must be "completed"
+400	Reward already minted	Milestone already claimed
+404	Milestone not found	Invalid ID or not owned by user
 
-# Public Endpoints (No Auth Required)
-# Health Check
+## Medical History
+
+### List Medical History
+
+# GET /api/v1/my/medical-history
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "conditionType": "chronic",
+      "condition_code": "E11",
+      "description": "Type 2 Diabetes",
+      "severity": "moderate",
+      "diagnosedDate": "2024-06-15"
+    }
+  ],
+  "count": 1
+}
+
+### Add Medical Record
+
+# POST /api/v1/my/medical-history
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "pregnancyId": "uuid",
+  "conditionType": "chronic",
+  "conditionCode": "E11",
+  "description": "Type 2 Diabetes",
+  "severity": "moderate",
+  "diagnosedDate": "2024-06-15"
+}
+Condition Types: chronic, pregnancy_related, allergy, medication, surgical
+
+## Appointments
+
+### List Appointments
+
+# GET /api/v1/my/appointments
+
+# GET /api/v1/my/appointments?status=scheduled&upcoming=true
+Authorization: Bearer {JWT_TOKEN}
+Query Parameters:
+
+status (optional): scheduled, completed, cancelled, no_show
+upcoming (optional): true/false
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "appointment_type": "anc_visit",
+      "status": "scheduled",
+      "scheduled_at": "2026-03-15T10:00:00Z",
+      "duration_minutes": 30,
+      "notes": "First trimester checkup",
+      "facility": {
+        "id": "uuid",
+        "name": "City Hospital"
+      },
+      "pregnancy": {...}
+    }
+  ],
+  "count": 2
+}
+
+### Create Appointment
+
+# POST /api/v1/my/appointments
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "pregnancyId": "uuid",
+  "facilityId": "uuid",
+  "appointmentType": "anc_visit",
+  "scheduledAt": "2026-03-15T10:00:00Z",
+  "notes": "First trimester checkup"
+}
+Appointment Types: anc_visit, ultrasound, lab_test, vaccination, postnatal, emergency
+
+### Update Appointment
+
+# PUT /api/v1/my/appointments/:id
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "notes": "All tests normal"
+}
+
+## Kick Sessions (Baby Movement Tracking)
+
+### List Kick Sessions
+
+# GET /api/v1/my/kick-sessions
+
+# GET /api/v1/my/kick-sessions?pregnancyId=uuid
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "pregnancyId": "uuid",
+      "start_time": "2026-03-06T14:00:00Z",
+      "end_time": "2026-03-06T14:30:00Z",
+      "kick_count": 12,
+      "notes": "Baby very active after lunch"
+    }
+  ],
+  "count": 5
+}
+
+### Create Kick Session
+
+# POST /api/v1/my/kick-sessions
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "pregnancyId": "uuid",
+  "startTime": "2026-03-06T14:00:00Z"
+}
+Update Kick Session
+PUT /api/v1/my/kick-sessions/:id
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "endTime": "2026-03-06T14:30:00Z",
+  "kickCount": 12,
+  "notes": "Baby very active after lunch"
+}
+
+## Emergency Contacts
+
+### List Emergency Contacts
+
+# GET /api/v1/my/emergency-contacts
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "John Doe",
+      "relationship": "spouse",
+      "phone": "+27821234567",
+      "priority": 1,
+      "is_active": true
+    }
+  ],
+  "count": 2
+}
+
+### Add Emergency Contact
+
+# POST /api/v1/my/emergency-contacts
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "relationship": "spouse",
+  "phone": "+27821234567",
+  "priority": 1
+}
+
+### Update Emergency Contact
+
+# PUT /api/v1/my/emergency-contacts/:id
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "phone": "+27829876543",
+  "priority": 2
+}
+Delete Emergency Contact
+DELETE /api/v1/my/emergency-contacts/:id
+Authorization: Bearer {JWT_TOKEN}
+
+## Partners & Products
+
+### List Partners (Public)
+
+# GET /api/v1/partners
+
+# GET /api/v1/partners?country=ZA&type=mobile_money
+Query Parameters:
+
+country (optional): ZA, KE, UG
+type (optional): mobile_money, pharmacy, retail, healthcare
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "MTN MoMo ZA",
+      "type": "mobile_money",
+      "country": "ZA",
+      "logoUrl": "https://...",
+      "products": [
+        {
+          "id": "uuid",
+          "name": "R10 Airtime",
+          "tokenCost": 50,
+          "is_available": true
+        }
+      ]
+    }
+  ],
+  "count": 16
+}
+
+### Get Partner Details
+
+# GET /api/v1/partners/:id
+
+### List Products (Public)
+
+# GET /api/v1/products
+
+# GET /api/v1/products?category=airtime&partnerId=uuid
+Query Parameters:
+
+category (optional): airtime, data, voucher, health_product
+partnerId (optional): Filter by partner
+
+## Redemptions
+
+### List User's Redemptions
+
+# GET /api/v1/my/redemptions
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "totalTokens": 100,
+      "status": "completed",
+      "recipient_phone": "+27821234567",
+      "createdAt": "2026-03-05T12:00:00Z",
+      "partners": {
+        "name": "MTN MoMo ZA",
+        "type": "mobile_money"
+      },
+      "items": [
+        {
+          "quantity": 2,
+          "tokenCost": 50,
+          "product": {
+            "name": "R10 Airtime"
+          }
+        }
+      ]
+    }
+  ],
+  "count": 1
+}
+Redemption Statuses: pending, processing, completed, failed, cancelled
+
+### Create Redemption
+
+# POST /api/v1/my/redemptions
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "partnerId": "uuid",
+  "items": [
+    {
+      "productId": "uuid",
+      "quantity": 2
+    }
+  ],
+  "recipientPhone": "+27821234567",
+  "recipientName": "Jane Doe"
+}
+
+## Token Transactions
+
+### List Token Transactions
+
+# GET /api/v1/my/transactions
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "type": "mint",
+      "amount": 100,
+      "txHash": "feaace09b5f6a1867...",
+      "milestoneId": "uuid",
+      "createdAt": "2026-03-05T15:00:00Z"
+    }
+  ],
+  "count": 5
+}
+Transaction Types: mint, redeem, transfer, bonus
+
+## Facilities
+
+### List Facilities (Public)
+
+# GET /api/v1/facilities
+
+# GET /api/v1/facilities?country=ZA&type=hospital
+Query Parameters:
+
+country (optional): ZA, KE, UG
+type (optional): hospital, clinic, pharmacy, lab
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "City Hospital",
+      "type": "hospital",
+      "country": "ZA",
+      "address": "123 Main Street",
+      "phone": "+27111234567",
+      "isActive": true
+    }
+  ],
+  "count": 10
+}
+
+### Get Facility Details
+
+# GET /api/v1/facilities/:id
+
+## Articles & Quizzes
+
+### List Articles (Public)
+
+# GET /api/v1/articles
+
+# GET /api/v1/articles?category=pregnancy&language=en
+
+### Get Article
+
+# GET /api/v1/articles/:id
+
+### List Quizzes (Public)
+
+# GET /api/v1/quizzes
+
+# GET /api/v1/quizzes?category=nutrition
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Nutrition Basics Quiz",
+      "description": "Test your knowledge",
+      "category": "nutrition",
+      "difficulty": "beginner",
+      "time_limit_mins": 10,
+      "pass_threshold": 70,
+      "reward_amount": 25,
+      "_count": { "questions": 10 }
+    }
+  ],
+  "count": 5
+}
+
+### Get Quiz with Questions
+
+# GET /api/v1/quizzes/:id
+Authorization: Bearer {JWT_TOKEN}
+
+### Submit Quiz Attempt
+
+# POST /api/v1/quizzes/:id/attempt
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "answers": [
+    { "questionId": "uuid", "selectedOption": 2 },
+    { "questionId": "uuid", "selectedOption": 1 }
+  ]
+}
+
+### Get User's Quiz Attempts
+
+# GET /api/v1/my/quiz-attempts
+Authorization: Bearer {JWT_TOKEN}
+
+## Notifications
+
+### List Notifications
+
+# GET /api/v1/my/notifications
+
+# GET /api/v1/my/notifications?unreadOnly=true
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": [
+    {
+      "id": "uuid",
+      "type": "milestone_complete",
+      "title": "Milestone Completed!",
+      "message": "You completed the First ANC Visit milestone",
+      "isRead": false,
+      "createdAt": "2026-03-05T12:00:00Z"
+    }
+  ],
+  "count": 5,
+  "unreadCount": 2
+}
+Mark Notification as Read
+PUT /api/v1/my/notifications/:id/read
+Authorization: Bearer {JWT_TOKEN}
+
+## Consents
+
+### List User's Consents
+
+# GET /api/v1/my/consents
+Authorization: Bearer {JWT_TOKEN}
+Consent Types: terms_of_service, privacy_policy, data_processing, marketing, research
+
+Update Consent
+PUT /api/v1/my/consents/:type
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "accepted": true
+}
+
+## Digital Doula
+
+### Get Assigned Doula
+
+# GET /api/v1/my/doula
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "data": {
+    "id": "uuid",
+    "display_name": "Sarah",
+    "bio": "Certified doula with 5 years experience",
+    "avatarUrl": "https://...",
+    "specializations": ["prenatal", "postnatal"],
+    "languages": ["en", "zu"],
+    "rating": 4.8
+  }
+}
+
+## Onboarding Endpoints
+
+### Step 1: Create/Update Profile
+
+# POST /api/v1/onboarding/profile
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-05-15"
+}
+
+### Step 2: Add Pregnancy Info
+
+# POST /api/v1/onboarding/pregnancy
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "lastPeriodDate": "2025-12-01",
+  "estimatedDueDate": "2026-09-07",
+  "isFirstPregnancy": true,
+  "bloodType": "O_positive"
+}
+
+### Step 3: Add Emergency Contact
+
+# POST /api/v1/onboarding/emergency-contact
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "relationship": "spouse",
+  "phone": "+27821234567"
+}
+
+### Step 4: Accept Consents
+
+# POST /api/v1/onboarding/consents
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "consents": [
+    { "type": "terms_of_service", "accepted": true },
+    { "type": "privacy_policy", "accepted": true },
+    { "type": "data_processing", "accepted": true }
+  ]
+}
+
+### Step 5: Complete Onboarding & Create Wallet
+
+# POST /api/v1/onboarding/complete
+Authorization: Bearer {JWT_TOKEN}
+Response:
+
+{
+  "success": true,
+  "message": "Onboarding complete",
+  "wallet": {
+    "address": "GDXXXXX...",
+    "secretKey": "SXXXXX..."
+  },
+  "initialMilestones": [...]
+}
+
+## Admin Endpoints
+
+### List All Users (Admin)
+
+# GET /api/v1/admin/users
+
+# GET /api/v1/admin/users?country=ZA&status=active
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Get User Details (Admin)
+
+# GET /api/v1/admin/users/:id
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Update User (Admin)
+PUT /api/v1/admin/users/:id
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "status": "suspended",
+  "role": "mother"
+}
+
+### Dashboard Stats (Admin)
+
+# GET /api/v1/admin/stats
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+{
+  "users": 16,
+  "pregnancies": 8,
+  "milestones": 150,
+  "partners": 16,
+  "redemptions": 25
+}
+
+### Health Check
 
 # GET /health
 Response:
@@ -188,25 +929,13 @@ Response:
   "status": "healthy",
   "database": "connected",
   "users": 16,
-  "timestamp": "2026-03-05T18:00:00.000Z"
+  "timestamp": "2026-03-06T08:00:00.000Z"
 }
 
-# Get All Milestones
-# GET /api/v1/milestones
+## Frontend Flow Diagrams
 
-# GET /api/v1/milestones?category=clinical
-Categories: clinical, wellness, education, community
+### New User Flow
 
-# Get Partners
-# GET /api/v1/partners
-# GET /api/v1/partners?country=ZA
-# Get Products
-# GET /api/v1/products
-# GET /api/v1/products?country=ZA&category=mobile_money
-
-# Frontend Flow
-
-# New User Flow
 ┌─────────────────┐
 │  User Signs Up  │
 │  (OTP Login)    │
@@ -218,7 +947,7 @@ Categories: clinical, wellness, education, community
 └────────┬────────┘             │
          │ No                   ▼
          │            ┌─────────────────┐
-         │            │ POST /wallet/   │
+         │            │ # POST /wallet/   │
          │            │    create       │
          │            └────────┬────────┘
          │                     │
@@ -238,10 +967,10 @@ Categories: clinical, wellness, education, community
          ▼
 ┌─────────────────┐
 │  Claim Rewards  │
-│  (POST /mint)   │
+│  (# POST /mint)   │
 └─────────────────┘
 
-# Minting Flow
+### Minting Flow
 
 ┌─────────────────────────────────────────────────────────┐
 │                    MILESTONES SCREEN                     │
@@ -267,19 +996,109 @@ Categories: clinical, wellness, education, community
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 
-# Token Details
-Property	Value
-Asset Code	MAMA
+## Complete Endpoint Summary
+
+### Public Endpoints (No Auth)
+
+# Method	Endpoint	Description
+# GET	/health	Health check
+# GET	/api/v1/milestones	List milestone definitions
+# GET	/api/v1/partners	List partners
+# GET	/api/v1/products	List products
+# GET	/api/v1/facilities	List facilities
+# GET	/api/v1/facilities/:id	Get facility details
+# GET	/api/v1/articles	List articles
+# GET	/api/v1/articles/:id	Get article
+# GET	/api/v1/quizzes	List quizzes
+# POST	/api/v1/auth/request-otp	Request OTP
+# POST	/api/v1/auth/verify-otp	Verify OTP & login
+
+### Protected Endpoints (Auth Required)
+
+# Method	Endpoint	Description
+# GET	/api/v1/auth/me	Get current user
+# GET	/api/v1/profile	Get user profile
+# PUT	/api/v1/profile	Update profile
+# GET	/api/v1/my/pregnancies	List pregnancies
+# GET	/api/v1/my/pregnancies/:id	Get pregnancy
+# POST	/api/v1/my/pregnancies	Create pregnancy
+# PUT	/api/v1/my/pregnancies/:id	Update pregnancy
+# GET	/api/v1/my/milestones	List user milestones
+# POST	/api/v1/my/milestones	Start milestone
+# PUT	/api/v1/my/milestones/:id	Update milestone
+# POST	/api/v1/mint	Mint tokens
+# GET	/api/v1/my/medical-history	List medical history
+# POST	/api/v1/my/medical-history	Add medical record
+# GET	/api/v1/my/appointments	List appointments
+# POST	/api/v1/my/appointments	Create appointment
+# PUT	/api/v1/my/appointments/:id	Update appointment
+# GET	/api/v1/my/kick-sessions	List kick sessions
+# POST	/api/v1/my/kick-sessions	Create kick session
+# PUT	/api/v1/my/kick-sessions/:id	Update kick session
+# GET	/api/v1/my/emergency-contacts	List emergency contacts
+# POST	/api/v1/my/emergency-contacts	Add emergency contact
+# PUT	/api/v1/my/emergency-contacts/:id	Update emergency contact
+# DELETE	/api/v1/my/emergency-contacts/:id	Delete emergency contact
+# GET	/api/v1/my/redemptions	List redemptions
+# POST	/api/v1/my/redemptions	Create redemption
+# GET	/api/v1/my/transactions	List token transactions
+# GET	/api/v1/my/notifications	List notifications
+# PUT	/api/v1/my/notifications/:id/read	Mark as read
+# GET	/api/v1/my/consents	List consents
+# PUT	/api/v1/my/consents/:type	Update consent
+# GET	/api/v1/my/doula	Get assigned doula
+# POST	/api/v1/wallet/create	Create wallet
+# GET	/api/v1/wallet/balance	Get wallet balance
+# GET	/api/v1/wallet/transactions	Get wallet transactions
+# GET	/api/v1/quizzes/:id	Get quiz with questions
+# POST	/api/v1/quizzes/:id/attempt	Submit quiz attempt
+# GET	/api/v1/my/quiz-attempts	List quiz attempts
+
+### Onboarding Endpoints
+
+# Method	Endpoint	Description
+# POST	/api/v1/onboarding/profile	Step 1: Profile
+# POST	/api/v1/onboarding/pregnancy	Step 2: Pregnancy
+# POST	/api/v1/onboarding/emergency-contact	Step 3: Emergency contact
+# POST	/api/v1/onboarding/consents	Step 4: Consents
+# POST	/api/v1/onboarding/complete	Step 5: Complete & create wallet
+
+### Admin Endpoints
+
+# Method	Endpoint	Description
+# GET	/api/v1/admin/users	List all users
+# GET	/api/v1/admin/users/:id	Get user details
+# PUT	/api/v1/admin/users/:id	Update user
+# GET	/api/v1/admin/stats	Dashboard stats
+
+## Token Details
+
+Property	      Value
+Asset Code	    MAMA
 Network	Stellar Testnet
-Issuer	GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
-Distributor	GDHV6FMZYGJOUNSTEFPNLV3KXP6MEOULBHOMYMHBPE6BOJB3BEEGDPLM
-Total Supply	10,000,000 MAMA
-Explorer	View on Stellar Expert
-Error Codes
-# Status	Meaning
-- 200	Success
-- 201	Created
-- 400	Bad Request (validation error)
-- 401	Unauthorized (missing/invalid token)
-- 404	Not Found
-- 500	Server Error
+Issuer	        GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
+Distributor	    GDHV6FMZYGJOUNSTEFPNLV3KXP6MEOULBHOMYMHBPE6BOJB3BEEGDPLM
+Total Supply	  10,000,000 MAMA
+Explorer	      View on Stellar Expert
+
+## Error Codes
+
+Status	  Meaning
+200	      Success
+201	      Created
+400	      Bad Request (validation error)
+401	      Unauthorized (missing/invalid token)
+403	      Forbidden (insufficient permissions)
+404	      Not Found
+500	      Server Error
+Rate      Limits
+
+Endpoint    Type	          Limit
+            Authentication	5 requests/minute
+            Mint	          10 requests/minute
+            General API	    100 requests/minute
+
+## Support
+
+GitHub: https://github.com/SM-Web-Systems/Femtech-Africa
+Stellar Explorer: https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
