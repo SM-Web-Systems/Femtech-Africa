@@ -119,7 +119,6 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Task                                        | Owner    | Days |
 |---------------------------------------------|----------|------|
 | Africa's Talking SMS Integration            | Backend  | 2    |
-| Token Redemption API                        | Backend  | 3    |
 | Mobile App Screens (Auth, Home, Milestones) | Frontend | 5    |
 | Basic Admin Dashboard                       | Backend  | 3    |
 | User Testing Setup                          | QA       | 1    |
