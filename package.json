@@ -38,11 +38,7 @@
     "db:migrate:prod": "npm run db:migrate:prod --workspace=@femtech/database",
     "db:seed": "npm run db:seed --workspace=@femtech/database",
     "db:reset": "npm run db:reset --workspace=@femtech/database",
-    "db:studio": "npm run db:studio --workspace=@femtech/database",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
+    "db:studio": "npm run db:studio --workspace=@femtech/database"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",

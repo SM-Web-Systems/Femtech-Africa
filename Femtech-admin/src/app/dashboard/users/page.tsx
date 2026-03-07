@@ -58,50 +58,50 @@ export default function UsersPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="text-lg text-gray-600">Loading users...</div></div>;
+    return <div className="flex items-center justify-center h-64"><div className="text-lg text-gray-800">Loading users...</div></div>;
   }
 
   if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-600">{error}</p><button onClick={fetchUsers} className="mt-2 text-red-600 underline">Retry</button></div>;
+    return <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-700">{error}</p><button onClick={fetchUsers} className="mt-2 text-red-700 underline font-medium">Retry</button></div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Users</h1>
-          <p className="text-gray-500">{pagination.total} total users</p>
+          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+          <p className="text-gray-700">{pagination.total} total users</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <input
           type="text"
           placeholder="Search by phone or country..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-gray-900"
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wallet</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Milestones</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Phone</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Country</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Wallet</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Milestones</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Joined</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-200">
             {filteredUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">{user.phone}</td>
                 <td className="px-6 py-4">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 text-gray-900">
                     {getCountryFlag(user.country)} {user.country}
                   </span>
                 </td>
@@ -110,11 +110,11 @@ export default function UsersPage() {
                     {user.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-6 py-4 text-sm text-gray-800">
                   {user.walletAddress ? (
                     <span className="font-mono">{user.walletAddress.substring(0, 8)}...</span>
                   ) : (
-                    <span className="text-gray-400">No wallet</span>
+                    <span className="text-gray-600 italic">No wallet</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -122,7 +122,7 @@ export default function UsersPage() {
                     {user.milestones}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-6 py-4 text-sm text-gray-800">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
               </tr>
@@ -133,21 +133,9 @@ export default function UsersPage() {
 
       {pagination.pages > 1 && (
         <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2">Page {page} of {pagination.pages}</span>
-          <button
-            onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-            disabled={page === pagination.pages}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            Next
-          </button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 text-gray-800">Previous</button>
+          <span className="px-4 py-2 text-gray-800">Page {page} of {pagination.pages}</span>
+          <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages} className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 text-gray-800">Next</button>
         </div>
       )}
     </div>
