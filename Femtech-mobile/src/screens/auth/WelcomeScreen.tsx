@@ -1,135 +1,55 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Button } from '../../components/common';
-import { COLORS, SPACING, FONTS } from '../../constants';
-import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
+const COLORS = {
+  primary: '#E91E63',
+  background: '#FFF5F8',
+  text: '#333333',
+  textSecondary: '#666666',
+  white: '#FFFFFF',
+};
 
-export default function WelcomeScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NavigationProp>();
-
+export default function WelcomeScreen({ navigation }: any) {
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <View style={styles.logo}>
             <Text style={styles.logoText}>M</Text>
           </View>
-          <Text style={styles.appName}>MamaTokens</Text>
-          <Text style={styles.tagline}>Rewarding healthy pregnancies</Text>
         </View>
-
+        
+        <Text style={styles.title}>MamaTokens</Text>
+        <Text style={styles.subtitle}>Rewarding healthy pregnancies</Text>
+        
         <View style={styles.features}>
-          <FeatureItem icon="🎯" title="Complete Milestones" description="Track your pregnancy journey" />
-          <FeatureItem icon="💰" title="Earn Tokens" description="Get rewarded for healthy choices" />
-          <FeatureItem icon="🎁" title="Redeem Rewards" description="Exchange tokens for real benefits" />
+          <Text style={styles.feature}>✓ Track your pregnancy journey</Text>
+          <Text style={styles.feature}>✓ Earn MAMA tokens for milestones</Text>
+          <Text style={styles.feature}>✓ Redeem for real rewards</Text>
         </View>
-      </View>
-
-      <View style={styles.footer}>
-        <Button
-          title="Get Started"
-          onPress={() => navigation.navigate('PhoneEntry')}
-          size="large"
+        
+        <TouchableOpacity 
           style={styles.button}
-        />
-        <Text style={styles.terms}>
-          By continuing, you agree to our Terms of Service and Privacy Policy
-        </Text>
+          onPress={() => navigation.navigate('PhoneEntry')}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
       </View>
-    </View>
-  );
-}
-
-function FeatureItem({ icon, title, description }: { icon: string; title: string; description: string }) {
-  return (
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureDescription}>{description}</Text>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: SPACING.lg,
-    justifyContent: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: SPACING.xxl,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.md,
-  },
-  logoText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: COLORS.textOnPrimary,
-  },
-  appName: {
-    fontSize: FONTS.sizes.xxxl,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  tagline: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-  },
-  features: {
-    gap: SPACING.lg,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  featureIcon: {
-    fontSize: 32,
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  featureDescription: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.textSecondary,
-  },
-  footer: {
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.lg,
-  },
-  button: {
-    width: '100%',
-  },
-  terms: {
-    fontSize: FONTS.sizes.xs,
-    color: COLORS.textLight,
-    textAlign: 'center',
-    marginTop: SPACING.md,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  logoContainer: { marginBottom: 30 },
+  logo: { width: 100, height: 100, borderRadius: 50, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  logoText: { fontSize: 48, fontWeight: 'bold', color: COLORS.white },
+  title: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
+  subtitle: { fontSize: 18, color: COLORS.textSecondary, marginBottom: 40 },
+  features: { marginBottom: 40 },
+  feature: { fontSize: 16, color: COLORS.text, marginBottom: 12 },
+  button: { backgroundColor: COLORS.primary, paddingHorizontal: 60, paddingVertical: 16, borderRadius: 30 },
+  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
 });

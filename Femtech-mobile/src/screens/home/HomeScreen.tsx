@@ -1,325 +1,153 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
-import { Card } from '../../components/common';
-import { COLORS, SPACING, FONTS, SHADOWS } from '../../constants';
-import { useAuth, useWalletStore } from '../../store';
-import { milestonesApi } from '../../api';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../store/AuthContext';
+import { walletApi, milestonesApi } from '../../api';
 
-export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<any>();
+const COLORS = {
+  primary: '#E91E63',
+  background: '#FFF5F8',
+  text: '#333333',
+  textSecondary: '#666666',
+  white: '#FFFFFF',
+  card: '#FFFFFF',
+  success: '#4CAF50',
+};
+
+// Mock data for when API isn't available
+const MOCK_BALANCE = '120.00';
+const MOCK_MILESTONES = [
+  { id: '1', status: 'completed', reward_minted: true, milestone_definition: { name: 'Complete Profile', token_reward: 10 } },
+  { id: '2', status: 'completed', reward_minted: false, milestone_definition: { name: 'First Prenatal Visit', token_reward: 100 } },
+  { id: '3', status: 'in_progress', progress_pct: 60, milestone_definition: { name: 'Weekly Check-in', token_reward: 5 } },
+];
+
+export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
-  const { balance, fetchBalance } = useWalletStore();
+  const [balance, setBalance] = useState<string>(MOCK_BALANCE);
+  const [milestones, setMilestones] = useState<any[]>(MOCK_MILESTONES);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [usingMockData, setUsingMockData] = useState(false);
 
-  const { data: milestonesData, refetch, isRefetching } = useQuery({
-    queryKey: ['userMilestones'],
-    queryFn: () => milestonesApi.getUserMilestones(),
-  });
+  const fetchData = async () => {
+    try {
+      const [walletData, milestonesData] = await Promise.all([
+        walletApi.getBalance(),
+        milestonesApi.getUserMilestones(),
+      ]);
+      
+      setBalance(walletData.mamaBalance || '0.00');
+      setMilestones(milestonesData.slice(0, 3));
+      setUsingMockData(false);
+    } catch (error) {
+      console.log('Using mock data - API not available');
+      setBalance(MOCK_BALANCE);
+      setMilestones(MOCK_MILESTONES);
+      setUsingMockData(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    fetchBalance();
+    fetchData();
   }, []);
 
-  const milestones = milestonesData?.data || [];
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
   const completedCount = milestones.filter(m => m.status === 'completed').length;
-  const inProgressCount = milestones.filter(m => m.status === 'in_progress').length;
-  const pendingRewards = milestones.filter(m => m.status === 'completed' && !m.reward_minted);
+  const pendingRewards = milestones.filter(m => m.status === 'completed' && !m.reward_minted).length;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 20 }}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello,</Text>
-          <Text style={styles.userName}>{user?.phone || 'Mama'}</Text>
-        </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Balance Card */}
-      <Card style={styles.balanceCard}>
-        <View style={styles.balanceHeader}>
-          <Ionicons name="wallet" size={24} color={COLORS.textOnPrimary} />
-          <Text style={styles.balanceLabel}>MAMA Balance</Text>
-        </View>
-        <Text style={styles.balanceAmount}>
-          {balance?.mamaBalance ? parseFloat(balance.mamaBalance).toFixed(0) : '0'}
-        </Text>
-        <Text style={styles.balanceSubtext}>tokens available</Text>
-        <View style={styles.balanceActions}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        style={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+      >
+        <Text style={styles.greeting}>Hello, Mama! 👋</Text>
+        
+        {usingMockData && (
+          <View style={styles.mockBanner}>
+            <Text style={styles.mockText}>📱 Demo Mode - Connect SMS to use real data</Text>
+          </View>
+        )}
+        
+        <View style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Your Balance</Text>
+          <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} MAMA</Text>
+          {pendingRewards > 0 && (
+            <View style={styles.pendingBadge}>
+              <Text style={styles.pendingText}>{pendingRewards} rewards to claim!</Text>
+            </View>
+          )}
           <TouchableOpacity 
-            style={styles.balanceAction}
+            style={styles.redeemButton}
             onPress={() => navigation.navigate('Wallet')}
           >
-            <Ionicons name="arrow-up-circle" size={20} color={COLORS.textOnPrimary} />
-            <Text style={styles.balanceActionText}>Send</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.balanceAction}
-            onPress={() => navigation.navigate('Wallet', { screen: 'Redeem' })}
-          >
-            <Ionicons name="gift" size={20} color={COLORS.textOnPrimary} />
-            <Text style={styles.balanceActionText}>Redeem</Text>
+            <Text style={styles.redeemButtonText}>View Wallet</Text>
           </TouchableOpacity>
         </View>
-      </Card>
 
-      {/* Pending Rewards */}
-      {pendingRewards.length > 0 && (
-        <Card style={styles.rewardsCard}>
-          <View style={styles.rewardsHeader}>
-            <Ionicons name="gift" size={24} color={COLORS.warning} />
-            <Text style={styles.rewardsTitle}>{pendingRewards.length} Rewards to Claim!</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{completedCount}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
           </View>
-          <Text style={styles.rewardsSubtext}>
-            You have completed milestones with unclaimed tokens
-          </Text>
-          <TouchableOpacity 
-            style={styles.claimButton}
-            onPress={() => navigation.navigate('Milestones')}
-          >
-            <Text style={styles.claimButtonText}>Claim Now</Text>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{milestones.length - completedCount}</Text>
+            <Text style={styles.statLabel}>In Progress</Text>
+          </View>
+        </View>
+        
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionsGrid}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Milestones')}>
+            <Text style={styles.actionIcon}>🎯</Text>
+            <Text style={styles.actionText}>Milestones</Text>
           </TouchableOpacity>
-        </Card>
-      )}
-
-      {/* Quick Stats */}
-      <Text style={styles.sectionTitle}>Your Progress</Text>
-      <View style={styles.statsRow}>
-        <Card style={styles.statCard}>
-          <Ionicons name="checkmark-circle" size={32} color={COLORS.success} />
-          <Text style={styles.statNumber}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Ionicons name="time" size={32} color={COLORS.warning} />
-          <Text style={styles.statNumber}>{inProgressCount}</Text>
-          <Text style={styles.statLabel}>In Progress</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Ionicons name="trophy" size={32} color={COLORS.primary} />
-          <Text style={styles.statNumber}>{milestones.length}</Text>
-          <Text style={styles.statLabel}>Total</Text>
-        </Card>
-      </View>
-
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.actionsGrid}>
-        <QuickAction 
-          icon="fitness" 
-          label="Track Kicks" 
-          color={COLORS.primary}
-          onPress={() => {}}
-        />
-        <QuickAction 
-          icon="calendar" 
-          label="Appointments" 
-          color={COLORS.secondary}
-          onPress={() => {}}
-        />
-        <QuickAction 
-          icon="book" 
-          label="Articles" 
-          color={COLORS.info}
-          onPress={() => {}}
-        />
-        <QuickAction 
-          icon="help-circle" 
-          label="Get Help" 
-          color={COLORS.success}
-          onPress={() => {}}
-        />
-      </View>
-    </ScrollView>
-  );
-}
-
-function QuickAction({ icon, label, color, onPress }: { 
-  icon: keyof typeof Ionicons.glyphMap; 
-  label: string; 
-  color: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
-      <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
-        <Ionicons name={icon} size={24} color={COLORS.textOnPrimary} />
-      </View>
-      <Text style={styles.quickActionLabel}>{label}</Text>
-    </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Wallet')}>
+            <Text style={styles.actionIcon}>💰</Text>
+            <Text style={styles.actionText}>Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard}>
+            <Text style={styles.actionIcon}>📅</Text>
+            <Text style={styles.actionText}>Appointments</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard}>
+            <Text style={styles.actionIcon}>📚</Text>
+            <Text style={styles.actionText}>Articles</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  greeting: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-  },
-  userName: {
-    fontSize: FONTS.sizes.xl,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.sm,
-  },
-  balanceCard: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.primary,
-    padding: SPACING.lg,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  balanceLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.textOnPrimary,
-    opacity: 0.9,
-  },
-  balanceAmount: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: COLORS.textOnPrimary,
-  },
-  balanceSubtext: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.textOnPrimary,
-    opacity: 0.8,
-    marginBottom: SPACING.md,
-  },
-  balanceActions: {
-    flexDirection: 'row',
-    gap: SPACING.lg,
-  },
-  balanceAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  balanceActionText: {
-    color: COLORS.textOnPrimary,
-    fontSize: FONTS.sizes.sm,
-    fontWeight: '600',
-  },
-  rewardsCard: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: '#FFF8E1',
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.warning,
-  },
-  rewardsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.xs,
-  },
-  rewardsTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  rewardsSubtext: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-  },
-  claimButton: {
-    backgroundColor: COLORS.warning,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  claimButtonText: {
-    color: COLORS.textOnPrimary,
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: SPACING.md,
-  },
-  statNumber: {
-    fontSize: FONTS.sizes.xxl,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: SPACING.xs,
-  },
-  statLabel: {
-    fontSize: FONTS.sizes.xs,
-    color: COLORS.textSecondary,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  quickAction: {
-    width: '47%',
-    alignItems: 'center',
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    ...SHADOWS.sm,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.sm,
-  },
-  quickActionLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text,
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { flex: 1, padding: 20 },
+  greeting: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 20 },
+  mockBanner: { backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginBottom: 16 },
+  mockText: { color: '#E65100', fontSize: 13, textAlign: 'center' },
+  balanceCard: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 24, marginBottom: 20 },
+  balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
+  balanceAmount: { color: COLORS.white, fontSize: 36, fontWeight: 'bold', marginVertical: 8 },
+  pendingBadge: { backgroundColor: COLORS.success, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 10 },
+  pendingText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  redeemButton: { backgroundColor: COLORS.white, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 20, alignSelf: 'flex-start', marginTop: 10 },
+  redeemButtonText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  statCard: { flex: 1, backgroundColor: COLORS.card, borderRadius: 16, padding: 16, alignItems: 'center' },
+  statNumber: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
+  statLabel: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginBottom: 16 },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  actionCard: { width: '48%', backgroundColor: COLORS.card, borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  actionIcon: { fontSize: 32, marginBottom: 8 },
+  actionText: { fontSize: 14, fontWeight: '600', color: COLORS.text },
 });

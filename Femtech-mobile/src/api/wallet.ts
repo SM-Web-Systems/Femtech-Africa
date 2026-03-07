@@ -1,44 +1,18 @@
-import { apiClient } from './client';
-
-export interface WalletBalance {
-  walletAddress: string;
-  mamaBalance: string;
-  balances: Array<{
-    asset: string;
-    balance: string;
-    issuer: string | null;
-  }>;
-  stellarExpert: string;
-}
-
-export interface CreateWalletResponse {
-  walletAddress: string;
-  secretKey: string;
-  stellarExpert: string;
-}
-
-export interface Transaction {
-  id: string;
-  type: string;
-  amount: number;
-  status: string;
-  tx_hash: string;
-  createdAt: string;
-}
+import apiClient from './client';
 
 export const walletApi = {
-  createWallet: async (): Promise<CreateWalletResponse> => {
-    const { data } = await apiClient.post('/wallet/create');
-    return data;
+  getBalance: async () => {
+    const response = await apiClient.get('/wallet/balance');
+    return response.data;
   },
 
-  getBalance: async (): Promise<WalletBalance> => {
-    const { data } = await apiClient.get('/wallet/balance');
-    return data;
+  createWallet: async () => {
+    const response = await apiClient.post('/wallet/create');
+    return response.data;
   },
 
-  getTransactions: async (): Promise<{ data: Transaction[] }> => {
-    const { data } = await apiClient.get('/wallet/transactions');
-    return data;
+  getTransactions: async () => {
+    const response = await apiClient.get('/my/transactions');
+    return response.data;
   },
 };

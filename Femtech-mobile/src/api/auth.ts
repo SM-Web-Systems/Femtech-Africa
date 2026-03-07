@@ -1,44 +1,18 @@
-import { apiClient } from './client';
-
-export interface RequestOtpParams {
-  phone: string;
-  country: string;
-}
-
-export interface VerifyOtpParams {
-  phone: string;
-  otp: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  isNewUser: boolean;
-  user: User;
-}
-
-export interface User {
-  id: string;
-  phone: string;
-  country: string;
-  role: string;
-  status: string;
-  walletAddress?: string;
-  createdAt?: string;
-}
+import apiClient from './client';
 
 export const authApi = {
-  requestOtp: async (params: RequestOtpParams) => {
-    const { data } = await apiClient.post('/auth/request-otp', params);
-    return data;
+  requestOtp: async (phone: string, country: string) => {
+    const response = await apiClient.post('/auth/otp/request', { phone, country });
+    return response.data;
   },
 
-  verifyOtp: async (params: VerifyOtpParams): Promise<AuthResponse> => {
-    const { data } = await apiClient.post('/auth/verify-otp', params);
-    return data;
+  verifyOtp: async (phone: string, otp: string) => {
+    const response = await apiClient.post('/auth/otp/verify', { phone, otp });
+    return response.data;
   },
 
-  getCurrentUser: async (): Promise<{ data: User }> => {
-    const { data } = await apiClient.get('/auth/me');
-    return data;
+  getCurrentUser: async () => {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
   },
 };

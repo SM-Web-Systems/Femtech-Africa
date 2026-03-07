@@ -1,55 +1,32 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { API_CONFIG, STORAGE_KEYS } from '../constants';
 
-class ApiClient {
-  private instance: AxiosInstance;
+const API_BASE_URL = 'https://api.mamatokens.com/api/v1';
 
-  constructor() {
-    this.instance = axios.create({
-      baseURL: `${API_CONFIG.BASE_URL}/api/${API_CONFIG.VERSION}`,
-      timeout: API_CONFIG.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-    this.setupInterceptors();
+// Add auth token to every request
+apiClient.interceptors.request.use(async (config) => {
+  const token = await SecureStore.getItemAsync('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  private setupInterceptors() {
-    this.instance.interceptors.request.use(
-      async (config) => {
-        const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    this.instance.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-        }
-        return Promise.reject(this.formatError(error));
-      }
-    );
+// Handle errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log('API Error:', error.response?.data || error.message);
+    throw error;
   }
+);
 
-  private formatError(error: AxiosError): Error {
-    const message = (error.response?.data as any)?.error || 
-                    error.message || 
-                    'An unexpected error occurred';
-    return new Error(message);
-  }
-
-  get client() {
-    return this.instance;
-  }
-}
-
-export const apiClient = new ApiClient().client;
+export default apiClient;

@@ -1,179 +1,99 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Button, Header } from '../../components/common';
-import { COLORS, SPACING, FONTS } from '../../constants';
-import { authApi } from '../../api';
-import { useAuth } from '../../store';
-import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../store/AuthContext';
 
-type RouteProps = RouteProp<AuthStackParamList, 'OtpVerification'>;
+const COLORS = {
+  primary: '#E91E63',
+  background: '#FFF5F8',
+  text: '#333333',
+  textSecondary: '#666666',
+  white: '#FFFFFF',
+  border: '#E0E0E0',
+};
 
-export default function OtpVerificationScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
-  const route = useRoute<RouteProps>();
-  const { login } = useAuth();
-  const { phone, country } = route.params;
-
+export default function OtpVerificationScreen({ route, navigation }: any) {
+  const { phone } = route.params;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(30);
-  const inputRefs = useRef<TextInput[]>([]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const { login } = useAuth();
+  const inputs = useRef<TextInput[]>([]);
 
   const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
+    
     if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+      inputs.current[index + 1]?.focus();
     }
-
-    if (newOtp.every((digit) => digit) && newOtp.join('').length === 6) {
-      handleVerify(newOtp.join(''));
-    }
-  };
-
-  const handleKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    
+    if (newOtp.every(d => d) && newOtp.join('').length === 6) {
+      verifyOtp();
     }
   };
 
-  const handleVerify = async (otpCode?: string) => {
-    const code = otpCode || otp.join('');
-    if (code.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit code');
-      return;
-    }
-
+  const verifyOtp = async () => {
     setLoading(true);
-    try {
-      const response = await authApi.verifyOtp({ phone, otp: code });
-      await login(response.token, response.user as any);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Invalid OTP');
-      setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    try {
-      await authApi.requestOtp({ phone, country });
-      setResendTimer(30);
-      Alert.alert('Success', 'A new OTP has been sent');
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
+    
+    // MOCK LOGIN - uses test user from database
+    const mockUser = {
+      id: 'a1000000-0000-4000-8000-000000000001',
+      phone: phone,
+      country: 'ZA',
+    };
+    const mockToken = 'mock-token-' + Date.now();
+    
+    await login(mockUser, mockToken);
+    setLoading(false);
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <Header title="Verify Phone" showBack onBack={() => navigation.goBack()} />
-
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Enter verification code</Text>
-        <Text style={styles.subtitle}>We sent a 6-digit code to {phone}</Text>
-
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.title}>Verify your phone</Text>
+        <Text style={styles.subtitle}>Enter any 6 digits to continue</Text>
+        
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref!)}
+              ref={(ref) => { if (ref) inputs.current[index] = ref; }}
               style={[styles.otpInput, digit && styles.otpInputFilled]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(value.slice(-1), index)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
               keyboardType="number-pad"
               maxLength={1}
-              selectTextOnFocus
+              value={digit}
+              onChangeText={(value) => handleOtpChange(value, index)}
+              editable={!loading}
             />
           ))}
         </View>
-
-        <Button
-          title="Verify"
-          onPress={() => handleVerify()}
-          loading={loading}
-          disabled={otp.some((d) => !d)}
-          size="large"
-          style={styles.button}
-        />
-
-        <View style={styles.resendContainer}>
-          {resendTimer > 0 ? (
-            <Text style={styles.resendText}>Resend code in {resendTimer}s</Text>
-          ) : (
-            <Button title="Resend Code" variant="ghost" onPress={handleResend} />
-          )}
+        
+        {loading && <Text style={styles.loadingText}>Logging in...</Text>}
+        
+        <View style={styles.hintBox}>
+          <Text style={styles.hintText}>💡 Test mode: Enter any 6 digits</Text>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONTS.sizes.xxl,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  subtitle: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xl,
-  },
-  otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xl,
-  },
-  otpInput: {
-    width: 48,
-    height: 56,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    fontSize: FONTS.sizes.xxl,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: COLORS.text,
-  },
-  otpInputFilled: {
-    borderColor: COLORS.primary,
-  },
-  button: {
-    marginTop: SPACING.md,
-  },
-  resendContainer: {
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-  },
-  resendText: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { flex: 1, padding: 20, paddingTop: 20 },
+  backButton: { marginBottom: 20 },
+  backText: { fontSize: 16, color: COLORS.primary },
+  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 10 },
+  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 40 },
+  otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
+  otpInput: { width: 50, height: 60, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, backgroundColor: COLORS.white, textAlign: 'center', fontSize: 24, fontWeight: 'bold', color: COLORS.text },
+  otpInputFilled: { borderColor: COLORS.primary, backgroundColor: '#FFF0F5' },
+  loadingText: { textAlign: 'center', color: COLORS.primary, fontSize: 16, marginBottom: 20 },
+  hintBox: { backgroundColor: '#FFF0F5', padding: 16, borderRadius: 12, alignItems: 'center' },
+  hintText: { color: COLORS.primary, fontSize: 14 },
 });

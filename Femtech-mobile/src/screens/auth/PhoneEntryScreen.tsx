@@ -1,169 +1,74 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Input, Header } from '../../components/common';
-import { COLORS, SPACING, FONTS } from '../../constants';
-import { authApi } from '../../api';
-import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'PhoneEntry'>;
+const COLORS = {
+  primary: '#E91E63',
+  background: '#FFF5F8',
+  text: '#333333',
+  textSecondary: '#666666',
+  white: '#FFFFFF',
+  border: '#E0E0E0',
+};
 
-const COUNTRIES = [
-  { code: 'ZA', name: 'South Africa', dial: '+27', flag: '🇿🇦' },
-  { code: 'KE', name: 'Kenya', dial: '+254', flag: '🇰🇪' },
-  { code: 'NG', name: 'Nigeria', dial: '+234', flag: '🇳🇬' },
-  { code: 'GH', name: 'Ghana', dial: '+233', flag: '🇬🇭' },
-];
-
-export default function PhoneEntryScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NavigationProp>();
+export default function PhoneEntryScreen({ navigation }: any) {
   const [phone, setPhone] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [loading, setLoading] = useState(false);
-  const [showCountries, setShowCountries] = useState(false);
 
-  const handleRequestOtp = async () => {
+  const handleContinue = async () => {
     if (phone.length < 9) {
-      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
-
-    setLoading(true);
-    try {
-      const fullPhone = `${selectedCountry.dial}${phone.replace(/^0/, '')}`;
-      await authApi.requestOtp({ phone: fullPhone, country: selectedCountry.code });
-      navigation.navigate('OtpVerification', { phone: fullPhone, country: selectedCountry.code });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
+    
+    // MOCK: Skip real OTP, just navigate
+    navigation.navigate('OtpVerification', { phone: '+27' + phone });
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <Header title="Enter Phone" showBack onBack={() => navigation.goBack()} />
-      
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>What's your phone number?</Text>
-        <Text style={styles.subtitle}>We'll send you a verification code</Text>
-
-        <TouchableOpacity style={styles.countrySelector} onPress={() => setShowCountries(!showCountries)}>
-          <Text style={styles.flag}>{selectedCountry.flag}</Text>
-          <Text style={styles.countryName}>{selectedCountry.name}</Text>
-          <Text style={styles.dialCode}>{selectedCountry.dial}</Text>
-          <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-
-        {showCountries && (
-          <View style={styles.countryList}>
-            {COUNTRIES.map((country) => (
-              <TouchableOpacity
-                key={country.code}
-                style={styles.countryItem}
-                onPress={() => {
-                  setSelectedCountry(country);
-                  setShowCountries(false);
-                }}
-              >
-                <Text style={styles.flag}>{country.flag}</Text>
-                <Text style={styles.countryItemName}>{country.name}</Text>
-                <Text style={styles.dialCode}>{country.dial}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        <Input
-          placeholder="Phone number"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          leftIcon="call-outline"
-        />
-
-        <Button
-          title="Continue"
-          onPress={handleRequestOtp}
-          loading={loading}
-          disabled={phone.length < 9}
-          size="large"
+        
+        <Text style={styles.title}>Enter your phone</Text>
+        <Text style={styles.subtitle}>Enter any phone number for testing</Text>
+        
+        <View style={styles.inputContainer}>
+          <Text style={styles.prefix}>+27</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Phone number"
+            placeholderTextColor="#999"
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
+            maxLength={10}
+          />
+        </View>
+        
+        <TouchableOpacity 
           style={styles.button}
-        />
+          onPress={handleContinue}
+        >
+          <Text style={styles.buttonText}>Continue</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-  },
-  title: {
-    fontSize: FONTS.sizes.xxl,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  subtitle: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xl,
-  },
-  countrySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 8,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: SPACING.sm,
-  },
-  flag: {
-    fontSize: 24,
-  },
-  countryName: {
-    flex: 1,
-    fontSize: FONTS.sizes.md,
-    color: COLORS.text,
-  },
-  dialCode: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.textSecondary,
-  },
-  countryList: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 8,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  countryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.md,
-    gap: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.divider,
-  },
-  countryItemName: {
-    flex: 1,
-    fontSize: FONTS.sizes.md,
-    color: COLORS.text,
-  },
-  button: {
-    marginTop: SPACING.lg,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { flex: 1, padding: 20, paddingTop: 20 },
+  backButton: { marginBottom: 20 },
+  backText: { fontSize: 16, color: COLORS.primary },
+  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 10 },
+  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 40 },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 30 },
+  prefix: { paddingHorizontal: 16, fontSize: 18, color: COLORS.text, borderRightWidth: 1, borderRightColor: COLORS.border, paddingVertical: 16 },
+  input: { flex: 1, paddingVertical: 16, paddingHorizontal: 16, fontSize: 18, color: COLORS.text },
+  button: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
 });

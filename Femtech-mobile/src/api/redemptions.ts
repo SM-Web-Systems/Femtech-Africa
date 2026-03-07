@@ -1,78 +1,29 @@
-import { apiClient } from './client';
-
-export interface Partner {
-  id: string;
-  name: string;
-  type: string;
-  country: string;
-  logoUrl: string;
-  description: string;
-  isActive: boolean;
-}
-
-export interface Product {
-  id: string;
-  partnerId: string;
-  name: string;
-  description: string;
-  category: string;
-  tokenCost: number;
-  imageUrl: string;
-  is_available: boolean;
-}
-
-export interface RedemptionItem {
-  id: string;
-  productId: string;
-  quantity: number;
-  tokenCost: number;
-  voucherCode: string;
-  voucher_expires_at: string;
-  product: Product;
-}
-
-export interface Redemption {
-  id: string;
-  userId: string;
-  partner_id: string;
-  type: string;
-  totalTokens: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  recipient_phone: string;
-  burn_tx_hash: string;
-  completedAt: string;
-  createdAt: string;
-  partners: Partner;
-  items: RedemptionItem[];
-}
-
-export interface CreateRedemptionParams {
-  partnerId: string;
-  products: Array<{ productId: string; quantity: number }>;
-  recipientPhone: string;
-  userSecretKey: string;
-}
+import apiClient from './client';
 
 export const redemptionsApi = {
-  getPartners: async (country?: string): Promise<{ data: Partner[] }> => {
-    const params = country ? { country } : {};
-    const { data } = await apiClient.get('/partners', { params });
-    return data;
+  getPartners: async () => {
+    const response = await apiClient.get('/partners');
+    return response.data;
   },
 
-  getProducts: async (partnerId?: string): Promise<{ data: Product[] }> => {
-    const params = partnerId ? { partnerId } : {};
-    const { data } = await apiClient.get('/products', { params });
-    return data;
+  getProducts: async (partnerId?: string) => {
+    const url = partnerId ? `/products?partnerId=${partnerId}` : '/products';
+    const response = await apiClient.get(url);
+    return response.data;
   },
 
-  getUserRedemptions: async (): Promise<{ data: Redemption[] }> => {
-    const { data } = await apiClient.get('/my/redemptions');
-    return data;
+  getUserRedemptions: async () => {
+    const response = await apiClient.get('/my/redemptions');
+    return response.data;
   },
 
-  createRedemption: async (params: CreateRedemptionParams): Promise<{ data: Redemption }> => {
-    const { data } = await apiClient.post('/my/redemptions', params);
-    return data;
+  createRedemption: async (data: {
+    partnerId: string;
+    products: { productId: string; quantity: number }[];
+    recipientPhone: string;
+    userSecretKey: string;
+  }) => {
+    const response = await apiClient.post('/my/redemptions', data);
+    return response.data;
   },
 };

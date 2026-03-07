@@ -43,7 +43,6 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "prepare": "husky install"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",
