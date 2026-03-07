@@ -1,100 +1,201 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from 'react';
+import { adminApi } from '@/lib/api';
 
-const mockTransactions = [
-  { id: "tx1", type: "mint_milestone", user: "+27612345678", amount: 100, status: "confirmed", txHash: "abc123...def", createdAt: "2026-03-07 14:30" },
-  { id: "tx2", type: "burn_redemption", user: "+27698765432", amount: -50, status: "confirmed", txHash: "ghi456...jkl", createdAt: "2026-03-07 14:15" },
-  { id: "tx3", type: "mint_milestone", user: "+254712345678", amount: 10, status: "confirmed", txHash: "mno789...pqr", createdAt: "2026-03-07 13:45" },
-  { id: "tx4", type: "mint_referral", user: "+27623456789", amount: 25, status: "confirmed", txHash: "stu012...vwx", createdAt: "2026-03-07 12:30" },
-  { id: "tx5", type: "burn_redemption", user: "+234812345678", amount: -100, status: "pending", txHash: "yza345...bcd", createdAt: "2026-03-07 11:00" },
-  { id: "tx6", type: "mint_milestone", user: "+27634567890", amount: 50, status: "confirmed", txHash: "efg678...hij", createdAt: "2026-03-07 10:30" },
-];
+interface Transaction {
+  id: string;
+  type: string;
+  userPhone: string;
+  amount: number;
+  status: string;
+  txHash: string | null;
+  fullTxHash: string | null;
+  createdAt: string;
+}
 
 export default function TransactionsPage() {
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
 
-  const filteredTx = mockTransactions.filter(tx => {
-    return typeFilter === "all" || tx.type.includes(typeFilter);
-  });
+  useEffect(() => {
+    fetchTransactions();
+  }, [page]);
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      confirmed: "bg-green-100 text-green-700",
-      pending: "bg-yellow-100 text-yellow-700",
-      failed: "bg-red-100 text-red-700",
-    };
-    return styles[status] || styles.pending;
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const data = await adminApi.getTransactions(page, 20);
+      setTransactions(data.transactions);
+      setPagination(data.pagination);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to load transactions');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const filteredTransactions = transactions.filter(tx =>
+    filter === 'all' || tx.type.includes(filter)
+  );
+
+  const getTypeColor = (type: string) => {
+    if (type.includes('mint')) return 'bg-green-100 text-green-800';
+    if (type.includes('burn')) return 'bg-red-100 text-red-800';
+    if (type.includes('transfer')) return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  const getTypeIcon = (type: string) => {
+    if (type.includes('mint')) return '⬆️';
+    if (type.includes('burn')) return '🔥';
+    if (type.includes('transfer')) return '↔️';
+    return '💰';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="text-lg text-gray-600">Loading transactions...</div></div>;
+  }
+
+  if (error) {
+    return <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-600">{error}</p><button onClick={fetchTransactions} className="mt-2 text-red-600 underline">Retry</button></div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
-          <p className="text-gray-500">View all token transactions on Stellar</p>
+          <p className="text-gray-500">{pagination.total} total transactions</p>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+        <button className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700">
+          Export CSV
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg ${filter === 'all' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700'}`}
           >
-            <option value="all">All Types</option>
-            <option value="mint">Mints</option>
-            <option value="burn">Burns</option>
-          </select>
-          <button className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600">
-            Export CSV
+            All
+          </button>
+          <button
+            onClick={() => setFilter('mint')}
+            className={`px-4 py-2 rounded-lg ${filter === 'mint' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+          >
+            ⬆️ Mints
+          </button>
+          <button
+            onClick={() => setFilter('burn')}
+            className={`px-4 py-2 rounded-lg ${filter === 'burn' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+          >
+            🔥 Burns
+          </button>
+          <button
+            onClick={() => setFilter('transfer')}
+            className={`px-4 py-2 rounded-lg ${filter === 'transfer' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+          >
+            ↔️ Transfers
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TX Hash</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredTransactions.length === 0 ? (
               <tr>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Type</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">User</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Amount</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Status</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">TX Hash</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Date</th>
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  No transactions found
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filteredTx.map((tx) => (
+            ) : (
+              filteredTransactions.map((tx) => (
                 <tr key={tx.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{tx.amount > 0 ? "⬇️" : "⬆️"}</span>
-                      <span className="text-gray-800">{tx.type.replace(/_/g, " ")}</span>
-                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(tx.type)}`}>
+                      {getTypeIcon(tx.type)} {tx.type.replace('_', ' ')}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{tx.user}</td>
+                  <td className="px-6 py-4 text-gray-900">{tx.userPhone}</td>
                   <td className="px-6 py-4">
-                    <span className={`font-semibold ${tx.amount > 0 ? "text-pink-600" : "text-green-600"}`}>
-                      {tx.amount > 0 ? "+" : ""}{tx.amount} MAMA
+                    <span className={tx.type.includes('mint') ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {tx.type.includes('mint') ? '+' : '-'}{Math.abs(tx.amount)} MAMA
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(tx.status)}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
                       {tx.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <a href={`https://stellar.expert/explorer/testnet/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                      {tx.txHash} ↗
-                    </a>
+                    {tx.fullTxHash ? (
+                      <a
+                        href={`https://stellar.expert/explorer/testnet/tx/${tx.fullTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline font-mono text-sm"
+                      >
+                        {tx.txHash}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">{tx.createdAt}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {new Date(tx.createdAt).toLocaleString()}
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {pagination.pages > 1 && (
+        <div className="flex justify-center gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 border rounded-lg disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">Page {page} of {pagination.pages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+            disabled={page === pagination.pages}
+            className="px-4 py-2 border rounded-lg disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
