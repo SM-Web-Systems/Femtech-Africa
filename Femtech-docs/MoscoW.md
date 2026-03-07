@@ -35,14 +35,14 @@ MoSCoW is a prioritization framework that categorizes features into:
 | HTTPS/SSL                 | ✅ Done | Let's Encrypt certificate       |
 | Database (PostgreSQL)     | ✅ Done | All tables, indexes, triggers   |
 | API Documentation         | ✅ Done | Complete endpoint docs          |
+| User Profile Encryption   | ✅ Done | PII data protection             |
+| Token Redemption Flow     | ✅ Done | Redeem MAMA for products        |
 
 ### 🔲 Pending
 
 | Feature                           | Priority  | Effort  | Notes                         |
 |-----------------------------------|-----------|---------|-------------------------------|
 | Real SMS OTP (Africa's Talking)   | HIGH      | 2 days  | Currently using debug OTP     |
-| User Profile Encryption           | HIGH      | 1 day   | PII data protection           |
-| Token Redemption Flow             | HIGH      | 3 days  | Redeem MAMA for products      |
 | Basic Admin Dashboard             | HIGH      | 3 days  | User & transaction management |
 | Mobile App (React Native)         | HIGH      | 2 weeks | Core user interface           |
 

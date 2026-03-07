@@ -690,3 +690,33 @@ Network	Stellar Testnet
 Issuer	GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
 Explorer	https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
 
+6/3/2026
+
+Enhanced API finished and tested
+Data encryption in the DB (name birthdate....)
+
+=== TOKEN REDEMPTION FLOW COMPLETED ===
+
+Flow:
+1. User selects products to redeem
+2. API validates user's secret key matches wallet
+3. API checks MAMA token balance on Stellar
+4. API burns tokens (sends to distributor)
+5. Creates redemption record with burn tx hash
+6. Generates voucher codes for products
+7. Returns completed redemption with Stellar Explorer link
+
+Endpoints:
+- GET  /api/v1/my/redemptions      - List user's redemptions
+- GET  /api/v1/my/redemptions/:id  - Get single redemption
+- POST /api/v1/my/redemptions      - Create redemption (with burn)
+- POST /api/v1/my/redemptions/:id/cancel - Cancel pending redemption
+
+Test Results:
+- Balance before: 120 MAMA
+- Redeemed: R10 Airtime (50 tokens)
+- Balance after: 70 MAMA (burned 50)
+- Voucher: VOUCHER-OMH6E28L
+- Stellar TX: https://stellar.expert/explorer/testnet/tx/2a1642f2ee75f70a5bc5bb07f7fea1a37226388909f3fbed398a013dd2d81003
+"
+
