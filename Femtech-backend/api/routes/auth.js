@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { PrismaClient } = require('../generated/prisma-client');
 const { authenticateToken } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
-// Test code for development (remove in production)
+// Test code for development
 const TEST_OTP = '123456';
+
+// Hash OTP for storage
+const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
 // Request OTP
 router.post('/otp/request', async (req, res) => {
@@ -24,8 +28,9 @@ router.post('/otp/request', async (req, res) => {
     await prisma.otpCode.create({
       data: {
         phone,
-        code: otp,
-        expires_at: expiresAt
+        codeHash: hashOtp(otp),
+        purpose: 'login',
+        expiresAt
       }
     });
 
@@ -34,6 +39,7 @@ router.post('/otp/request', async (req, res) => {
 
     res.json({ success: true, message: 'OTP sent successfully', hint: 'Use 123456 for testing' });
   } catch (error) {
+    console.error('OTP request error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -41,7 +47,7 @@ router.post('/otp/request', async (req, res) => {
 // Verify OTP
 router.post('/otp/verify', async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, country } = req.body;
 
     // Allow test code in development
     const isTestCode = otp === TEST_OTP;
@@ -50,30 +56,38 @@ router.post('/otp/verify', async (req, res) => {
       const otpRecord = await prisma.otpCode.findFirst({
         where: {
           phone,
-          code: otp,
-          used: false,
-          expires_at: { gte: new Date() }
+          codeHash: hashOtp(otp),
+          purpose: 'login',
+          verified_at: null,
+          expiresAt: { gte: new Date() }
         },
-        orderBy: { created_at: 'desc' }
+        orderBy: { createdAt: 'desc' }
       });
 
       if (!otpRecord) {
         return res.status(400).json({ error: 'Invalid or expired OTP' });
       }
 
+      // Check max attempts
+      if (otpRecord.attempts >= otpRecord.maxAttempts) {
+        return res.status(400).json({ error: 'Too many attempts. Request a new OTP.' });
+      }
+
+      // Mark as verified
       await prisma.otpCode.update({
         where: { id: otpRecord.id },
-        data: { used: true }
+        data: { verified_at: new Date() }
       });
     }
 
+    // Find or create user
     let user = await prisma.user.findUnique({ where: { phone } });
 
     if (!user) {
       user = await prisma.user.create({
         data: {
           phone,
-          country: req.body.country || 'ZA',
+          country: country || 'ZA',
           status: 'active'
         }
       });
@@ -87,6 +101,7 @@ router.post('/otp/verify', async (req, res) => {
 
     res.json({ token, user: { id: user.id, phone: user.phone, country: user.country } });
   } catch (error) {
+    console.error('OTP verify error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -107,3 +122,5 @@ router.get('/me', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;

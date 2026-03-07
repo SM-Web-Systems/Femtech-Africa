@@ -10,8 +10,8 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
   try {
     const milestones = await prisma.milestoneDefinition.findMany({
-      where: { is_active: true },
-      orderBy: { sort_order: 'asc' }
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' }
     });
     res.json(milestones);
   } catch (error) {
