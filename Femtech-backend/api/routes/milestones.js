@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
     });
     res.json(milestones);
   } catch (error) {
+    console.error('Get milestones error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -23,12 +24,13 @@ router.get('/', async (req, res) => {
 router.get('/my', authenticateToken, async (req, res) => {
   try {
     const milestones = await prisma.userMilestone.findMany({
-      where: { user_id: req.user.userId },
-      include: { milestone_definition: true },
-      orderBy: { created_at: 'desc' }
+      where: { userId: req.user.userId },
+      include: { milestone_definitions: true },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(milestones);
   } catch (error) {
+    console.error('Get user milestones error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -40,42 +42,46 @@ router.post('/mint', authenticateToken, async (req, res) => {
 
     const userMilestone = await prisma.userMilestone.findFirst({
       where: {
-        user_id: req.user.userId,
-        milestone_id: milestoneId,
+        userId: req.user.userId,
+        id: milestoneId,
         status: 'completed',
         reward_minted: false
       },
-      include: { milestone_definition: true }
+      include: { milestone_definitions: true }
     });
 
     if (!userMilestone) {
       return res.status(400).json({ error: 'No eligible milestone found' });
     }
 
-    const wallet = await prisma.wallet.findFirst({
-      where: { user_id: req.user.userId }
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
     });
 
-    if (!wallet) {
+    if (!user?.walletAddress) {
       return res.status(400).json({ error: 'Wallet not found. Please create a wallet first.' });
     }
 
-    const amount = parseFloat(userMilestone.milestone_definition.token_reward);
-    const txHash = await mintTokens(wallet.stellar_address, amount);
+    const amount = userMilestone.rewardAmount || userMilestone.milestone_definitions.rewardAmount;
+    const txHash = await mintTokens(user.walletAddress, amount);
 
     await prisma.userMilestone.update({
       where: { id: userMilestone.id },
-      data: { reward_minted: true, reward_minted_at: new Date() }
+      data: { 
+        reward_minted: true, 
+        reward_minted_at: new Date(),
+        reward_tx_hash: txHash
+      }
     });
 
     await prisma.tokenTransaction.create({
       data: {
-        user_id: req.user.userId,
+        userId: req.user.userId,
         type: 'mint_milestone',
         amount,
         tx_hash: txHash,
-        status: 'confirmed',
-        milestone_id: milestoneId
+        status: 'completed',
+        milestoneId: userMilestone.id
       }
     });
 
@@ -86,6 +92,7 @@ router.post('/mint', authenticateToken, async (req, res) => {
       stellarExpert: `https://stellar.expert/explorer/testnet/tx/${txHash}`
     });
   } catch (error) {
+    console.error('Mint error:', error);
     res.status(500).json({ error: error.message });
   }
 });
