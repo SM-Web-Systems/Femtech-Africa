@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
@@ -14,37 +14,28 @@ const COLORS = {
   success: '#4CAF50',
 };
 
-// Mock data for when API isn't available
-const MOCK_BALANCE = '120.00';
-const MOCK_MILESTONES = [
-  { id: '1', status: 'completed', reward_minted: true, milestone_definition: { name: 'Complete Profile', token_reward: 10 } },
-  { id: '2', status: 'completed', reward_minted: false, milestone_definition: { name: 'First Prenatal Visit', token_reward: 100 } },
-  { id: '3', status: 'in_progress', progress_pct: 60, milestone_definition: { name: 'Weekly Check-in', token_reward: 5 } },
-];
-
 export default function HomeScreen({ navigation }: any) {
-  const { user } = useAuth();
-  const [balance, setBalance] = useState<string>(MOCK_BALANCE);
-  const [milestones, setMilestones] = useState<any[]>(MOCK_MILESTONES);
+  const { user, logout } = useAuth();
+  const [balance, setBalance] = useState<string>('0.00');
+  const [milestones, setMilestones] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
+    setError(null);
     try {
       const [walletData, milestonesData] = await Promise.all([
         walletApi.getBalance(),
         milestonesApi.getUserMilestones(),
       ]);
-      
+
       setBalance(walletData.mamaBalance || '0.00');
       setMilestones(milestonesData.slice(0, 3));
-      setUsingMockData(false);
-    } catch (error) {
-      console.log('Using mock data - API not available');
-      setBalance(MOCK_BALANCE);
-      setMilestones(MOCK_MILESTONES);
-      setUsingMockData(true);
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to load data';
+      console.log('API Error:', message);
+      setError(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,23 +51,35 @@ export default function HomeScreen({ navigation }: any) {
     fetchData();
   };
 
+  const handleLogout = async () => {
+    await logout();
+  };
+
   const completedCount = milestones.filter(m => m.status === 'completed').length;
   const pendingRewards = milestones.filter(m => m.status === 'completed' && !m.reward_minted).length;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
       >
-        <Text style={styles.greeting}>Hello, Mama! 👋</Text>
-        
-        {usingMockData && (
-          <View style={styles.mockBanner}>
-            <Text style={styles.mockText}>📱 Demo Mode - Connect SMS to use real data</Text>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Hello, Mama! </Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}> {error}</Text>
+            <TouchableOpacity onPress={handleLogout}>
+              <Text style={styles.reloginText}>Re-login</Text>
+            </TouchableOpacity>
           </View>
         )}
-        
+
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Your Balance</Text>
           <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} MAMA</Text>
@@ -85,7 +88,7 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.pendingText}>{pendingRewards} rewards to claim!</Text>
             </View>
           )}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.redeemButton}
             onPress={() => navigation.navigate('Wallet')}
           >
@@ -103,25 +106,29 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.statLabel}>In Progress</Text>
           </View>
         </View>
-        
+
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Milestones')}>
-            <Text style={styles.actionIcon}>🎯</Text>
+            <Text style={styles.actionIcon}></Text>
             <Text style={styles.actionText}>Milestones</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Wallet')}>
-            <Text style={styles.actionIcon}>💰</Text>
+            <Text style={styles.actionIcon}></Text>
             <Text style={styles.actionText}>Wallet</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard}>
-            <Text style={styles.actionIcon}>📅</Text>
+            <Text style={styles.actionIcon}></Text>
             <Text style={styles.actionText}>Appointments</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard}>
-            <Text style={styles.actionIcon}>📚</Text>
+            <Text style={styles.actionIcon}></Text>
             <Text style={styles.actionText}>Articles</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.userInfo}>
+          <Text style={styles.userInfoText}>Logged in as: {user?.phone}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -131,9 +138,13 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1, padding: 20 },
-  greeting: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 20 },
-  mockBanner: { backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginBottom: 16 },
-  mockText: { color: '#E65100', fontSize: 13, textAlign: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  greeting: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
+  logoutButton: { backgroundColor: '#FFE0E6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  logoutText: { color: COLORS.primary, fontWeight: '600' },
+  errorBanner: { backgroundColor: '#FFEBEE', padding: 12, borderRadius: 8, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  errorText: { color: '#C62828', fontSize: 13, flex: 1 },
+  reloginText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 10 },
   balanceCard: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 24, marginBottom: 20 },
   balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
   balanceAmount: { color: COLORS.white, fontSize: 36, fontWeight: 'bold', marginVertical: 8 },
@@ -150,4 +161,6 @@ const styles = StyleSheet.create({
   actionCard: { width: '48%', backgroundColor: COLORS.card, borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   actionIcon: { fontSize: 32, marginBottom: 8 },
   actionText: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  userInfo: { marginTop: 20, padding: 16, backgroundColor: '#F5F5F5', borderRadius: 12 },
+  userInfoText: { color: COLORS.textSecondary, fontSize: 12, textAlign: 'center' },
 });
