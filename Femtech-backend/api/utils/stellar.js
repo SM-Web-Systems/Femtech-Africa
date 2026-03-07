@@ -1,4 +1,4 @@
-const StellarSdk = require('stellar-sdk');
+const StellarSdk = require('@stellar/stellar-sdk');
 
 const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
 const networkPassphrase = StellarSdk.Networks.TESTNET;

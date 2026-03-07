@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../../.env' });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -15,6 +15,7 @@ const publicRoutes = require('./routes/public');
 const userRoutes = require('./routes/user');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
