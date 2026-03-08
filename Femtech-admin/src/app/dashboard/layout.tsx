@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
 
 const navItems = [
   { href: '/dashboard/', label: 'Dashboard', icon: '' },
@@ -22,14 +21,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true);
     const token = localStorage.getItem('admin_token');
     if (!token) {
-      router.push('/');
+      window.location.href = '/';
     }
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
-    router.push('/');
+    window.location.href = '/';
   };
 
   if (!mounted) return null;
@@ -51,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <nav className="p-4 space-y-2">
           {navItems.map((item) => (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
@@ -62,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
-            </Link>
+            </a>
           ))}
         </nav>
         <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200">
