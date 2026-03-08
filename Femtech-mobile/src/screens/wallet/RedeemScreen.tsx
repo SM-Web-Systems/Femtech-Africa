@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\screens\wallet\RedeemScreen.tsx
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,32 +8,37 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   Alert,
-  Image,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useWallet } from '../../store/WalletContext';
 import { redemptionsApi } from '../../api';
 
 const COLORS = {
   primary: '#E91E63',
+  secondary: '#9C27B0',
   background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
   white: '#FFFFFF',
-  card: '#FFFFFF',
+  text: '#333333',
+  textLight: '#666666',
+  border: '#F0F0F0',
   success: '#4CAF50',
+  warning: '#FF9800',
   error: '#F44336',
-  border: '#E0E0E0',
+  card: '#FFFFFF',
 };
+
+const EXCHANGE_RATE = 0.10; // 1 MAMA = 0.10 ZAR
 
 interface Partner {
   id: string;
   name: string;
-  description: string;
-  logoUrl: string;
   type: string;
+  description: string;
+  logoUrl?: string;
   country: string;
 }
 
@@ -39,14 +46,13 @@ interface Product {
   id: string;
   name: string;
   description: string;
-  imageUrl: string;
   tokenCost: number;
-  stockQuantity: number;
-  category: string;
+  stock: number;
 }
 
 export default function RedeemScreen({ navigation }: any) {
   const { balance, refreshBalance } = useWallet();
+  
   const [partners, setPartners] = useState<Partner[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
@@ -54,18 +60,40 @@ export default function RedeemScreen({ navigation }: any) {
   const [tokenAmount, setTokenAmount] = useState('');
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
-  const [step, setStep] = useState(1); // 1: Select Partner, 2: Select Amount/Product, 3: Confirm
+  const [refreshing, setRefreshing] = useState(false);
+  const [step, setStep] = useState(1); // 1: Select Partner, 2: Enter Amount, 3: Confirm
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
+    checkBiometricAvailability();
     fetchPartners();
   }, []);
 
+  const checkBiometricAvailability = async () => {
+    try {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricAvailable(compatible && enrolled);
+    } catch (error) {
+      console.log('Biometric check error:', error);
+      setBiometricAvailable(false);
+    }
+  };
+  
+  const getNumericBalance = (): number => {
+    if (!balance?.mamaBalance) return 0;
+    return typeof balance.mamaBalance === 'string' 
+      ? parseFloat(balance.mamaBalance) 
+      : balance.mamaBalance;
+  };
+
   const fetchPartners = async () => {
     try {
+      setLoading(true);
       const data = await redemptionsApi.getPartners();
       setPartners(data);
-    } catch (error) {
-      console.error('Failed to fetch partners:', error);
+    } catch (error: any) {
+      console.log('Failed to fetch partners:', error);
       Alert.alert('Error', 'Failed to load partners');
     } finally {
       setLoading(false);
@@ -76,16 +104,24 @@ export default function RedeemScreen({ navigation }: any) {
     try {
       const data = await redemptionsApi.getPartnerProducts(partnerId);
       setProducts(data);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
+    } catch (error: any) {
+      console.log('Failed to fetch products:', error);
+      setProducts([]);
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPartners();
+    await refreshBalance();
+    setRefreshing(false);
+  }, [refreshBalance]);
+
   const handlePartnerSelect = async (partner: Partner) => {
     setSelectedPartner(partner);
-    setLoading(true);
+    setSelectedProduct(null);
+    setTokenAmount('');
     await fetchProducts(partner.id);
-    setLoading(false);
     setStep(2);
   };
 
@@ -94,52 +130,176 @@ export default function RedeemScreen({ navigation }: any) {
     setTokenAmount(product.tokenCost.toString());
   };
 
-  const handleContinue = () => {
-    if (!tokenAmount || parseFloat(tokenAmount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid token amount');
-      return;
+  const handleAmountChange = (text: string) => {
+    // Only allow numbers
+    const numericText = text.replace(/[^0-9]/g, '');
+    setTokenAmount(numericText);
+    // Clear product selection if manually entering amount
+    if (selectedProduct && numericText !== selectedProduct.tokenCost.toString()) {
+      setSelectedProduct(null);
     }
-    if (parseFloat(tokenAmount) > parseFloat(balance?.mamaBalance || '0')) {
-      Alert.alert('Error', 'Insufficient MAMA balance');
-      return;
+  };
+
+  const calculateZARValue = () => {
+    const amount = parseInt(tokenAmount) || 0;
+    return (amount * EXCHANGE_RATE).toFixed(2);
+  };
+
+  const canProceedToConfirm = () => {
+    const amount = parseInt(tokenAmount) || 0;
+    const available = typeof balance?.mamaBalance === 'string' 
+      ? parseFloat(balance.mamaBalance) 
+      : (balance?.mamaBalance || 0);
+    return amount > 0 && amount <= available && selectedPartner;
+  };
+
+  const authenticateWithBiometrics = async (): Promise<boolean> => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: `Confirm Redemption - Redeem ${tokenAmount} MAMA tokens`,
+        cancelLabel: 'Cancel',
+        fallbackLabel: 'Use PIN',
+        disableDeviceFallback: false,
+      });
+
+      return result.success;
+    } catch (error) {
+      console.log('Biometric authentication error:', error);
+      return false;
     }
-    setStep(3);
   };
 
   const handleRedeem = async () => {
-    if (!selectedPartner) return;
+    if (!canProceedToConfirm()) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
 
+    // Require biometric authentication
+    if (biometricAvailable) {
+      const authenticated = await authenticateWithBiometrics();
+      if (!authenticated) {
+        Alert.alert(
+          'Authentication Failed',
+          'Biometric authentication is required to redeem tokens.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    } else {
+      // Fallback confirmation for devices without biometrics
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Confirm Redemption',
+          `Are you sure you want to redeem ${tokenAmount} MAMA tokens for R${calculateZARValue()}?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Confirm', onPress: () => resolve(true) },
+          ]
+        );
+      });
+
+      if (!confirmed) return;
+    }
+
+    // Proceed with redemption
+    await proceedWithRedemption();
+  };
+
+  const proceedWithRedemption = async () => {
     setRedeeming(true);
-    try {
-      const result = await redemptionsApi.redeem(
-        selectedPartner.id,
-        parseFloat(tokenAmount),
-        selectedProduct?.id
-      );
 
+    try {
+      const response = await redemptionsApi.redeem({
+        partnerId: selectedPartner!.id,
+        productId: selectedProduct?.id,
+        tokenAmount: parseInt(tokenAmount),
+      });
+
+      // Refresh balance after successful redemption
       await refreshBalance();
 
+      // Navigate to voucher detail
       Alert.alert(
-        'Success! 🎉',
-        `Your voucher is ready!\nCode: ${result.voucher.code}\nValue: ${result.voucher.value.currency} ${result.voucher.value.amount}`,
+        'Redemption Successful! 🎉',
+        `You've redeemed ${tokenAmount} MAMA tokens.\n\nVoucher Code: ${response.voucher.code}\nValue: R${response.voucher.valueAmount.toFixed(2)}`,
         [
           {
             text: 'View Voucher',
-            onPress: () => navigation.navigate('VoucherDetail', { voucherId: result.voucher.id }),
+            onPress: () => {
+              navigation.navigate('VoucherDetail', { voucherId: response.voucher.id });
+            },
+          },
+          {
+            text: 'Done',
+            onPress: () => {
+              // Reset state
+              setSelectedPartner(null);
+              setSelectedProduct(null);
+              setTokenAmount('');
+              setStep(1);
+            },
           },
         ]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Redemption failed');
+      console.log('Redemption error:', error);
+      const message = error.response?.data?.error || error.response?.data?.details || 'Redemption failed. Please try again.';
+      Alert.alert('Redemption Failed', message);
     } finally {
       setRedeeming(false);
     }
   };
 
-  const exchangeRate = 0.10;
-  const estimatedValue = parseFloat(tokenAmount || '0') * exchangeRate;
+  const renderPartnerCard = (partner: Partner) => (
+    <TouchableOpacity
+      key={partner.id}
+      style={[
+        styles.partnerCard,
+        selectedPartner?.id === partner.id && styles.partnerCardSelected,
+      ]}
+      onPress={() => handlePartnerSelect(partner)}
+    >
+      <View style={styles.partnerIcon}>
+        <Text style={styles.partnerIconText}>
+          {partner.type === 'retail' ? '🛒' :
+           partner.type === 'transport' ? '🚗' :
+           partner.type === 'pharmacy' ? '💊' :
+           partner.type === 'telecom' ? '📱' : '🏪'}
+        </Text>
+      </View>
+      <View style={styles.partnerInfo}>
+        <Text style={styles.partnerName}>{partner.name}</Text>
+        <Text style={styles.partnerType}>{partner.type.toUpperCase()} • {partner.country}</Text>
+        <Text style={styles.partnerDescription} numberOfLines={2}>
+          {partner.description}
+        </Text>
+      </View>
+      <Text style={styles.partnerArrow}>›</Text>
+    </TouchableOpacity>
+  );
 
-  if (loading && step === 1) {
+  const renderProductCard = (product: Product) => (
+    <TouchableOpacity
+      key={product.id}
+      style={[
+        styles.productCard,
+        selectedProduct?.id === product.id && styles.productCardSelected,
+      ]}
+      onPress={() => handleProductSelect(product)}
+    >
+      <View style={styles.productInfo}>
+        <Text style={styles.productName}>{product.name}</Text>
+        <Text style={styles.productDescription}>{product.description}</Text>
+      </View>
+      <View style={styles.productCost}>
+        <Text style={styles.productCostAmount}>{product.tokenCost}</Text>
+        <Text style={styles.productCostLabel}>MAMA</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -154,116 +314,104 @@ export default function RedeemScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()}>
-          <Text style={styles.backButton}>← Back</Text>
+        <TouchableOpacity 
+          onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Redeem Tokens</Text>
-        <View style={{ width: 50 }} />
+        <View style={styles.headerRight}>
+          <Text style={styles.balanceLabel}>Balance</Text>
+          <Text style={styles.balanceValue}>{getNumericBalance().toFixed(2)} MAMA</Text>
+        </View>
       </View>
 
-      {/* Balance Card */}
-      <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Available Balance</Text>
-        <Text style={styles.balanceAmount}>
-          {parseFloat(balance?.mamaBalance || '0').toFixed(2)} MAMA
-        </Text>
+      {/* Progress Steps */}
+      <View style={styles.progressContainer}>
+        <View style={[styles.progressStep, step >= 1 && styles.progressStepActive]}>
+          <Text style={[styles.progressStepText, step >= 1 && styles.progressStepTextActive]}>1</Text>
+        </View>
+        <View style={[styles.progressLine, step >= 2 && styles.progressLineActive]} />
+        <View style={[styles.progressStep, step >= 2 && styles.progressStepActive]}>
+          <Text style={[styles.progressStepText, step >= 2 && styles.progressStepTextActive]}>2</Text>
+        </View>
+        <View style={[styles.progressLine, step >= 3 && styles.progressLineActive]} />
+        <View style={[styles.progressStep, step >= 3 && styles.progressStepActive]}>
+          <Text style={[styles.progressStepText, step >= 3 && styles.progressStepTextActive]}>3</Text>
+        </View>
       </View>
 
-      {/* Step Indicator */}
-      <View style={styles.stepIndicator}>
-        {[1, 2, 3].map((s) => (
-          <View key={s} style={styles.stepRow}>
-            <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
-              <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
-            </View>
-            {s < 3 && <View style={[styles.stepLine, step > s && styles.stepLineActive]} />}
-          </View>
-        ))}
-      </View>
-
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+      >
         {/* Step 1: Select Partner */}
         {step === 1 && (
-          <View>
-            <Text style={styles.sectionTitle}>Select Partner</Text>
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Select Partner</Text>
+            <Text style={styles.stepSubtitle}>Choose where to redeem your tokens</Text>
+            
             {partners.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No partners available</Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No partners available</Text>
               </View>
             ) : (
-              partners.map((partner) => (
-                <TouchableOpacity
-                  key={partner.id}
-                  style={styles.partnerCard}
-                  onPress={() => handlePartnerSelect(partner)}
-                >
-                  <View style={styles.partnerLogo}>
-                    <Text style={styles.partnerLogoText}>{partner.name.charAt(0)}</Text>
-                  </View>
-                  <View style={styles.partnerInfo}>
-                    <Text style={styles.partnerName}>{partner.name}</Text>
-                    <Text style={styles.partnerDescription} numberOfLines={2}>
-                      {partner.description || `Redeem tokens at ${partner.name}`}
-                    </Text>
-                    <View style={styles.partnerBadge}>
-                      <Text style={styles.partnerBadgeText}>{partner.type}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.partnerArrow}>→</Text>
-                </TouchableOpacity>
-              ))
+              partners.map(renderPartnerCard)
             )}
           </View>
         )}
 
-        {/* Step 2: Select Amount/Product */}
+        {/* Step 2: Enter Amount */}
         {step === 2 && selectedPartner && (
-          <View>
+          <View style={styles.stepContainer}>
             <View style={styles.selectedPartnerBanner}>
+              <Text style={styles.selectedPartnerLabel}>Redeeming at</Text>
               <Text style={styles.selectedPartnerName}>{selectedPartner.name}</Text>
             </View>
 
             {products.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>Select Product (Optional)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
-                  {products.map((product) => (
-                    <TouchableOpacity
-                      key={product.id}
-                      style={[
-                        styles.productCard,
-                        selectedProduct?.id === product.id && styles.productCardSelected,
-                      ]}
-                      onPress={() => handleProductSelect(product)}
-                    >
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productCost}>{product.tokenCost} MAMA</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <Text style={styles.sectionTitle}>Available Products</Text>
+                {products.map(renderProductCard)}
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
               </>
             )}
 
-            <Text style={styles.sectionTitle}>Token Amount</Text>
+            <Text style={styles.sectionTitle}>Enter Custom Amount</Text>
             <View style={styles.amountInputContainer}>
               <TextInput
                 style={styles.amountInput}
                 value={tokenAmount}
-                onChangeText={setTokenAmount}
+                onChangeText={handleAmountChange}
                 keyboardType="numeric"
-                placeholder="Enter amount"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholder="0"
+                placeholderTextColor={COLORS.textLight}
               />
-              <Text style={styles.amountSuffix}>MAMA</Text>
+              <Text style={styles.amountLabel}>MAMA</Text>
             </View>
 
-            <View style={styles.estimateCard}>
-              <Text style={styles.estimateLabel}>Estimated Value</Text>
-              <Text style={styles.estimateValue}>ZAR {estimatedValue.toFixed(2)}</Text>
-              <Text style={styles.estimateRate}>1 MAMA = ZAR 0.10</Text>
+            <View style={styles.conversionCard}>
+              <Text style={styles.conversionLabel}>You will receive</Text>
+              <Text style={styles.conversionValue}>R {calculateZARValue()}</Text>
+              <Text style={styles.conversionRate}>Rate: 1 MAMA = R{EXCHANGE_RATE.toFixed(2)}</Text>
             </View>
 
-            <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+            <TouchableOpacity
+              style={[
+                styles.continueButton,
+                !canProceedToConfirm() && styles.continueButtonDisabled,
+              ]}
+              onPress={() => setStep(3)}
+              disabled={!canProceedToConfirm()}
+            >
               <Text style={styles.continueButtonText}>Continue</Text>
             </TouchableOpacity>
           </View>
@@ -271,38 +419,56 @@ export default function RedeemScreen({ navigation }: any) {
 
         {/* Step 3: Confirm */}
         {step === 3 && selectedPartner && (
-          <View>
-            <Text style={styles.sectionTitle}>Confirm Redemption</Text>
-
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Confirm Redemption</Text>
+            
             <View style={styles.confirmCard}>
               <View style={styles.confirmRow}>
                 <Text style={styles.confirmLabel}>Partner</Text>
                 <Text style={styles.confirmValue}>{selectedPartner.name}</Text>
               </View>
+              
               {selectedProduct && (
                 <View style={styles.confirmRow}>
                   <Text style={styles.confirmLabel}>Product</Text>
                   <Text style={styles.confirmValue}>{selectedProduct.name}</Text>
                 </View>
               )}
+              
               <View style={styles.confirmRow}>
                 <Text style={styles.confirmLabel}>Tokens to Burn</Text>
-                <Text style={styles.confirmValue}>{tokenAmount} MAMA</Text>
+                <Text style={styles.confirmValueHighlight}>{tokenAmount} MAMA</Text>
               </View>
-              <View style={[styles.confirmRow, styles.confirmRowHighlight]}>
-                <Text style={styles.confirmLabel}>Voucher Value</Text>
-                <Text style={styles.confirmValueHighlight}>ZAR {estimatedValue.toFixed(2)}</Text>
-              </View>
+              
+              <View style={styles.confirmDivider} />
+              
               <View style={styles.confirmRow}>
-                <Text style={styles.confirmLabel}>Expires</Text>
-                <Text style={styles.confirmValue}>30 days</Text>
+                <Text style={styles.confirmLabel}>Voucher Value</Text>
+                <Text style={styles.confirmValueLarge}>R {calculateZARValue()}</Text>
+              </View>
+              
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>Remaining Balance</Text>
+                <Text style={styles.confirmValue}>
+                  {(getNumericBalance() - (parseInt(tokenAmount) || 0)).toFixed(2)} MAMA
+                </Text>
               </View>
             </View>
+
+            {/* Biometric Info */}
+            {biometricAvailable && (
+              <View style={styles.biometricInfo}>
+                <Text style={styles.biometricIcon}>🔐</Text>
+                <Text style={styles.biometricText}>
+                  Biometric authentication required to confirm
+                </Text>
+              </View>
+            )}
 
             <View style={styles.warningCard}>
               <Text style={styles.warningIcon}>⚠️</Text>
               <Text style={styles.warningText}>
-                This action is irreversible. Your MAMA tokens will be burned and converted to a voucher.
+                This action cannot be undone. Tokens will be permanently burned and a voucher will be generated.
               </Text>
             </View>
 
@@ -314,10 +480,12 @@ export default function RedeemScreen({ navigation }: any) {
               {redeeming ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.redeemButtonText}>Confirm & Redeem</Text>
+                <Text style={styles.redeemButtonText}>
+                  {biometricAvailable ? '🔐 Confirm & Redeem' : 'Confirm & Redeem'}
+                </Text>
               )}
             </TouchableOpacity>
-
+            
             <View style={styles.bottomPadding} />
           </View>
         )}
@@ -327,76 +495,382 @@ export default function RedeemScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: COLORS.textSecondary },
-
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  backButton: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-
-  balanceCard: { backgroundColor: COLORS.primary, margin: 16, padding: 20, borderRadius: 16, alignItems: 'center' },
-  balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  balanceAmount: { color: COLORS.white, fontSize: 32, fontWeight: 'bold', marginTop: 4 },
-
-  stepIndicator: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16 },
-  stepRow: { flexDirection: 'row', alignItems: 'center' },
-  stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.border, justifyContent: 'center', alignItems: 'center' },
-  stepCircleActive: { backgroundColor: COLORS.primary },
-  stepNumber: { fontSize: 14, fontWeight: 'bold', color: COLORS.textSecondary },
-  stepNumberActive: { color: COLORS.white },
-  stepLine: { width: 40, height: 2, backgroundColor: COLORS.border, marginHorizontal: 8 },
-  stepLineActive: { backgroundColor: COLORS.primary },
-
-  content: { flex: 1, padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 16 },
-
-  partnerCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  partnerLogo: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  partnerLogoText: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
-  partnerInfo: { flex: 1, marginLeft: 12 },
-  partnerName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-  partnerDescription: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-  partnerBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start', marginTop: 8 },
-  partnerBadgeText: { fontSize: 11, color: '#1976D2', fontWeight: '600', textTransform: 'capitalize' },
-  partnerArrow: { fontSize: 20, color: COLORS.primary },
-
-  selectedPartnerBanner: { backgroundColor: COLORS.primary, padding: 12, borderRadius: 12, marginBottom: 16, alignItems: 'center' },
-  selectedPartnerName: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-
-  productsScroll: { marginBottom: 20 },
-  productCard: { backgroundColor: COLORS.white, borderRadius: 12, padding: 16, marginRight: 12, width: 140, borderWidth: 2, borderColor: 'transparent' },
-  productCardSelected: { borderColor: COLORS.primary },
-  productName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  productCost: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary, marginTop: 8 },
-
-  amountInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 16, marginBottom: 16 },
-  amountInput: { flex: 1, fontSize: 24, fontWeight: 'bold', color: COLORS.text, paddingVertical: 16 },
-  amountSuffix: { fontSize: 18, color: COLORS.textSecondary, fontWeight: '600' },
-
-  estimateCard: { backgroundColor: COLORS.white, borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 20 },
-  estimateLabel: { fontSize: 14, color: COLORS.textSecondary },
-  estimateValue: { fontSize: 28, fontWeight: 'bold', color: COLORS.success, marginTop: 4 },
-  estimateRate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
-
-  continueButton: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 25, alignItems: 'center' },
-  continueButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-
-  confirmCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 20, marginBottom: 16 },
-  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  confirmRowHighlight: { backgroundColor: '#E8F5E9', marginHorizontal: -20, paddingHorizontal: 20, borderBottomWidth: 0 },
-  confirmLabel: { fontSize: 14, color: COLORS.textSecondary },
-  confirmValue: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  confirmValueHighlight: { fontSize: 18, fontWeight: 'bold', color: COLORS.success },
-
-  warningCard: { flexDirection: 'row', backgroundColor: '#FFF3E0', borderRadius: 12, padding: 16, marginBottom: 20, alignItems: 'center' },
-  warningIcon: { fontSize: 24, marginRight: 12 },
-  warningText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 18 },
-
-  redeemButton: {backgroundColor: COLORS.success,  padding: 18,  borderRadius: 25,  alignItems: 'center', marginBottom: 20,},
-  redeemButtonDisabled: { opacity: 0.7 },
-  redeemButtonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' }, bottomPadding: { height: 100 },
-
-  emptyContainer: { padding: 40, alignItems: 'center' },
-  emptyText: { color: COLORS.textSecondary, fontSize: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: COLORS.textLight,
+    fontSize: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: COLORS.primary,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  balanceLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  balanceValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    backgroundColor: COLORS.white,
+  },
+  progressStep: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressStepActive: {
+    backgroundColor: COLORS.primary,
+  },
+  progressStepText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.textLight,
+  },
+  progressStepTextActive: {
+    color: COLORS.white,
+  },
+  progressLine: {
+    width: 60,
+    height: 3,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 8,
+  },
+  progressLineActive: {
+    backgroundColor: COLORS.primary,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 100,
+  },
+  stepContainer: {
+    padding: 20,
+  },
+  stepTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  stepSubtitle: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    marginBottom: 24,
+  },
+  partnerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  partnerCardSelected: {
+    borderColor: COLORS.primary,
+  },
+  partnerIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  partnerIconText: {
+    fontSize: 24,
+  },
+  partnerInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  partnerName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  partnerType: {
+    fontSize: 12,
+    color: COLORS.primary,
+    marginTop: 2,
+  },
+  partnerDescription: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 4,
+  },
+  partnerArrow: {
+    fontSize: 24,
+    color: COLORS.textLight,
+  },
+  selectedPartnerBanner: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  selectedPartnerLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  selectedPartnerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  productCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  productCardSelected: {
+    borderColor: COLORS.success,
+    backgroundColor: '#E8F5E9',
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  productDescription: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  productCost: {
+    alignItems: 'center',
+  },
+  productCostAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  productCostLabel: {
+    fontSize: 10,
+    color: COLORS.textLight,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    color: COLORS.textLight,
+    fontSize: 12,
+  },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  amountLabel: {
+    fontSize: 18,
+    color: COLORS.textLight,
+    marginLeft: 8,
+  },
+  conversionCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  conversionLabel: {
+    fontSize: 14,
+    color: COLORS.textLight,
+  },
+  conversionValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: COLORS.success,
+    marginVertical: 8,
+  },
+  conversionRate: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  continueButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 25,
+    padding: 18,
+    alignItems: 'center',
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
+  },
+  continueButtonText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  confirmCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  confirmLabel: {
+    fontSize: 14,
+    color: COLORS.textLight,
+  },
+  confirmValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  confirmValueHighlight: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  confirmValueLarge: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.success,
+  },
+  confirmDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 8,
+  },
+  biometricInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  biometricIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  biometricText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1976D2',
+  },
+  warningCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  warningIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 20,
+  },
+  redeemButton: {
+    backgroundColor: COLORS.success,
+    borderRadius: 25,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  redeemButtonDisabled: {
+    opacity: 0.7,
+  },
+  redeemButtonText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  bottomPadding: {
+    height: 100,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: COLORS.textLight,
+  },
 });

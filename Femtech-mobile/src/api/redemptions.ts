@@ -1,3 +1,5 @@
+// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\api\redemptions.ts
+
 import apiClient from './client';
 
 export const redemptionsApi = {
@@ -11,12 +13,8 @@ export const redemptionsApi = {
     return response.data;
   },
 
-  redeem: async (partnerId: string, tokenAmount: number, productId?: string) => {
-    const response = await apiClient.post('/redemptions/redeem', {
-      partnerId,
-      tokenAmount,
-      productId,
-    });
+  redeem: async (data: { partnerId: string; productId?: string; tokenAmount: number }) => {
+    const response = await apiClient.post('/redemptions/redeem', data);
     return response.data;
   },
 
@@ -26,8 +24,8 @@ export const redemptionsApi = {
     return response.data;
   },
 
-  getVoucher: async (id: string) => {
-    const response = await apiClient.get(`/redemptions/my/vouchers/${id}`);
+  getVoucher: async (voucherId: string) => {
+    const response = await apiClient.get(`/redemptions/my/vouchers/${voucherId}`);
     return response.data;
   },
 };
