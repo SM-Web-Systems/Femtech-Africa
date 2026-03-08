@@ -13,7 +13,7 @@ generated/
 dist/
 build/
 .next/
-out/
+
 
 # Logs
 *.log
