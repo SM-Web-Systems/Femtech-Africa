@@ -16,10 +16,11 @@ const COLORS = {
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
-  const [balance, setBalance] = useState<string>('0.00');
+  const [balance, setBalance] = useState<any>(null);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasWallet, setHasWallet] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -30,7 +31,8 @@ export default function HomeScreen({ navigation }: any) {
         milestonesApi.getUserMilestones(),
       ]);
 
-      setBalance(walletData.mamaBalance || '0.00');
+      setBalance(walletData);
+      setHasWallet(walletData.hasWallet);
       setMilestones(milestonesData.slice(0, 3));
     } catch (err: any) {
       const message = err.response?.data?.error || 'Failed to load data';
@@ -80,21 +82,40 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         )}
 
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Your Balance</Text>
-          <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} MAMA</Text>
-          {pendingRewards > 0 && (
-            <View style={styles.pendingBadge}>
-              <Text style={styles.pendingText}>{pendingRewards} rewards to claim!</Text>
-            </View>
-          )}
-          <TouchableOpacity
-            style={styles.redeemButton}
+        {/* Wallet Card - Different states */}
+        {!hasWallet ? (
+          <TouchableOpacity 
+            style={styles.noWalletCard}
             onPress={() => navigation.navigate('Wallet')}
           >
-            <Text style={styles.redeemButtonText}>View Wallet</Text>
+            <View style={styles.noWalletContent}>
+              <Text style={styles.noWalletIcon}></Text>
+              <View style={styles.noWalletTextContainer}>
+                <Text style={styles.noWalletTitle}>Create Your Wallet</Text>
+                <Text style={styles.noWalletSubtitle}>Start earning MAMA tokens for your health journey</Text>
+              </View>
+              <Text style={styles.noWalletArrow}></Text>
+            </View>
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={styles.balanceCard}>
+            <Text style={styles.balanceLabel}>Your Balance</Text>
+            <Text style={styles.balanceAmount}>
+              {parseFloat(balance?.mamaBalance || '0').toFixed(2)} MAMA
+            </Text>
+            {pendingRewards > 0 && (
+              <View style={styles.pendingBadge}>
+                <Text style={styles.pendingText}>{pendingRewards} rewards to claim!</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.redeemButton}
+              onPress={() => navigation.navigate('Wallet')}
+            >
+              <Text style={styles.redeemButtonText}>View Wallet</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -145,6 +166,17 @@ const styles = StyleSheet.create({
   errorBanner: { backgroundColor: '#FFEBEE', padding: 12, borderRadius: 8, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   errorText: { color: '#C62828', fontSize: 13, flex: 1 },
   reloginText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 10 },
+  
+  // No Wallet Card
+  noWalletCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 2, borderColor: COLORS.primary, borderStyle: 'dashed' },
+  noWalletContent: { flexDirection: 'row', alignItems: 'center' },
+  noWalletIcon: { fontSize: 40, marginRight: 16 },
+  noWalletTextContainer: { flex: 1 },
+  noWalletTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 4 },
+  noWalletSubtitle: { fontSize: 14, color: COLORS.textSecondary },
+  noWalletArrow: { fontSize: 24, color: COLORS.primary, fontWeight: 'bold' },
+  
+  // Balance Card (has wallet)
   balanceCard: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 24, marginBottom: 20 },
   balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
   balanceAmount: { color: COLORS.white, fontSize: 36, fontWeight: 'bold', marginVertical: 8 },
@@ -152,6 +184,7 @@ const styles = StyleSheet.create({
   pendingText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   redeemButton: { backgroundColor: COLORS.white, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 20, alignSelf: 'flex-start', marginTop: 10 },
   redeemButtonText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
+  
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: COLORS.card, borderRadius: 16, padding: 16, alignItems: 'center' },
   statNumber: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
