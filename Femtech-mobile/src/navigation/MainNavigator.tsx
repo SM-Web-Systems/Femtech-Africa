@@ -7,6 +7,9 @@ import MilestonesScreen from '../screens/milestones/MilestonesScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import { QuizListScreen, QuizDetailScreen } from '../screens/quiz';
+import RedeemScreen from '../screens/wallet/RedeemScreen';
+import VoucherListScreen from '../screens/wallet/VoucherListScreen';
+import VoucherDetailScreen from '../screens/wallet/VoucherDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -39,6 +42,17 @@ function LearnStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="QuizListMain" component={QuizListScreen} />
       <Stack.Screen name="QuizDetail" component={QuizDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function WalletStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="WalletMain" component={WalletScreen} />
+      <Stack.Screen name="Redeem" component={RedeemScreen} />
+      <Stack.Screen name="VoucherList" component={VoucherListScreen} />
+      <Stack.Screen name="VoucherDetail" component={VoucherDetailScreen} />
     </Stack.Navigator>
   );
 }
@@ -77,7 +91,7 @@ export default function MainNavigator() {
       />
       <Tab.Screen
         name="Wallet"
-        component={WalletScreen}
+        component={WalletStack}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="💰" focused={focused} />,
         }}
