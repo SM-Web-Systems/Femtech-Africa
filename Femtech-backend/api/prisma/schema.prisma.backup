@@ -428,8 +428,8 @@ model Partner {
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   products        PartnerProduct[]
-  vouchers        Voucher[]
   redemptions     Redemption[]
+  vouchers        Voucher[]
 
   @@index([country], map: "idx_partners_country")
   @@index([type], map: "idx_partners_type")
@@ -483,7 +483,7 @@ model Redemption {
   partners          Partner            @relation(fields: [partner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transactions      TokenTransaction[]
-  voucher           Voucher?
+  voucher           Voucher? 
 
   @@index([createdAt], map: "idx_redemptions_created_at")
   @@index([partner_id], map: "idx_redemptions_partner_id")

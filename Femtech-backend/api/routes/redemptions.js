@@ -13,19 +13,18 @@ const {
 
 const prisma = new PrismaClient();
 
-// Get available partners for redemption
+// Get available partners
 router.get('/partners', authenticateToken, async (req, res) => {
   try {
     const partners = await prisma.partner.findMany({
-      where: { is_active: true },
+      where: { isActive: true },
       select: {
         id: true,
         name: true,
         description: true,
-        logo_url: true,
-        category: true,
-        min_tokens: true,
-        exchange_rate: true,
+        logoUrl: true,
+        type: true,
+        country: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -41,22 +40,21 @@ router.get('/partners/:partnerId/products', authenticateToken, async (req, res) 
   try {
     const { partnerId } = req.params;
     
-    const products = await prisma.product.findMany({
+    const products = await prisma.partnerProduct.findMany({
       where: {
-        partner_id: partnerId,
-        is_active: true,
-        stock: { gt: 0 },
+        partnerId: partnerId,
+        is_available: true,
       },
       select: {
         id: true,
         name: true,
         description: true,
-        image_url: true,
-        token_cost: true,
-        stock: true,
+        imageUrl: true,
+        tokenCost: true,
+        stockQuantity: true,
         category: true,
       },
-      orderBy: { token_cost: 'asc' },
+      orderBy: { tokenCost: 'asc' },
     });
     res.json(products);
   } catch (error) {
@@ -71,7 +69,6 @@ router.post('/redeem', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { partnerId, productId, tokenAmount } = req.body;
 
-    // Validate input
     if (!partnerId || !tokenAmount || tokenAmount <= 0) {
       return res.status(400).json({ error: 'Partner and token amount required' });
     }
@@ -86,7 +83,7 @@ router.post('/redeem', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Wallet required for redemption' });
     }
 
-    // Check user balance
+    // Check balance
     const balance = await getBalance(user.walletAddress);
     if (parseFloat(balance.mamaBalance) < tokenAmount) {
       return res.status(400).json({ 
@@ -96,56 +93,45 @@ router.post('/redeem', authenticateToken, async (req, res) => {
       });
     }
 
-    // Get partner details
+    // Get partner
     const partner = await prisma.partner.findUnique({
       where: { id: partnerId },
     });
 
-    if (!partner || !partner.is_active) {
+    if (!partner || !partner.isActive) {
       return res.status(404).json({ error: 'Partner not found or inactive' });
-    }
-
-    // Check minimum tokens
-    if (tokenAmount < parseFloat(partner.min_tokens || 0)) {
-      return res.status(400).json({ 
-        error: `Minimum ${partner.min_tokens} MAMA required for this partner` 
-      });
     }
 
     // Get product if specified
     let product = null;
     if (productId) {
-      product = await prisma.product.findUnique({
+      product = await prisma.partnerProduct.findUnique({
         where: { id: productId },
       });
 
-      if (!product || !product.is_active) {
+      if (!product || !product.is_available) {
         return res.status(404).json({ error: 'Product not found or unavailable' });
       }
 
-      if (product.stock <= 0) {
-        return res.status(400).json({ error: 'Product out of stock' });
-      }
-
-      if (parseFloat(product.token_cost) > tokenAmount) {
+      if (product.tokenCost > tokenAmount) {
         return res.status(400).json({ 
-          error: `Product requires ${product.token_cost} MAMA tokens` 
+          error: `Product requires ${product.tokenCost} MAMA tokens` 
         });
       }
     }
 
-    // Calculate voucher value
-    const exchangeRate = parseFloat(partner.exchange_rate || 0.10);
+    // Calculate voucher value (1 MAMA = 0.10 ZAR default)
+    const exchangeRate = 0.10;
     const voucherValue = calculateVoucherValue(tokenAmount, exchangeRate);
 
-    // Burn tokens on Stellar
+    // Burn tokens
     const burnResult = await burnTokens(user.walletAddress, tokenAmount);
     
     if (!burnResult.success) {
       return res.status(500).json({ error: 'Failed to burn tokens', details: burnResult.error });
     }
 
-    // Generate voucher code and QR
+    // Generate voucher
     const voucherCode = generateVoucherCode('MAMA');
     const barcode = generateBarcode();
     const expiresAt = getExpiryDate(30);
@@ -160,22 +146,21 @@ router.post('/redeem', authenticateToken, async (req, res) => {
     };
     const qrCode = await generateQRCode(qrData);
 
-    // Create redemption and voucher in transaction
+    // Create redemption and voucher
     const result = await prisma.$transaction(async (tx) => {
-      // Create redemption record
       const redemption = await tx.redemption.create({
         data: {
-          user_id: userId,
+          userId: userId,
           partner_id: partnerId,
-          product_id: productId || null,
-          total_tokens: tokenAmount,
+          type: partner.type,
+          totalTokens: tokenAmount,
           status: 'completed',
-          tx_hash: burnResult.txHash,
-          completed_at: new Date(),
+          burn_tx_hash: burnResult.txHash,
+          burn_confirmed_at: new Date(),
+          completedAt: new Date(),
         },
       });
 
-      // Create voucher
       const voucher = await tx.voucher.create({
         data: {
           code: voucherCode,
@@ -192,35 +177,32 @@ router.post('/redeem', authenticateToken, async (req, res) => {
           barcode: barcode,
         },
         include: {
-          partner: { select: { name: true, logo_url: true } },
-          product: { select: { name: true, image_url: true } },
+          partner: { select: { name: true, logoUrl: true } },
+          product: { select: { name: true, imageUrl: true } },
         },
       });
 
-      // Record token transaction
       await tx.tokenTransaction.create({
         data: {
-          user_id: userId,
-          type: 'burn',
+          userId: userId,
+          type: 'burn_redemption',
           amount: -tokenAmount,
-          status: 'completed',
+          status: 'confirmed',
           tx_hash: burnResult.txHash,
-          description: `Redeemed for voucher at ${partner.name}`,
+          redemptionId: redemption.id,
         },
       });
 
-      // Decrease product stock if applicable
-      if (productId) {
-        await tx.product.update({
+      if (productId && product?.stockQuantity) {
+        await tx.partnerProduct.update({
           where: { id: productId },
-          data: { stock: { decrement: 1 } },
+          data: { stockQuantity: { decrement: 1 } },
         });
       }
 
       return { redemption, voucher };
     });
 
-    // Get updated balance
     const newBalance = await getBalance(user.walletAddress);
 
     res.status(201).json({
@@ -242,10 +224,6 @@ router.post('/redeem', authenticateToken, async (req, res) => {
         expiresAt: result.voucher.expiresAt,
         createdAt: result.voucher.createdAt,
       },
-      redemption: {
-        id: result.redemption.id,
-        txHash: result.redemption.tx_hash,
-      },
       newBalance: {
         mamaBalance: newBalance.mamaBalance,
         xlmBalance: newBalance.xlmBalance,
@@ -265,22 +243,20 @@ router.get('/my/vouchers', authenticateToken, async (req, res) => {
     const { status } = req.query;
 
     const where = { userId };
-    if (status) {
-      where.status = status;
-    }
+    if (status) where.status = status;
 
     const vouchers = await prisma.voucher.findMany({
       where,
       include: {
-        partner: { select: { name: true, logo_url: true, category: true } },
-        product: { select: { name: true, image_url: true } },
+        partner: { select: { name: true, logoUrl: true, type: true } },
+        product: { select: { name: true, imageUrl: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Check and update expired vouchers
+    // Check expired
     const now = new Date();
-    const updatedVouchers = await Promise.all(
+    const result = await Promise.all(
       vouchers.map(async (v) => {
         if (v.status === 'active' && v.expiresAt < now) {
           await prisma.voucher.update({
@@ -293,16 +269,13 @@ router.get('/my/vouchers', authenticateToken, async (req, res) => {
       })
     );
 
-    res.json(updatedVouchers.map(v => ({
+    res.json(result.map(v => ({
       id: v.id,
       code: v.code,
       barcode: v.barcode,
       qrCode: v.qrCode,
       tokensBurned: parseFloat(v.tokensBurned),
-      value: {
-        amount: parseFloat(v.valueAmount),
-        currency: v.valueCurrency,
-      },
+      value: { amount: parseFloat(v.valueAmount), currency: v.valueCurrency },
       partner: v.partner,
       product: v.product,
       status: v.status,
@@ -317,7 +290,7 @@ router.get('/my/vouchers', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single voucher details
+// Get single voucher
 router.get('/my/vouchers/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -342,10 +315,7 @@ router.get('/my/vouchers/:id', authenticateToken, async (req, res) => {
       barcode: voucher.barcode,
       qrCode: voucher.qrCode,
       tokensBurned: parseFloat(voucher.tokensBurned),
-      value: {
-        amount: parseFloat(voucher.valueAmount),
-        currency: voucher.valueCurrency,
-      },
+      value: { amount: parseFloat(voucher.valueAmount), currency: voucher.valueCurrency },
       partner: voucher.partner,
       product: voucher.product,
       status: voucher.status,
@@ -353,125 +323,12 @@ router.get('/my/vouchers/:id', authenticateToken, async (req, res) => {
       usedAt: voucher.usedAt,
       usedAtLocation: voucher.usedAtLocation,
       createdAt: voucher.createdAt,
-      txHash: voucher.redemption?.tx_hash,
+      txHash: voucher.redemption?.burn_tx_hash,
     });
 
   } catch (error) {
     console.error('Get voucher error:', error);
     res.status(500).json({ error: 'Failed to fetch voucher' });
-  }
-});
-
-// Partner endpoint to validate/use voucher
-router.post('/vouchers/:code/validate', async (req, res) => {
-  try {
-    const { code } = req.params;
-    const { partnerKey, location } = req.body;
-
-    // Validate partner API key (you'd implement proper auth)
-    // For now, just check the voucher
-
-    const voucher = await prisma.voucher.findUnique({
-      where: { code },
-      include: {
-        partner: true,
-        product: true,
-        user: { select: { phone: true } },
-      },
-    });
-
-    if (!voucher) {
-      return res.status(404).json({ valid: false, error: 'Voucher not found' });
-    }
-
-    if (voucher.status === 'used') {
-      return res.status(400).json({ 
-        valid: false, 
-        error: 'Voucher already used',
-        usedAt: voucher.usedAt,
-      });
-    }
-
-    if (voucher.status === 'expired' || voucher.expiresAt < new Date()) {
-      return res.status(400).json({ valid: false, error: 'Voucher expired' });
-    }
-
-    if (voucher.status === 'cancelled') {
-      return res.status(400).json({ valid: false, error: 'Voucher cancelled' });
-    }
-
-    res.json({
-      valid: true,
-      voucher: {
-        code: voucher.code,
-        value: {
-          amount: parseFloat(voucher.valueAmount),
-          currency: voucher.valueCurrency,
-        },
-        partner: voucher.partner?.name,
-        product: voucher.product?.name,
-        expiresAt: voucher.expiresAt,
-      },
-    });
-
-  } catch (error) {
-    console.error('Validate voucher error:', error);
-    res.status(500).json({ valid: false, error: 'Validation failed' });
-  }
-});
-
-// Partner endpoint to mark voucher as used
-router.post('/vouchers/:code/use', async (req, res) => {
-  try {
-    const { code } = req.params;
-    const { partnerKey, location } = req.body;
-
-    const voucher = await prisma.voucher.findUnique({
-      where: { code },
-    });
-
-    if (!voucher) {
-      return res.status(404).json({ success: false, error: 'Voucher not found' });
-    }
-
-    if (voucher.status !== 'active') {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Voucher is ${voucher.status}` 
-      });
-    }
-
-    if (voucher.expiresAt < new Date()) {
-      await prisma.voucher.update({
-        where: { id: voucher.id },
-        data: { status: 'expired' },
-      });
-      return res.status(400).json({ success: false, error: 'Voucher expired' });
-    }
-
-    // Mark as used
-    const updatedVoucher = await prisma.voucher.update({
-      where: { id: voucher.id },
-      data: {
-        status: 'used',
-        usedAt: new Date(),
-        usedAtLocation: location || null,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'Voucher redeemed successfully',
-      voucher: {
-        code: updatedVoucher.code,
-        usedAt: updatedVoucher.usedAt,
-        location: updatedVoucher.usedAtLocation,
-      },
-    });
-
-  } catch (error) {
-    console.error('Use voucher error:', error);
-    res.status(500).json({ success: false, error: 'Failed to use voucher' });
   }
 });
 
