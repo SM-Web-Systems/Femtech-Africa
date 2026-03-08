@@ -48,6 +48,7 @@ model User {
   milestones                                       UserMilestone[]
   profile                                          UserProfile?
   verifier                                         Verifier[]
+  vouchers                                         Voucher[]
 
   @@index([country], map: "idx_users_country")
   @@index([createdAt], map: "idx_users_created_at")
@@ -428,6 +429,7 @@ model Partner {
   updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   products        PartnerProduct[]
   redemptions     Redemption[]
+  vouchers        Voucher[]
 
   @@index([country], map: "idx_partners_country")
   @@index([type], map: "idx_partners_type")
@@ -451,6 +453,7 @@ model PartnerProduct {
   updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   partner              Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   redemptions          RedemptionItem[]
+  vouchers             Voucher[]
 
   @@index([category], map: "idx_partner_products_category")
   @@index([partnerId], map: "idx_partner_products_partner_id")
@@ -480,6 +483,7 @@ model Redemption {
   partners          Partner            @relation(fields: [partner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transactions      TokenTransaction[]
+  voucher           Voucher? 
 
   @@index([createdAt], map: "idx_redemptions_created_at")
   @@index([partner_id], map: "idx_redemptions_partner_id")
@@ -740,37 +744,38 @@ model audit_logs {
 }
 
 model Voucher {
-  id              String    @id @default(uuid())
-  code            String    @unique
-  userId          String    @map("user_id")
-  redemptionId    String?   @unique @map("redemption_id")
-  partnerId       String?   @map("partner_id")
-  productId       String?   @map("product_id")
+  id              String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code            String         @unique
+  userId          String         @map("user_id") @db.Uuid
+  redemptionId    String?        @unique @map("redemption_id") @db.Uuid
+  partnerId       String?        @map("partner_id") @db.Uuid
+  productId       String?        @map("product_id") @db.Uuid
   
-  tokensBurned    Decimal   @map("tokens_burned") @db.Decimal(18, 7)
-  valueCurrency   String    @default("ZAR") @map("value_currency")
-  valueAmount     Decimal   @map("value_amount") @db.Decimal(10, 2)
+  tokensBurned    Decimal        @map("tokens_burned") @db.Decimal(18, 7)
+  valueCurrency   String         @default("ZAR") @map("value_currency")
+  valueAmount     Decimal        @map("value_amount") @db.Decimal(10, 2)
   
   status          voucher_status @default(active)
-  expiresAt       DateTime  @map("expires_at")
-  usedAt          DateTime? @map("used_at")
-  usedAtLocation  String?   @map("used_at_location")
+  expiresAt       DateTime       @map("expires_at") @db.Timestamptz(6)
+  usedAt          DateTime?      @map("used_at") @db.Timestamptz(6)
+  usedAtLocation  String?        @map("used_at_location")
   
-  qrCode          String?   @map("qr_code")
-  barcode         String?
+  qrCode          String?        @map("qr_code") @db.Text
+  barcode         String?        @db.VarChar(50)
   
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   
-  user            User      @relation(fields: [userId], references: [id])
-  redemption      Redemption? @relation(fields: [redemptionId], references: [id])
-  partner         Partner?  @relation(fields: [partnerId], references: [id])
-  product         Product?  @relation(fields: [productId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  redemption      Redemption?    @relation(fields: [redemptionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  partner         Partner?       @relation(fields: [partnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product         PartnerProduct? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
-  @@index([userId])
-  @@index([code])
-  @@index([status])
-  @@index([partnerId])
+  @@index([userId], map: "idx_vouchers_user_id")
+  @@index([code], map: "idx_vouchers_code")
+  @@index([status], map: "idx_vouchers_status")
+  @@index([partnerId], map: "idx_vouchers_partner_id")
+  @@index([expiresAt], map: "idx_vouchers_expires_at")
   @@map("vouchers")
 }
 
