@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { adminApi } from '@/lib/api';
@@ -26,7 +26,8 @@ export default function MilestonesPage() {
     try {
       setLoading(true);
       const data = await adminApi.getMilestones();
-      setMilestones(data.milestones);
+      // API returns array directly, not { milestones: [...] }
+      setMilestones(Array.isArray(data) ? data : data.milestones || []);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load milestones');
     } finally {
@@ -55,12 +56,12 @@ export default function MilestonesPage() {
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
-      clinical: '🏥',
-      wellness: '💪',
-      education: '📚',
-      community: '👥',
+      clinical: '',
+      wellness: '',
+      education: '',
+      community: '',
     };
-    return icons[category] || '🎯';
+    return icons[category] || '';
   };
 
   if (loading) {
@@ -88,11 +89,11 @@ export default function MilestonesPage() {
           <p className="text-3xl font-bold text-green-600">{totalCompletions}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <p className="text-sm text-gray-500">Tokens to Distribute</p>
+          <p className="text-sm text-gray-500">Tokens Distributed</p>
           <p className="text-3xl font-bold text-pink-600">{totalTokensDistributed}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <p className="text-sm text-gray-500">Avg per User</p>
+          <p className="text-sm text-gray-500">Avg per Completion</p>
           <p className="text-3xl font-bold text-blue-600">{totalCompletions > 0 ? (totalTokensDistributed / totalCompletions).toFixed(0) : 0}</p>
         </div>
       </div>

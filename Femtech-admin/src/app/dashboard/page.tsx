@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,8 @@ export default function DashboardPage() {
         adminApi.getActivity(),
       ]);
       setStats(statsData);
-      setActivities(activityData.activities || []);
+      // API returns array directly
+      setActivities(Array.isArray(activityData) ? activityData : activityData.activities || []);
     } catch (err: any) {
       console.error('Dashboard error:', err);
       setError(err.response?.data?.error || 'Failed to load dashboard data');
@@ -88,7 +89,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-gray-900">{stats?.totalUsers || 0}</p>
             </div>
             <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">👥</span>
+              <span className="text-2xl"></span>
             </div>
           </div>
           <p className="text-sm text-green-700 mt-2 font-medium">
@@ -103,7 +104,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-gray-900">{stats?.totalTokensMinted || 0}</p>
             </div>
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">🪙</span>
+              <span className="text-2xl"></span>
             </div>
           </div>
           <p className="text-sm text-gray-700 mt-2 font-medium">MAMA tokens</p>
@@ -116,7 +117,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-gray-900">{stats?.totalRedemptions || 0}</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">🎁</span>
+              <span className="text-2xl"></span>
             </div>
           </div>
           <p className="text-sm text-gray-700 mt-2 font-medium">Total redemptions</p>
@@ -129,7 +130,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-gray-900">{stats?.milestonesCompleted || 0}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">🎯</span>
+              <span className="text-2xl"></span>
             </div>
           </div>
           <p className="text-sm text-gray-700 mt-2 font-medium">Across all users</p>
@@ -142,7 +143,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-orange-600">{stats?.pendingRewards || 0}</p>
             </div>
             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">⏳</span>
+              <span className="text-2xl"></span>
             </div>
           </div>
           <p className="text-sm text-orange-700 mt-2 font-medium">Awaiting minting</p>
@@ -164,7 +165,7 @@ export default function DashboardPage() {
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     activity.type === 'transaction' ? 'bg-green-100' : 'bg-blue-100'
                   }`}>
-                    <span>{activity.type === 'transaction' ? '💰' : '👤'}</span>
+                    <span>{activity.type === 'transaction' ? '' : ''}</span>
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">{activity.description}</p>
