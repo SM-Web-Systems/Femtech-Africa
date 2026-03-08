@@ -181,7 +181,7 @@ export default function RedeemScreen({ navigation }: any) {
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         {/* Step 1: Select Partner */}
         {step === 1 && (
           <View>
@@ -317,6 +317,8 @@ export default function RedeemScreen({ navigation }: any) {
                 <Text style={styles.redeemButtonText}>Confirm & Redeem</Text>
               )}
             </TouchableOpacity>
+
+            <View style={styles.bottomPadding} />
           </View>
         )}
       </ScrollView>
@@ -391,9 +393,9 @@ const styles = StyleSheet.create({
   warningIcon: { fontSize: 24, marginRight: 12 },
   warningText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 18 },
 
-  redeemButton: { backgroundColor: COLORS.success, padding: 18, borderRadius: 25, alignItems: 'center' },
+  redeemButton: {backgroundColor: COLORS.success,  padding: 18,  borderRadius: 25,  alignItems: 'center', marginBottom: 20,},
   redeemButtonDisabled: { opacity: 0.7 },
-  redeemButtonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+  redeemButtonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' }, bottomPadding: { height: 100 },
 
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: COLORS.textSecondary, fontSize: 16 },
