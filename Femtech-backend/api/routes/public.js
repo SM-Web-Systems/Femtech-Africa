@@ -40,7 +40,7 @@ router.get('/quizzes', async (req, res) => {
   try {
     const quizzes = await prisma.quiz.findMany({
       where: { is_active: true },
-      include: { _count: { select: { quiz_questions: true } } }
+      include: { _count: { select: { questions: true } } }
     });
     res.json(quizzes);
   } catch (error) {
