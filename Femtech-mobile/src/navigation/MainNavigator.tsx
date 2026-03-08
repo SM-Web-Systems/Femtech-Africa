@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import MilestonesScreen from '../screens/milestones/MilestonesScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import { QuizListScreen, QuizDetailScreen } from '../screens/quiz';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const COLORS = {
   primary: '#E91E63',
@@ -21,6 +24,25 @@ function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
   );
 }
 
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="QuizList" component={QuizListScreen} />
+      <Stack.Screen name="QuizDetail" component={QuizDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function LearnStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="QuizListMain" component={QuizListScreen} />
+      <Stack.Screen name="QuizDetail" component={QuizDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export default function MainNavigator() {
   return (
     <Tab.Navigator
@@ -32,29 +54,36 @@ export default function MainNavigator() {
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
         }}
       />
-      <Tab.Screen 
-        name="Milestones" 
+      <Tab.Screen
+        name="Learn"
+        component={LearnStack}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon icon="📚" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Milestones"
         component={MilestonesScreen}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="🎯" focused={focused} />,
         }}
       />
-      <Tab.Screen 
-        name="Wallet" 
+      <Tab.Screen
+        name="Wallet"
         component={WalletScreen}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="💰" focused={focused} />,
         }}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
@@ -74,7 +103,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   iconContainer: {
@@ -82,7 +111,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   icon: {
-    fontSize: 24,
+    fontSize: 22,
   },
   iconFocused: {
     transform: [{ scale: 1.1 }],

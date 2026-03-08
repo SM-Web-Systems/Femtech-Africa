@@ -739,6 +739,48 @@ model audit_logs {
   @@index([user_id], map: "idx_audit_logs_user_id")
 }
 
+model Voucher {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  userId          String    @map("user_id")
+  redemptionId    String?   @unique @map("redemption_id")
+  partnerId       String?   @map("partner_id")
+  productId       String?   @map("product_id")
+  
+  tokensBurned    Decimal   @map("tokens_burned") @db.Decimal(18, 7)
+  valueCurrency   String    @default("ZAR") @map("value_currency")
+  valueAmount     Decimal   @map("value_amount") @db.Decimal(10, 2)
+  
+  status          voucher_status @default(active)
+  expiresAt       DateTime  @map("expires_at")
+  usedAt          DateTime? @map("used_at")
+  usedAtLocation  String?   @map("used_at_location")
+  
+  qrCode          String?   @map("qr_code")
+  barcode         String?
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  user            User      @relation(fields: [userId], references: [id])
+  redemption      Redemption? @relation(fields: [redemptionId], references: [id])
+  partner         Partner?  @relation(fields: [partnerId], references: [id])
+  product         Product?  @relation(fields: [productId], references: [id])
+  
+  @@index([userId])
+  @@index([code])
+  @@index([status])
+  @@index([partnerId])
+  @@map("vouchers")
+}
+
+enum voucher_status {
+  active
+  used
+  expired
+  cancelled
+}
+
 enum appointment_status {
   scheduled
   confirmed

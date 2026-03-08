@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+﻿import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
 import { walletApi, milestonesApi } from '../../api';
@@ -23,8 +24,24 @@ export default function HomeScreen({ navigation }: any) {
   const [hasWallet, setHasWallet] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  // Track last fetch time to prevent excessive API calls
+  const lastFetchTime = useRef<number>(0);
+  const hasFetchedOnce = useRef<boolean>(false);
+  const MIN_FETCH_INTERVAL = 5000; // 5 seconds minimum between fetches
+
+  const fetchData = useCallback(async (force = false) => {
+    const now = Date.now();
+
+    // Skip if fetched recently (unless forced by pull-to-refresh)
+    if (!force && hasFetchedOnce.current && now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
+      setLoading(false);
+      return;
+    }
+
+    lastFetchTime.current = now;
+    hasFetchedOnce.current = true;
     setError(null);
+
     try {
       const [walletData, milestonesData] = await Promise.all([
         walletApi.getBalance(),
@@ -32,7 +49,7 @@ export default function HomeScreen({ navigation }: any) {
       ]);
 
       setBalance(walletData);
-      setHasWallet(walletData.hasWallet);
+      setHasWallet(!!walletData?.address || !!walletData?.hasWallet);
       setMilestones(milestonesData.slice(0, 3));
     } catch (err: any) {
       const message = err.response?.data?.error || 'Failed to load data';
@@ -42,15 +59,18 @@ export default function HomeScreen({ navigation }: any) {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
+
+  // Fetch on focus, but respect the interval
+  useFocusEffect(
+    useCallback(() => {
+      fetchData(false);
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData();
+    fetchData(true); // Force refresh bypasses the interval check
   };
 
   const handleLogout = async () => {
@@ -60,6 +80,17 @@ export default function HomeScreen({ navigation }: any) {
   const completedCount = milestones.filter(m => m.status === 'completed').length;
   const pendingRewards = milestones.filter(m => m.status === 'completed' && !m.reward_minted).length;
 
+  if (loading && !hasFetchedOnce.current) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -67,7 +98,7 @@ export default function HomeScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
       >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Hello, Mama! </Text>
+          <Text style={styles.greeting}>Hello, Mama! 👋</Text>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
@@ -75,26 +106,26 @@ export default function HomeScreen({ navigation }: any) {
 
         {error && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}> {error}</Text>
-            <TouchableOpacity onPress={handleLogout}>
-              <Text style={styles.reloginText}>Re-login</Text>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+            <TouchableOpacity onPress={onRefresh}>
+              <Text style={styles.reloginText}>Retry</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Wallet Card - Different states */}
         {!hasWallet ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.noWalletCard}
             onPress={() => navigation.navigate('Wallet')}
           >
             <View style={styles.noWalletContent}>
-              <Text style={styles.noWalletIcon}></Text>
+              <Text style={styles.noWalletIcon}>💳</Text>
               <View style={styles.noWalletTextContainer}>
                 <Text style={styles.noWalletTitle}>Create Your Wallet</Text>
                 <Text style={styles.noWalletSubtitle}>Start earning MAMA tokens for your health journey</Text>
               </View>
-              <Text style={styles.noWalletArrow}></Text>
+              <Text style={styles.noWalletArrow}>→</Text>
             </View>
           </TouchableOpacity>
         ) : (
@@ -131,20 +162,20 @@ export default function HomeScreen({ navigation }: any) {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Milestones')}>
-            <Text style={styles.actionIcon}></Text>
+            <Text style={styles.actionIcon}>🎯</Text>
             <Text style={styles.actionText}>Milestones</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Wallet')}>
-            <Text style={styles.actionIcon}></Text>
+            <Text style={styles.actionIcon}>💰</Text>
             <Text style={styles.actionText}>Wallet</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
-            <Text style={styles.actionIcon}></Text>
-            <Text style={styles.actionText}>Appointments</Text>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Learn')}>
+            <Text style={styles.actionIcon}>📚</Text>
+            <Text style={styles.actionText}>Quizzes</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard}>
-            <Text style={styles.actionIcon}></Text>
-            <Text style={styles.actionText}>Articles</Text>
+            <Text style={styles.actionIcon}>📅</Text>
+            <Text style={styles.actionText}>Appointments</Text>
           </TouchableOpacity>
         </View>
 
@@ -159,6 +190,8 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1, padding: 20 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: COLORS.textSecondary },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   greeting: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
   logoutButton: { backgroundColor: '#FFE0E6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
@@ -166,7 +199,7 @@ const styles = StyleSheet.create({
   errorBanner: { backgroundColor: '#FFEBEE', padding: 12, borderRadius: 8, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   errorText: { color: '#C62828', fontSize: 13, flex: 1 },
   reloginText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 10 },
-  
+
   // No Wallet Card
   noWalletCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 2, borderColor: COLORS.primary, borderStyle: 'dashed' },
   noWalletContent: { flexDirection: 'row', alignItems: 'center' },
@@ -175,7 +208,7 @@ const styles = StyleSheet.create({
   noWalletTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 4 },
   noWalletSubtitle: { fontSize: 14, color: COLORS.textSecondary },
   noWalletArrow: { fontSize: 24, color: COLORS.primary, fontWeight: 'bold' },
-  
+
   // Balance Card (has wallet)
   balanceCard: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 24, marginBottom: 20 },
   balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
@@ -184,7 +217,7 @@ const styles = StyleSheet.create({
   pendingText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   redeemButton: { backgroundColor: COLORS.white, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 20, alignSelf: 'flex-start', marginTop: 10 },
   redeemButtonText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
-  
+
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: COLORS.card, borderRadius: 16, padding: 16, alignItems: 'center' },
   statNumber: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
