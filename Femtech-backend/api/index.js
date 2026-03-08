@@ -13,6 +13,7 @@ const profileRoutes = require('./routes/profile');
 const adminRoutes = require('./routes/admin');
 const publicRoutes = require('./routes/public');
 const userRoutes = require('./routes/user');
+const quizRoutes = require('./routes/quizzes');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -43,6 +44,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/my', userRoutes);
 app.use('/api/v1/my/milestones', milestonesRoutes);
 app.use('/api/v1/my/redemptions', redemptionsRoutes);
+app.use('/api/v1/quizzes', quizRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {

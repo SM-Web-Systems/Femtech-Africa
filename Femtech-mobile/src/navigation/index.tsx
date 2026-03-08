@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../store/AuthContext';
 import AuthNavigator from './AuthNavigator';
@@ -8,11 +8,11 @@ import MainNavigator from './MainNavigator';
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { isLoggedIn, loading } = useAuth();
   
   console.log('=== ROOT NAVIGATOR ===');
   console.log('Loading:', loading);
-  console.log('User:', user);
+  console.log('IsLoggedIn:', isLoggedIn);
 
   if (loading) {
     return (
@@ -24,7 +24,7 @@ export default function RootNavigator() {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
+      {isLoggedIn ? (
         <Stack.Screen name="Main" component={MainNavigator} />
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />

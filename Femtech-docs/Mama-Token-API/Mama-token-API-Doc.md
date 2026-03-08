@@ -107,6 +107,29 @@ Error Response (400):
 }
 ⚠️ IMPORTANT: Display a prominent warning to users to save their secret key. It cannot be recovered!
 
+### Wallet Import (add after Create Wallet)
+
+# POST /api/v1/wallet/import
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "secretKey": "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+}
+Success Response (200):
+
+{
+  "success": true,
+  "publicKey": "GDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "message": "Wallet imported successfully"
+}
+Error Responses:
+
+Status	Error	Cause
+400	Invalid secret key format	Key doesn't start with 'S' or wrong length
+400	User already has a wallet	Wallet already exists
+400	Wallet address already in use	Another user owns this wallet
+
 ### Get Wallet Balance
 
 # GET /api/v1/wallet/balance
@@ -920,6 +943,190 @@ Response:
   "redemptions": 25
 }
 
+### Admin Login (add to Admin Endpoints section)
+
+# POST /api/v1/admin/login
+Content-Type: application/json
+
+{
+  "email": "admin@mamatokens.com",
+  "password": "MamaAdmin2026!"
+}
+Response:
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "uuid",
+    "email": "admin@mamatokens.com",
+    "name": "Super Admin",
+    "role": "super_admin"
+  }
+}
+
+### Admin Get Profile
+
+# GET /api/v1/admin/me
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+{
+  "id": "uuid",
+  "email": "admin@mamatokens.com",
+  "name": "Super Admin",
+  "role": "super_admin",
+  "isActive": true,
+  "lastLoginAt": "2026-03-08T10:00:00Z"
+}
+
+### Admin List Admins (super_admin only)
+
+# GET /api/v1/admin/admins
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+[
+  {
+    "id": "uuid",
+    "email": "admin@mamatokens.com",
+    "name": "Super Admin",
+    "role": "super_admin",
+    "isActive": true,
+    "lastLoginAt": "2026-03-08T10:00:00Z",
+    "createdAt": "2026-03-08T09:00:00Z"
+  }
+]
+
+### Admin Create Admin (super_admin only)
+
+# POST /api/v1/admin/admins
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "email": "newadmin@mamatokens.com",
+  "password": "SecurePassword123!",
+  "name": "New Admin",
+  "role": "admin"
+}
+Response:
+
+{
+  "id": "uuid",
+  "email": "newadmin@mamatokens.com",
+  "name": "New Admin",
+  "role": "admin",
+  "isActive": true
+}
+
+## Roles: super_admin, admin, viewer
+
+### Admin Update Admin (super_admin only)
+
+# PUT /api/v1/admin/admins/:id
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "role": "viewer",
+  "isActive": false,
+  "password": "NewPassword123!"
+}
+
+### Admin Delete Admin (super_admin only)
+
+# DELETE /api/v1/admin/admins/:id
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+
+### Admin Get Transactions
+
+# GET /api/v1/admin/transactions?page=1&limit=20
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+{
+  "transactions": [
+    {
+      "id": "uuid",
+      "type": "mint_milestone",
+      "amount": 100,
+      "status": "confirmed",
+      "txHash": "feaace09b5f6a1867...",
+      "user": {
+        "phone": "+27821234567"
+      },
+      "createdAt": "2026-03-08T10:00:00Z"
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "limit": 20
+}
+
+### Admin Get Redemptions
+# GET /api/v1/admin/redemptions?page=1&limit=20
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+{
+  "redemptions": [
+    {
+      "id": "uuid",
+      "totalTokens": 50,
+      "status": "completed",
+      "user": {
+        "phone": "+27821234567"
+      },
+      "partners": {
+        "name": "MTN MoMo ZA"
+      },
+      "createdAt": "2026-03-08T10:00:00Z"
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "limit": 20
+}
+
+### Admin Get Milestones
+
+# GET /api/v1/admin/milestones
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+[
+  {
+    "id": "uuid",
+    "code": "FIRST_ANC_VISIT",
+    "name": "First ANC Visit",
+    "category": "clinical",
+    "rewardAmount": 100,
+    "completions": 45
+  }
+]
+
+### Admin Get Activity
+
+# GET /api/v1/admin/activity?limit=10
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Response:
+
+[
+  {
+    "type": "new_user",
+    "description": "New user registered",
+    "phone": "+27821234567",
+    "createdAt": "2026-03-08T10:00:00Z"
+  },
+  {
+    "type": "transaction",
+    "description": "Mint milestone 100 MAMA",
+    "phone": "+27821234567",
+    "createdAt": "2026-03-08T09:30:00Z"
+  }
+]
+
 ### Health Check
 
 # GET /health
@@ -1048,6 +1255,7 @@ Response:
 # PUT	/api/v1/my/consents/:type	Update consent
 # GET	/api/v1/my/doula	Get assigned doula
 # POST	/api/v1/wallet/create	Create wallet
+# POST /api/v1/wallet/import Import an existing Wallet
 # GET	/api/v1/wallet/balance	Get wallet balance
 # GET	/api/v1/wallet/transactions	Get wallet transactions
 # GET	/api/v1/quizzes/:id	Get quiz with questions
@@ -1066,10 +1274,20 @@ Response:
 ### Admin Endpoints
 
 # Method	Endpoint	Description
-# GET	/api/v1/admin/users	List all users
-# GET	/api/v1/admin/users/:id	Get user details
-# PUT	/api/v1/admin/users/:id	Update user
-# GET	/api/v1/admin/stats	Dashboard stats
+# POST	  /api/v1/admin/login	Admin login
+# GET	    /api/v1/admin/me	Get admin profile
+# GET	    /api/v1/admin/stats	Dashboard statistics
+# GET	    /api/v1/admin/users	List users (paginated)
+# GET	    /api/v1/admin/users/:id	Get user details
+# PUT	    /api/v1/admin/users/:id	Update user
+# GET	    /api/v1/admin/transactions	List transactions
+# GET	    /api/v1/admin/redemptions	List redemptions
+# GET	    /api/v1/admin/milestones	List milestones with stats
+# GET	    /api/v1/admin/activity	Recent activity feed
+# GET	    /api/v1/admin/admins	List admins (super_admin)
+# POST	  /api/v1/admin/admins	Create admin (super_admin)
+# PUT	    /api/v1/admin/admins/:id	Update admin (super_admin)S
+# DELETE	/api/v1/admin/admins/:id	Delete admin (super_admin)
 
 ## Token Details
 
