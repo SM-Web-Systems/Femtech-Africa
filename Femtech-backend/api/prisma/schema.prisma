@@ -973,3 +973,24 @@ enum verifier_type {
   digital_doula
   system
 }
+
+model Admin {
+  id            String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email         String       @unique @db.VarChar(255)
+  passwordHash  String       @map("password_hash") @db.VarChar(255)
+  name          String       @db.VarChar(100)
+  role          admin_role   @default(admin)
+  isActive      Boolean      @default(true) @map("is_active")
+  lastLoginAt   DateTime?    @map("last_login_at") @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy     String?      @map("created_by") @db.Uuid
+
+  @@map("admins")
+}
+
+enum admin_role {
+  super_admin
+  admin
+  viewer
+}
