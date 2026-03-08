@@ -42,7 +42,6 @@ coverage/
 .nyc_output/
 
 # Temp
-tmp/
 temp/
 *.tmp
 
