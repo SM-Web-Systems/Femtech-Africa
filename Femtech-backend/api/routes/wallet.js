@@ -2,31 +2,31 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('../generated/prisma-client');
 const { authenticateToken } = require('../middleware/auth');
-const { createWallet, getBalance, importWallet } = require('../utils/stellar');
+const { createWallet, importWallet, getBalance } = require('../utils/stellar');
 
 const prisma = new PrismaClient();
 
 // Create wallet
 router.post('/create', authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.userId;
+
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId }
+      where: { id: userId },
+      select: { walletAddress: true }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (user?.walletAddress) {
+      return res.status(400).json({ error: 'User already has a wallet' });
     }
 
-    if (user.walletAddress) {
-      return res.status(400).json({ error: 'Wallet already exists' });
-    }
-
-    const { publicKey, secretKey } = await createWallet();
+    const { publicKey, secretKey, encryptedSecret } = await createWallet();
 
     await prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: userId },
       data: {
         walletAddress: publicKey,
+        walletSecretEncrypted: encryptedSecret,
         walletCreatedAt: new Date()
       }
     });
@@ -34,52 +34,50 @@ router.post('/create', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       publicKey,
-      secretKey,
-      message: 'IMPORTANT: Save your secret key securely. It cannot be recovered!'
+      secretKey, // Return once for user to backup
+      message: 'Wallet created successfully. Please save your secret key!'
     });
   } catch (error) {
     console.error('Create wallet error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to create wallet' });
   }
 });
 
 // Import wallet
 router.post('/import', authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.userId;
     const { secretKey } = req.body;
 
-    if (!secretKey || !secretKey.startsWith('S') || secretKey.length !== 56) {
-      return res.status(400).json({ error: 'Invalid secret key format' });
+    if (!secretKey) {
+      return res.status(400).json({ error: 'Secret key required' });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId }
+      where: { id: userId },
+      select: { walletAddress: true }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (user?.walletAddress) {
+      return res.status(400).json({ error: 'User already has a wallet' });
     }
 
-    if (user.walletAddress) {
-      return res.status(400).json({ error: 'Wallet already exists. Cannot import another.' });
-    }
+    const { publicKey, encryptedSecret } = await importWallet(secretKey);
 
-    // Derive public key from secret
-    const publicKey = await importWallet(secretKey);
-
-    // Check if this wallet is already used by another user
-    const existingUser = await prisma.user.findFirst({
+    // Check if wallet is already used
+    const existing = await prisma.user.findFirst({
       where: { walletAddress: publicKey }
     });
 
-    if (existingUser) {
-      return res.status(400).json({ error: 'This wallet is already linked to another account' });
+    if (existing) {
+      return res.status(400).json({ error: 'Wallet already in use by another account' });
     }
 
     await prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: userId },
       data: {
         walletAddress: publicKey,
+        walletSecretEncrypted: encryptedSecret,
         walletCreatedAt: new Date()
       }
     });
@@ -91,50 +89,57 @@ router.post('/import', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Import wallet error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to import wallet. Invalid secret key?' });
   }
 });
 
 // Get balance
 router.get('/balance', authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.userId;
+
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId }
+      where: { id: userId },
+      select: { walletAddress: true }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.walletAddress) {
+    if (!user?.walletAddress) {
       return res.json({
+        hasWallet: false,
         stellarAddress: null,
-        xlmBalance: '0',
         mamaBalance: '0',
-        hasWallet: false
+        xlmBalance: '0'
       });
     }
 
-    try {
-      const { xlmBalance, mamaBalance } = await getBalance(user.walletAddress);
-      res.json({
-        stellarAddress: user.walletAddress,
-        xlmBalance,
-        mamaBalance,
-        hasWallet: true
-      });
-    } catch (stellarError) {
-      res.json({
-        stellarAddress: user.walletAddress,
-        xlmBalance: '0',
-        mamaBalance: '0',
-        hasWallet: true,
-        note: 'Wallet not yet funded on Stellar network'
-      });
-    }
+    const balance = await getBalance(user.walletAddress);
+
+    res.json({
+      hasWallet: true,
+      stellarAddress: user.walletAddress,
+      ...balance
+    });
   } catch (error) {
     console.error('Get balance error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to get balance' });
+  }
+});
+
+// Get transactions
+router.get('/transactions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const transactions = await prisma.tokenTransaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+
+    res.json(transactions);
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    res.status(500).json({ error: 'Failed to get transactions' });
   }
 });
 

@@ -39,7 +39,7 @@ router.get('/partners', authenticateToken, async (req, res) => {
 router.get('/partners/:partnerId/products', authenticateToken, async (req, res) => {
   try {
     const { partnerId } = req.params;
-    
+
     const products = await prisma.partnerProduct.findMany({
       where: {
         partnerId: partnerId,
@@ -66,7 +66,16 @@ router.get('/partners/:partnerId/products', authenticateToken, async (req, res) 
 // Create redemption and generate voucher
 router.post('/redeem', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    // Get user ID from JWT - check multiple possible field names
+    const userId = req.user.userId;
+    
+    console.log('Redeem request - User from JWT:', req.user);
+    console.log('Resolved userId:', userId);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID not found in token' });
+    }
+
     const { partnerId, productId, tokenAmount } = req.body;
 
     if (!partnerId || !tokenAmount || tokenAmount <= 0) {
@@ -76,17 +85,21 @@ router.post('/redeem', authenticateToken, async (req, res) => {
     // Get user with wallet
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, walletAddress: true, phone: true },
+      select: { id: true, walletAddress: true, walletSecretEncrypted: true, phone: true },
     });
 
-    if (!user?.walletAddress) {
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.walletAddress) {
       return res.status(400).json({ error: 'Wallet required for redemption' });
     }
 
     // Check balance
     const balance = await getBalance(user.walletAddress);
     if (parseFloat(balance.mamaBalance) < tokenAmount) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Insufficient MAMA balance',
         required: tokenAmount,
         available: balance.mamaBalance,
@@ -114,8 +127,8 @@ router.post('/redeem', authenticateToken, async (req, res) => {
       }
 
       if (product.tokenCost > tokenAmount) {
-        return res.status(400).json({ 
-          error: `Product requires ${product.tokenCost} MAMA tokens` 
+        return res.status(400).json({
+          error: `Product requires ${product.tokenCost} MAMA tokens`
         });
       }
     }
@@ -125,8 +138,8 @@ router.post('/redeem', authenticateToken, async (req, res) => {
     const voucherValue = calculateVoucherValue(tokenAmount, exchangeRate);
 
     // Burn tokens
-    const burnResult = await burnTokens(user.walletAddress, tokenAmount);
-    
+    const burnResult = await burnTokens(user.walletSecretEncrypted, tokenAmount);
+
     if (!burnResult.success) {
       return res.status(500).json({ error: 'Failed to burn tokens', details: burnResult.error });
     }
@@ -239,8 +252,12 @@ router.post('/redeem', authenticateToken, async (req, res) => {
 // Get user's vouchers
 router.get('/my/vouchers', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { status } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID not found in token' });
+    }
 
     const where = { userId };
     if (status) where.status = status;
@@ -293,8 +310,12 @@ router.get('/my/vouchers', authenticateToken, async (req, res) => {
 // Get single voucher
 router.get('/my/vouchers/:id', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID not found in token' });
+    }
 
     const voucher = await prisma.voucher.findFirst({
       where: { id, userId },

@@ -20,6 +20,7 @@ model User {
   status                                           user_status        @default(pending)
   role                                             user_role          @default(mother)
   walletAddress                                    String?            @unique(map: "users_wallet_unique") @map("wallet_address") @db.VarChar(56)
+  walletSecretEncrypted            Bytes?           @map("wallet_secret_encrypted")
   walletCreatedAt                                  DateTime?          @map("wallet_created_at") @db.Timestamptz(6)
   lastLoginAt                                      DateTime?          @map("last_login_at") @db.Timestamptz(6)
   login_count                                      Int                @default(0)

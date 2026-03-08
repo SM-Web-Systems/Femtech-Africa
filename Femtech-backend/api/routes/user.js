@@ -9,8 +9,8 @@ const prisma = new PrismaClient();
 router.get('/pregnancies', authenticateToken, async (req, res) => {
   try {
     const pregnancies = await prisma.pregnancy.findMany({
-      where: { user_id: req.user.userId },
-      orderBy: { created_at: 'desc' }
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(pregnancies);
   } catch (error) {
@@ -25,7 +25,7 @@ router.post('/pregnancies', authenticateToken, async (req, res) => {
 
     const pregnancy = await prisma.pregnancy.create({
       data: {
-        user_id: req.user.userId,
+        userId: req.user.id,
         due_date: new Date(dueDate),
         last_period_date: lastPeriodDate ? new Date(lastPeriodDate) : null,
         status: 'active'
@@ -42,7 +42,7 @@ router.post('/pregnancies', authenticateToken, async (req, res) => {
 router.get('/appointments', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointment.findMany({
-      where: { user_id: req.user.userId },
+      where: { userId: req.user.id },
       orderBy: { appointment_date: 'desc' }
     });
     res.json(appointments);
@@ -58,7 +58,7 @@ router.post('/appointments', authenticateToken, async (req, res) => {
 
     const appointment = await prisma.appointment.create({
       data: {
-        user_id: req.user.userId,
+        userId: req.user.id,
         facility_id: facilityId,
         appointment_date: new Date(appointmentDate),
         type,
@@ -77,7 +77,7 @@ router.post('/appointments', authenticateToken, async (req, res) => {
 router.get('/emergency-contacts', authenticateToken, async (req, res) => {
   try {
     const contacts = await prisma.emergencyContact.findMany({
-      where: { user_id: req.user.userId }
+      where: { userId: req.user.id }
     });
     res.json(contacts);
   } catch (error) {
@@ -89,8 +89,8 @@ router.get('/emergency-contacts', authenticateToken, async (req, res) => {
 router.get('/notifications', authenticateToken, async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
-      where: { user_id: req.user.userId },
-      orderBy: { created_at: 'desc' },
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
       take: 50
     });
     res.json(notifications);
@@ -103,8 +103,8 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 router.get('/transactions', authenticateToken, async (req, res) => {
   try {
     const transactions = await prisma.tokenTransaction.findMany({
-      where: { user_id: req.user.userId },
-      orderBy: { created_at: 'desc' }
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(transactions);
   } catch (error) {
