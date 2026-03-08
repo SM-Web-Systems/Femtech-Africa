@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('../generated/prisma-client');
 const { authenticateToken } = require('../middleware/auth');
-const { createWallet, getBalance } = require('../utils/stellar');
+const { createWallet, getBalance, importWallet } = require('../utils/stellar');
 
 const prisma = new PrismaClient();
 
@@ -43,6 +43,58 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 });
 
+// Import wallet
+router.post('/import', authenticateToken, async (req, res) => {
+  try {
+    const { secretKey } = req.body;
+
+    if (!secretKey || !secretKey.startsWith('S') || secretKey.length !== 56) {
+      return res.status(400).json({ error: 'Invalid secret key format' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.walletAddress) {
+      return res.status(400).json({ error: 'Wallet already exists. Cannot import another.' });
+    }
+
+    // Derive public key from secret
+    const publicKey = await importWallet(secretKey);
+
+    // Check if this wallet is already used by another user
+    const existingUser = await prisma.user.findFirst({
+      where: { walletAddress: publicKey }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'This wallet is already linked to another account' });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        walletAddress: publicKey,
+        walletCreatedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      publicKey,
+      message: 'Wallet imported successfully'
+    });
+  } catch (error) {
+    console.error('Import wallet error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get balance
 router.get('/balance', authenticateToken, async (req, res) => {
   try {
@@ -72,7 +124,6 @@ router.get('/balance', authenticateToken, async (req, res) => {
         hasWallet: true
       });
     } catch (stellarError) {
-      // Wallet exists but not funded on Stellar yet
       res.json({
         stellarAddress: user.walletAddress,
         xlmBalance: '0',

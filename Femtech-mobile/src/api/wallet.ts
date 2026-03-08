@@ -1,4 +1,4 @@
-import apiClient from './client';
+﻿import apiClient from './client';
 
 export const walletApi = {
   getBalance: async () => {
@@ -8,6 +8,11 @@ export const walletApi = {
 
   createWallet: async () => {
     const response = await apiClient.post('/wallet/create');
+    return response.data;
+  },
+
+  importWallet: async (secretKey: string) => {
+    const response = await apiClient.post('/wallet/import', { secretKey });
     return response.data;
   },
 

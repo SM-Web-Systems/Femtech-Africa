@@ -3,10 +3,10 @@ const StellarSdk = require('@stellar/stellar-sdk');
 const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
 const networkPassphrase = StellarSdk.Networks.TESTNET;
 
-const ISSUER_PUBLIC = process.env.ISSUER_PUBLIC_KEY;
-const DISTRIBUTOR_SECRET = process.env.DISTRIBUTOR_SECRET_KEY;
-const DISTRIBUTOR_PUBLIC = process.env.DISTRIBUTOR_PUBLIC_KEY;
-const ASSET_CODE = 'MAMA';
+const ISSUER_PUBLIC = process.env.STELLAR_ISSUER_PUBLIC;
+const DISTRIBUTOR_SECRET = process.env.STELLAR_DISTRIBUTOR_SECRET;
+const DISTRIBUTOR_PUBLIC = process.env.STELLAR_DISTRIBUTOR_PUBLIC;
+const ASSET_CODE = process.env.STELLAR_ASSET_CODE || 'MAMA';
 
 async function createWallet() {
   const pair = StellarSdk.Keypair.random();
@@ -41,6 +41,52 @@ async function createWallet() {
   }
 
   return { publicKey, secretKey };
+}
+
+async function importWallet(secretKey) {
+  // Derive public key from secret key
+  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+  const publicKey = keypair.publicKey();
+
+  // Check if account exists on Stellar
+  try {
+    await server.loadAccount(publicKey);
+  } catch (error) {
+    // Account doesn't exist, fund it
+    try {
+      await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (fundError) {
+      console.log('Friendbot error:', fundError.message);
+    }
+  }
+
+  // Add trustline for MAMA if not exists
+  try {
+    const account = await server.loadAccount(publicKey);
+    const hasTrustline = account.balances.some(
+      b => b.asset_code === ASSET_CODE && b.asset_issuer === ISSUER_PUBLIC
+    );
+
+    if (!hasTrustline) {
+      const mamaAsset = new StellarSdk.Asset(ASSET_CODE, ISSUER_PUBLIC);
+      
+      const transaction = new StellarSdk.TransactionBuilder(account, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase
+      })
+        .addOperation(StellarSdk.Operation.changeTrust({ asset: mamaAsset }))
+        .setTimeout(30)
+        .build();
+
+      transaction.sign(keypair);
+      await server.submitTransaction(transaction);
+    }
+  } catch (error) {
+    console.log('Trustline error:', error.message);
+  }
+
+  return publicKey;
 }
 
 async function getBalance(publicKey) {
@@ -108,4 +154,4 @@ async function burnTokens(userSecretKey, amount) {
   return result.hash;
 }
 
-module.exports = { createWallet, getBalance, mintTokens, burnTokens, server, ASSET_CODE, ISSUER_PUBLIC };
+module.exports = { createWallet, importWallet, getBalance, mintTokens, burnTokens, server, ASSET_CODE, ISSUER_PUBLIC };
