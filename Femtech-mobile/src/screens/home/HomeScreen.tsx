@@ -7,7 +7,6 @@ import { useTheme } from '../../store/ThemeContext';
 import { walletApi, milestonesApi } from '../../api';
 import { offlineStorage } from '../../services/OfflineStorage';
 
-
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
@@ -189,9 +188,9 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.actionIcon}>📚</Text>
             <Text style={styles.actionText}>Quizzes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={openAIChat}>
-            <Text style={styles.actionIcon}>🤖</Text>
-            <Text style={styles.actionText}>MamaAI</Text>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('RiskAssessment')}>
+            <Text style={styles.actionIcon}>🩺</Text>
+            <Text style={styles.actionText}>Health Check</Text>
           </TouchableOpacity>
         </View>
 

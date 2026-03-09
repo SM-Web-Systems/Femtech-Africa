@@ -24,6 +24,11 @@
 14. [Notifications](#notifications)
 15. [Digital Doula](#digital-doula)
 16. [Admin Endpoints](#admin-endpoints)
+17. [Roles: super_admin, admin, viewer]
+18. [AI Agent] (MamaAI)
+19. [Risk Assessment]
+20. [Recommendations]
+
 
 ---
 
@@ -199,6 +204,31 @@ Content-Type: application/json
   "lastName": "Doe",
   "dateOfBirth": "1990-01-15"
 }
+
+### Delete Profile (Permanent)
+
+# DELETE /api/v1/profile
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "success": true,
+  "message": "Profile and all data permanently deleted"
+}
+
+⚠️ **WARNING:** This permanently deletes ALL user data including:
+- User profile
+- Wallet and token balance
+- All pregnancies
+- Milestones and rewards
+- Appointments
+- Medical history
+- Quiz attempts
+- Vouchers and redemptions
+- Notifications
+- Emergency contacts
+
+This action **cannot be undone**.
 
 ## Pregnancies
 
@@ -1139,6 +1169,163 @@ Response:
   "timestamp": "2026-03-06T08:00:00.000Z"
 }
 
+## AI Agent (MamaAI)
+
+### Chat with MamaAI
+
+# POST /api/v1/ai/chat
+Authorization: Bearer {JWT_TOKEN}
+Content-Type: application/json
+
+{
+  "message": "How do I earn MAMA tokens?",
+  "conversationId": "optional-conversation-id"
+}
+
+Response:
+{
+  "message": "You can earn MAMA tokens by:\n\n1. Completing educational quizzes\n2. Achieving pregnancy milestones\n3. Attending antenatal appointments\n\nGo to the Quiz section to start earning! 💜",
+  "conversationId": "user-id:default"
+}
+
+**Features:**
+- Context-aware responses based on user's pregnancy stage, milestones, and token balance
+- Multi-language support (English, Zulu, Xhosa, Sotho, Swahili)
+- Emergency symptom detection with immediate care recommendations
+- Conversation history maintained per session
+
+---
+
+### Get Suggested Prompts
+
+# GET /api/v1/ai/suggestions
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "suggestions": [
+    "What should I expect at 24 weeks?",
+    "How do I earn MAMA tokens?",
+    "What are pregnancy warning signs?",
+    "How do I redeem my vouchers?",
+    "What should I eat during pregnancy?",
+    "How do I count baby kicks?"
+  ]
+}
+
+**Note:** Suggestions are personalized based on gestational age and user activity.
+
+### Clear Conversation
+
+# DELETE /api/v1/ai/chat/:conversationId
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "success": true
+}
+
+## Risk Assessment
+
+### Get Risk Assessment
+
+# GET /api/v1/risk/assessment
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "score": 0.25,
+  "level": "LOW",
+  "factors": ["First pregnancy"],
+  "assessedAt": "2026-03-09T14:00:00.000Z"
+}
+
+**Risk Levels:**
+| Level | Score Range | Description |
+|-------|-------------|-------------|
+| LOW | < 0.3 | No significant risk factors |
+| MEDIUM | 0.3 - 0.6 | Some factors require monitoring |
+| HIGH | > 0.6 | Close monitoring recommended |
+
+---
+
+### Get Detailed Risk Analysis (AI-Powered)
+
+# GET /api/v1/risk/analysis
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "riskLevel": "LOW",
+  "riskScore": 0.25,
+  "riskFactors": ["First pregnancy"],
+  "gestationalWeeks": 24,
+  "summary": "Your pregnancy is progressing well with no major concerns identified. Continue your regular antenatal visits and healthy habits.",
+  "recommendations": [
+    "Attend all scheduled antenatal appointments",
+    "Take your prenatal vitamins daily",
+    "Stay hydrated and eat nutritious foods",
+    "Get adequate rest and manage stress",
+    "Report any unusual symptoms immediately"
+  ],
+  "warningSignsToWatch": [
+    "Severe headache or vision changes",
+    "Heavy vaginal bleeding",
+    "Severe abdominal pain",
+    "Reduced baby movement",
+    "High fever"
+  ],
+  "nextSteps": [
+    "Schedule your next antenatal visit",
+    "Review your birth plan with your healthcare provider"
+  ],
+  "assessedAt": "2026-03-09T14:00:00.000Z"
+}
+
+**Risk Factors Evaluated:**
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| age_under_18 | 2.0 | Mother under 18 years |
+| age_over_35 | 1.5 | Mother over 35 years |
+| first_pregnancy | 0.5 | First-time mother |
+| multiple_pregnancy | 2.5 | Twins/triplets |
+| previous_preeclampsia | 3.0 | History of preeclampsia |
+| previous_cesarean | 1.5 | Previous C-section |
+| previous_stillbirth | 3.0 | History of stillbirth |
+| chronic_hypertension | 2.5 | Chronic high blood pressure |
+| diabetes | 2.0 | Diabetes (any type) |
+| hiv_positive | 2.0 | HIV positive status |
+| anemia | 1.5 | Anemia diagnosis |
+| missed_appointments | 1.0 | 2+ missed antenatal visits |
+
+## Recommendations
+
+### Get Personalized Content Recommendations
+
+# GET /api/v1/recommendations/content
+Authorization: Bearer {JWT_TOKEN}
+
+Response:
+{
+  "gestationalWeeks": 24,
+  "quizzes": [
+    {
+      "id": "uuid",
+      "title": "Second Trimester Nutrition",
+      "relevanceScore": 45,
+      "rewardAmount": 5
+    }
+  ],
+  "updatedAt": "2026-03-09T14:00:00.000Z"
+}
+
+**Note:** Content is ranked by relevance based on:
+- Gestational age
+- Risk factors
+- Completed quizzes
+- User activity patterns
+
 ## Frontend Flow Diagrams
 
 ### New User Flow
@@ -1207,69 +1394,69 @@ Response:
 
 ### Public Endpoints (No Auth)
 
-# Method	Endpoint	Description
-# GET	/health	Health check
-# GET	/api/v1/milestones	List milestone definitions
-# GET	/api/v1/partners	List partners
-# GET	/api/v1/products	List products
-# GET	/api/v1/facilities	List facilities
-# GET	/api/v1/facilities/:id	Get facility details
-# GET	/api/v1/articles	List articles
-# GET	/api/v1/articles/:id	Get article
-# GET	/api/v1/quizzes	List quizzes
-# POST	/api/v1/auth/request-otp	Request OTP
-# POST	/api/v1/auth/verify-otp	Verify OTP & login
+# Method	Endpoint	                Description
+# GET	    /health	                  Health check
+# GET	    /api/v1/milestones	      List milestone definitions
+# GET	    /api/v1/partners	        List partners
+# GET	    /api/v1/products	        List products
+# GET	    /api/v1/facilities	      List facilities
+# GET	    /api/v1/facilities/:id  	Get facility details
+# GET	    /api/v1/articles	        List articles
+# GET	    /api/v1/articles/:id	    Get article
+# GET	    /api/v1/quizzes	          List quizzes
+# POST	  /api/v1/auth/request-otp	Request OTP
+# POST	  /api/v1/auth/verify-otp	  Verify OTP & login
 
 ### Protected Endpoints (Auth Required)
 
 # Method	Endpoint	Description
-# GET	/api/v1/auth/me	Get current user
-# GET	/api/v1/profile	Get user profile
-# PUT	/api/v1/profile	Update profile
-# GET	/api/v1/my/pregnancies	List pregnancies
-# GET	/api/v1/my/pregnancies/:id	Get pregnancy
-# POST	/api/v1/my/pregnancies	Create pregnancy
-# PUT	/api/v1/my/pregnancies/:id	Update pregnancy
-# GET	/api/v1/my/milestones	List user milestones
-# POST	/api/v1/my/milestones	Start milestone
-# PUT	/api/v1/my/milestones/:id	Update milestone
-# POST	/api/v1/mint	Mint tokens
-# GET	/api/v1/my/medical-history	List medical history
-# POST	/api/v1/my/medical-history	Add medical record
-# GET	/api/v1/my/appointments	List appointments
-# POST	/api/v1/my/appointments	Create appointment
-# PUT	/api/v1/my/appointments/:id	Update appointment
-# GET	/api/v1/my/kick-sessions	List kick sessions
-# POST	/api/v1/my/kick-sessions	Create kick session
-# PUT	/api/v1/my/kick-sessions/:id	Update kick session
-# GET	/api/v1/my/emergency-contacts	List emergency contacts
-# POST	/api/v1/my/emergency-contacts	Add emergency contact
-# PUT	/api/v1/my/emergency-contacts/:id	Update emergency contact
+# GET	    /api/v1/auth/me	Get current user
+# GET	    /api/v1/profile	Get user profile
+# PUT	    /api/v1/profile	Update profile
+# GET	    /api/v1/my/pregnancies	List pregnancies
+# GET	    /api/v1/my/pregnancies/:id	Get pregnancy
+# POST	  /api/v1/my/pregnancies	Create pregnancy
+# PUT	    /api/v1/my/pregnancies/:id	Update pregnancy
+# GET	    /api/v1/my/milestones	List user milestones
+# POST	  /api/v1/my/milestones	Start milestone
+# PUT	    /api/v1/my/milestones/:id	Update milestone
+# POST	  /api/v1/mint	Mint tokens
+# GET	    /api/v1/my/medical-history	List medical history
+# POST	  /api/v1/my/medical-history	Add medical record
+# GET	    /api/v1/my/appointments	List appointments
+# POST	  /api/v1/my/appointments	Create appointment
+# PUT	    /api/v1/my/appointments/:id	Update appointment
+# GET	    /api/v1/my/kick-sessions	List kick sessions
+# POST	  /api/v1/my/kick-sessions	Create kick session
+# PUT	    /api/v1/my/kick-sessions/:id	Update kick session
+# GET	    /api/v1/my/emergency-contacts	List emergency contacts
+# POST	  /api/v1/my/emergency-contacts	Add emergency contact
+# PUT	    /api/v1/my/emergency-contacts/:id	Update emergency contact
 # DELETE	/api/v1/my/emergency-contacts/:id	Delete emergency contact
-# GET	/api/v1/my/redemptions	List redemptions
-# POST	/api/v1/my/redemptions	Create redemption
-# GET	/api/v1/my/transactions	List token transactions
-# GET	/api/v1/my/notifications	List notifications
-# PUT	/api/v1/my/notifications/:id/read	Mark as read
-# GET	/api/v1/my/consents	List consents
-# PUT	/api/v1/my/consents/:type	Update consent
-# GET	/api/v1/my/doula	Get assigned doula
-# POST	/api/v1/wallet/create	Create wallet
-# POST /api/v1/wallet/import Import an existing Wallet
-# GET	/api/v1/wallet/balance	Get wallet balance
-# GET	/api/v1/wallet/transactions	Get wallet transactions
-# GET	/api/v1/quizzes/:id	Get quiz with questions
-# POST	/api/v1/quizzes/:id/attempt	Submit quiz attempt
-# GET	/api/v1/my/quiz-attempts	List quiz attempts
+# GET	    /api/v1/my/redemptions	List redemptions
+# POST	  /api/v1/my/redemptions	Create redemption
+# GET	    /api/v1/my/transactions	List token transactions
+# GET	    /api/v1/my/notifications	List notifications
+# PUT	    /api/v1/my/notifications/:id/read	Mark as read
+# GET	    /api/v1/my/consents	List consents
+# PUT	    /api/v1/my/consents/:type	Update consent
+# GET	    /api/v1/my/doula	Get assigned doula
+# POST	  /api/v1/wallet/create	Create wallet
+# POST    /api/v1/wallet/import Import an existing Wallet
+# GET	    /api/v1/wallet/balance	Get wallet balance
+# GET	    /api/v1/wallet/transactions	Get wallet transactions
+# GET	    /api/v1/quizzes/:id	Get quiz with questions
+# POST	  /api/v1/quizzes/:id/attempt	Submit quiz attempt
+# GET	    /api/v1/my/quiz-attempts	List quiz attempts
 
 ### Onboarding Endpoints
 
 # Method	Endpoint	Description
-# POST	/api/v1/onboarding/profile	Step 1: Profile
-# POST	/api/v1/onboarding/pregnancy	Step 2: Pregnancy
-# POST	/api/v1/onboarding/emergency-contact	Step 3: Emergency contact
-# POST	/api/v1/onboarding/consents	Step 4: Consents
-# POST	/api/v1/onboarding/complete	Step 5: Complete & create wallet
+# POST	  /api/v1/onboarding/profile	Step 1: Profile
+# POST	  /api/v1/onboarding/pregnancy	Step 2: Pregnancy
+# POST	  /api/v1/onboarding/emergency-contact	Step 3: Emergency contact
+# POST	  /api/v1/onboarding/consents	Step 4: Consents
+# POST	  /api/v1/onboarding/complete	Step 5: Complete & create wallet
 
 ### Admin Endpoints
 
@@ -1288,6 +1475,22 @@ Response:
 # POST	  /api/v1/admin/admins	Create admin (super_admin)
 # PUT	    /api/v1/admin/admins/:id	Update admin (super_admin)S
 # DELETE	/api/v1/admin/admins/:id	Delete admin (super_admin)
+
+### AI & Risk Endpoints (Auth Required)
+
+# POST    /api/v1/ai/chat | Chat with MamaAI |
+# GET     /api/v1/ai/suggestions | Get suggested prompts |
+# DELETE  /api/v1/ai/chat/:conversationId | Clear conversation |
+# GET     /api/v1/risk/assessment | Get risk assessment |
+# GET     /api/v1/risk/analysis | Get detailed AI-powered risk analysis |
+# GET     /api/v1/recommendations/content | Get personalized content recommendations |
+# DELETE  /api/v1/profile | Delete profile permanently |
+# POST    /api/v1/ai/chat | Chat with MamaAI |
+# GET     /api/v1/ai/suggestions | Get AI suggestions |
+# DELETE  /api/v1/ai/chat/:id | Clear AI conversation |
+# GET     /api/v1/risk/assessment | Get risk score |
+# GET     /api/v1/risk/analysis | Get AI risk analysis |
+# GET     /api/v1/recommendations/content | Get recommendations |
 
 ## Token Details
 
@@ -1320,3 +1523,12 @@ Endpoint    Type	          Limit
 
 GitHub: https://github.com/SM-Web-Systems/Femtech-Africa
 Stellar Explorer: https://stellar.expert/explorer/testnet/asset/MAMA-GA5CGTJ6X4HZVQB6PEZNFRVU2V3KRLXVALV7QGXYT6XAIUNGNSM6FZ6V
+
+**Version:** 2.1  
+**Last Updated:** 2026-03-09
+
+### Changelog v2.1:
+- Added DELETE /profile endpoint for GDPR-compliant account deletion
+- Added AI Agent (MamaAI) chat endpoints
+- Added Risk Assessment endpoints with AI-powered analysis
+- Added Content Recommendations endpoint

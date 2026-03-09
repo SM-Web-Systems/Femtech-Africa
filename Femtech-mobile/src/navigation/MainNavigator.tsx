@@ -13,6 +13,7 @@ import RedeemScreen from '../screens/wallet/RedeemScreen';
 import VoucherListScreen from '../screens/wallet/VoucherListScreen';
 import VoucherDetailScreen from '../screens/wallet/VoucherDetailScreen';
 import { QuizListScreen, QuizDetailScreen } from '../screens/quiz';
+import RiskAssessmentScreen from '../screens/health/RiskAssessmentScreen';
 import {
   ProfileScreen,
   EditProfileScreen,
@@ -42,6 +43,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
       <HomeStack.Screen name="QuizList" component={QuizListScreen} />
       <HomeStack.Screen name="QuizDetail" component={QuizDetailScreen} />
+      <HomeStack.Screen name="RiskAssessment" component={RiskAssessmentScreen} />
     </HomeStack.Navigator>
   );
 }

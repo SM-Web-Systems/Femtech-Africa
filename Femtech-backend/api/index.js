@@ -15,6 +15,8 @@ const publicRoutes = require('./routes/public');
 const userRoutes = require('./routes/user');
 const quizRoutes = require('./routes/quizzes');
 const aiAgentRoutes = require('./routes/ai-agent');
+const riskAssessmentRoutes = require('./routes/risk-assessment');
+const recommendationsRoutes = require('./routes/recommendations');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -45,6 +47,8 @@ app.use('/api/v1/my', userRoutes);
 app.use('/api/v1/my/milestones', milestonesRoutes);
 app.use('/api/v1/quizzes', quizRoutes);
 app.use('/api/v1/ai', aiAgentRoutes);
+app.use('/api/v1/risk', riskAssessmentRoutes);
+app.use('/api/v1/recommendations', recommendationsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

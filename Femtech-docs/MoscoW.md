@@ -44,6 +44,8 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Biometric Authentication  | ✅ Done | Fingerprint/Face ID login                 |
 | Quiz System               | ✅ Done | Educational quizzes with rewards          |
 | Dark Mode                 | ✅ Done | UI preference                             |
+| Pregnancy Risk Assessment | ✅ Done | 2 days | Auto-calculate risk score        |
+| Digital Doula Chat        | ✅ Done | 1 week  | AI-powered pregnancy assistant  |
 
 ### 🔲 Pending
 
@@ -64,7 +66,7 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Partner API Integration       | MEDIUM   | 5 days | MTN MoMo, Vodacom, etc.              |
 | Facility Locator              | MEDIUM   | 2 days | Map integration for nearby clinics   |
 | User Referral System          | MEDIUM   | 2 days | Bonus tokens for referrals           |
-| Pregnancy Risk Assessment     | MEDIUM   | 2 days | Auto-calculate risk score            |
+
 
 
 ---
@@ -73,7 +75,7 @@ MoSCoW is a prioritization framework that categorizes features into:
 
 | Feature                      | Priority | Effort  | Notes                          |
 |------------------------------|----------|---------|--------------------------------|
-| Digital Doula Chat           | LOW      | 1 week  | AI-powered pregnancy assistant |
+
 | Community Forum              | LOW      | 1 week  | User-to-user support           |
 | Telemedicine Integration     | LOW      | 2 weeks | Video consultations            |
 | Wearable Device Sync         | LOW      | 2 weeks | Fitbit, Apple Watch data       |
@@ -237,3 +239,18 @@ Remaining for MVP:
 
 *Document maintained by: Femtech Africa Development Team*  
 *Last updated: 2026-03-07*
+
+
+What's Left to Build?
+High Priority (P1):
+Symptom Checker Screen - Let users input symptoms, get triage response
+Symptom NLP Endpoint - Extract structured symptoms from text
+Medium Priority (P2):
+Better Recommendation Engine - Add collaborative filtering
+Article/Educational Content Section - Display recommended articles
+Push Notifications - Health reminders, appointment alerts
+Nice to Have:
+Voice Input for AI Chat
+True ML Models (XGBoost) instead of rule-based scoring
+Kick Counter Screen - Track baby movements
+Appointment Booking - Integrate with facilities

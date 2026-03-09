@@ -6,3 +6,4 @@ export { redemptionsApi } from './redemptions';
 export { quizzesApi } from './quizzes';
 export { profileApi } from './profile';
 export { aiApi } from './ai';
+export { riskApi, recommendationsApi } from './risk';
