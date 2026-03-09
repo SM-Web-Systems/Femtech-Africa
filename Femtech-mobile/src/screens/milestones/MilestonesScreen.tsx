@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { milestonesApi } from '../../api';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 
 const MOCK_MILESTONES = [
   { id: '1', milestone_id: 'm1', status: 'completed', reward_minted: true, milestone_definition: { name: 'Complete Profile', description: 'Fill out your profile information', token_reward: 10 } },
@@ -14,6 +15,7 @@ const MOCK_MILESTONES = [
 
 export default function MilestonesScreen() {
   const { colors, isDark } = useTheme();
+  const { alert, success, error } = useAlert();
   const [milestones, setMilestones] = useState<any[]>(MOCK_MILESTONES);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function MilestonesScreen() {
       const data = await milestonesApi.getUserMilestones();
       setMilestones(data);
       setUsingMockData(false);
-    } catch (error) {
+    } catch (err) {
       console.log('Using mock milestones');
       setUsingMockData(true);
     } finally {
@@ -47,18 +49,17 @@ export default function MilestonesScreen() {
 
   const handleClaimReward = async (milestone: any) => {
     if (usingMockData) {
-      // Mock claim
-      Alert.alert('Demo Mode', `You would earn ${milestone.milestone_definition.token_reward} MAMA tokens!`);
+      alert('Demo Mode', `You would earn ${milestone.milestone_definition.token_reward} MAMA tokens!`);
       return;
     }
     
     setClaimingId(milestone.milestone_id);
     try {
       const result = await milestonesApi.mintReward(milestone.milestone_id);
-      Alert.alert('Reward Claimed! 🎉', `You earned ${result.tokensEarned} MAMA tokens!`);
+      success('Reward Claimed! 🎉', `You earned ${result.tokensEarned} MAMA tokens!`);
       fetchMilestones();
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to claim reward');
+    } catch (err: any) {
+      error('Error', err.response?.data?.error || 'Failed to claim reward');
     } finally {
       setClaimingId(null);
     }
@@ -234,7 +235,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: isDark ? colors.surface : '#E0E0E0',
+    backgroundColor: isDark ? '#333333' : '#E0E0E0',
     borderRadius: 4,
     marginRight: 10,
   },

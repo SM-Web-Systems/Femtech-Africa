@@ -8,6 +8,7 @@ import { WalletProvider } from './src/store/WalletContext';
 import { ThemeProvider, useTheme } from './src/store/ThemeContext';
 import { LanguageProvider } from './src/store/LanguageContext';
 import { NetworkProvider } from './src/store/NetworkContext';
+import { AlertProvider } from './src/hooks/useAlert';
 import OfflineBanner from './src/components/OfflineBanner';
 import RootNavigator from './src/navigation';
 
@@ -58,11 +59,13 @@ export default function App() {
         <AuthProvider>
           <LanguageProvider>
             <ThemeProvider>
-              <WalletProvider>
-                <NetworkProvider>
-                  <AppContent />
-                </NetworkProvider>
-              </WalletProvider>
+              <AlertProvider>
+                <WalletProvider>
+                  <NetworkProvider>
+                    <AppContent />
+                  </NetworkProvider>
+                </WalletProvider>
+              </AlertProvider>
             </ThemeProvider>
           </LanguageProvider>
         </AuthProvider>

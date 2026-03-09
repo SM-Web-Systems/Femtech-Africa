@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   ScrollView,
@@ -19,12 +18,14 @@ import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '../../store/ThemeContext';
 import { useWallet } from '../../store/WalletContext';
 import { useAuth } from '../../store/AuthContext';
+import { useAlert } from '../../hooks/useAlert';
 import { profileApi } from '../../api/profile';
 
 export default function SecurityScreen({ navigation }: any) {
   const { colors, isDark } = useTheme();
   const { balance, loading: walletLoading, refreshBalance } = useWallet();
   const { eraseProfile, logout } = useAuth();
+  const { alert, success, error } = useAlert();
   
   const [secretKey, setSecretKey] = useState<string | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -32,6 +33,7 @@ export default function SecurityScreen({ navigation }: any) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [deletingProfile, setDeletingProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showFinalWarning, setShowFinalWarning] = useState(false);
 
   const styles = createStyles(colors, isDark);
 
@@ -48,7 +50,6 @@ export default function SecurityScreen({ navigation }: any) {
 
   const handleRevealSecretKey = async () => {
     if (isRevealed) {
-      // Hide the key
       setIsRevealed(false);
       setSecretKey(null);
       return;
@@ -65,7 +66,7 @@ export default function SecurityScreen({ navigation }: any) {
         });
 
         if (!result.success) {
-          Alert.alert('Authentication Failed', 'Could not verify your identity');
+          error('Authentication Failed', 'Could not verify your identity');
           return;
         }
       }
@@ -78,15 +79,14 @@ export default function SecurityScreen({ navigation }: any) {
         setSecretKey(storedKey);
         setIsRevealed(true);
       } else {
-        Alert.alert(
+        alert(
           'Secret Key Not Available',
-          'Your secret key was only displayed once when your wallet was created. If you saved it, you can use it to restore your wallet on another device.',
-          [{ text: 'OK' }]
+          'Your secret key was only displayed once when your wallet was created. If you saved it, you can use it to restore your wallet on another device.'
         );
       }
-    } catch (error) {
-      console.log('Error revealing secret key:', error);
-      Alert.alert('Error', 'Could not retrieve secret key');
+    } catch (err) {
+      console.log('Error revealing secret key:', err);
+      error('Error', 'Could not retrieve secret key');
     } finally {
       setLoadingKey(false);
     }
@@ -95,14 +95,14 @@ export default function SecurityScreen({ navigation }: any) {
   const handleCopySecretKey = async () => {
     if (secretKey) {
       await Clipboard.setStringAsync(secretKey);
-      Alert.alert('Copied', 'Secret key copied to clipboard');
+      success('Copied', 'Secret key copied to clipboard');
     }
   };
 
   const handleCopyAddress = async () => {
     if (walletAddress) {
       await Clipboard.setStringAsync(walletAddress);
-      Alert.alert('Copied', 'Wallet address copied to clipboard');
+      success('Copied', 'Wallet address copied to clipboard');
     }
   };
 
@@ -110,47 +110,35 @@ export default function SecurityScreen({ navigation }: any) {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeleteProfile = async () => {
+  const confirmDeleteProfile = () => {
     setShowDeleteConfirm(false);
-    
-    Alert.alert(
-      '⚠️ Final Warning',
-      'This will permanently delete:\n\n• Your profile data\n• Your wallet and all tokens\n• Your transaction history\n• Your quiz progress\n• Your vouchers\n\nThis action CANNOT be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeletingProfile(true);
-              
-              // Call backend to delete all user data
-              await profileApi.deleteProfile();
-              
-              // Clear local secure storage
-              await SecureStore.deleteItemAsync('wallet_secret_key');
-              await SecureStore.deleteItemAsync('auth_token');
-              await SecureStore.deleteItemAsync('user_phone');
-              
-              // Logout and clear auth state
-              if (eraseProfile) {
-                await eraseProfile();
-              } else if (logout) {
-                await logout();
-              }
-              
-              Alert.alert('Profile Deleted', 'Your profile has been permanently deleted.');
-            } catch (error) {
-              console.error('Error deleting profile:', error);
-              Alert.alert('Error', 'Failed to delete profile. Please try again.');
-            } finally {
-              setDeletingProfile(false);
-            }
-          },
-        },
-      ]
-    );
+    setShowFinalWarning(true);
+  };
+
+  const executeDeleteProfile = async () => {
+    setShowFinalWarning(false);
+    try {
+      setDeletingProfile(true);
+      
+      await profileApi.deleteProfile();
+      
+      await SecureStore.deleteItemAsync('wallet_secret_key');
+      await SecureStore.deleteItemAsync('auth_token');
+      await SecureStore.deleteItemAsync('user_phone');
+      
+      if (eraseProfile) {
+        await eraseProfile();
+      } else if (logout) {
+        await logout();
+      }
+      
+      success('Profile Deleted', 'Your profile has been permanently deleted.');
+    } catch (err) {
+      console.error('Error deleting profile:', err);
+      error('Error', 'Failed to delete profile. Please try again.');
+    } finally {
+      setDeletingProfile(false);
+    }
   };
 
   const handleCreateWallet = () => {
@@ -337,6 +325,42 @@ export default function SecurityScreen({ navigation }: any) {
                 onPress={confirmDeleteProfile}
               >
                 <Text style={styles.confirmDeleteButtonText}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Final Warning Modal */}
+      <Modal visible={showFinalWarning} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.deleteModalIcon}>
+              <Ionicons name="alert-circle" size={48} color="#EF4444" />
+            </View>
+            <Text style={styles.deleteModalTitle}>⚠️ Final Warning</Text>
+            <Text style={styles.deleteModalText}>
+              This will permanently delete:{'\n\n'}
+              • Your profile data{'\n'}
+              • Your wallet and all tokens{'\n'}
+              • Your transaction history{'\n'}
+              • Your quiz progress{'\n'}
+              • Your vouchers{'\n\n'}
+              This action CANNOT be undone.
+            </Text>
+            
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowFinalWarning(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmDeleteButton}
+                onPress={executeDeleteProfile}
+              >
+                <Text style={styles.confirmDeleteButtonText}>Delete Everything</Text>
               </TouchableOpacity>
             </View>
           </View>

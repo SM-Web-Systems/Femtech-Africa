@@ -8,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useWallet } from '../../store/WalletContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 import { redemptionsApi } from '../../api';
 
 const EXCHANGE_RATE = 0.10;
@@ -39,7 +39,8 @@ interface Product {
 
 export default function RedeemScreen({ navigation }: any) {
   const { balance, refreshBalance } = useWallet();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { alert, error, confirm } = useAlert();
   
   const [partners, setPartners] = useState<Partner[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -52,7 +53,7 @@ export default function RedeemScreen({ navigation }: any) {
   const [step, setStep] = useState(1);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isDark);
 
   useEffect(() => {
     checkBiometricAvailability();
@@ -64,8 +65,8 @@ export default function RedeemScreen({ navigation }: any) {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(compatible && enrolled);
-    } catch (error) {
-      console.log('Biometric check error:', error);
+    } catch (err) {
+      console.log('Biometric check error:', err);
       setBiometricAvailable(false);
     }
   };
@@ -82,9 +83,9 @@ export default function RedeemScreen({ navigation }: any) {
       setLoading(true);
       const data = await redemptionsApi.getPartners();
       setPartners(data);
-    } catch (error: any) {
-      console.log('Failed to fetch partners:', error);
-      Alert.alert('Error', 'Failed to load partners');
+    } catch (err: any) {
+      console.log('Failed to fetch partners:', err);
+      error('Error', 'Failed to load partners');
     } finally {
       setLoading(false);
     }
@@ -94,8 +95,8 @@ export default function RedeemScreen({ navigation }: any) {
     try {
       const data = await redemptionsApi.getPartnerProducts(partnerId);
       setProducts(data);
-    } catch (error: any) {
-      console.log('Failed to fetch products:', error);
+    } catch (err: any) {
+      console.log('Failed to fetch products:', err);
       setProducts([]);
     }
   };
@@ -150,39 +151,34 @@ export default function RedeemScreen({ navigation }: any) {
         disableDeviceFallback: false,
       });
       return result.success;
-    } catch (error) {
-      console.log('Biometric authentication error:', error);
+    } catch (err) {
+      console.log('Biometric authentication error:', err);
       return false;
     }
   };
 
   const handleRedeem = async () => {
     if (!canProceedToConfirm()) {
-      Alert.alert('Error', 'Please enter a valid amount');
+      error('Error', 'Please enter a valid amount');
       return;
     }
 
     if (biometricAvailable) {
       const authenticated = await authenticateWithBiometrics();
       if (!authenticated) {
-        Alert.alert('Authentication Failed', 'Biometric authentication is required to redeem tokens.', [{ text: 'OK' }]);
+        error('Authentication Failed', 'Biometric authentication is required to redeem tokens.');
         return;
       }
+      await proceedWithRedemption();
     } else {
-      const confirmed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          'Confirm Redemption',
-          `Are you sure you want to redeem ${tokenAmount} MAMA tokens for R${calculateZARValue()}?`,
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Confirm', onPress: () => resolve(true) },
-          ]
-        );
-      });
-      if (!confirmed) return;
+      confirm(
+        'Confirm Redemption',
+        `Are you sure you want to redeem ${tokenAmount} MAMA tokens for R${calculateZARValue()}?`,
+        async () => {
+          await proceedWithRedemption();
+        }
+      );
     }
-
-    await proceedWithRedemption();
   };
 
   const proceedWithRedemption = async () => {
@@ -205,7 +201,7 @@ export default function RedeemScreen({ navigation }: any) {
         ? voucherValue.toFixed(2) 
         : parseFloat(voucherValue || '0').toFixed(2);
 
-      Alert.alert(
+      alert(
         'Redemption Successful! 🎉',
         `You've redeemed ${tokenAmount} MAMA tokens.\n\nVoucher Code: ${voucherCode}\nValue: R${formattedValue}`,
         [
@@ -230,9 +226,9 @@ export default function RedeemScreen({ navigation }: any) {
           },
         ]
       );
-    } catch (error: any) {
-      const message = error.response?.data?.error || error.response?.data?.details || 'Redemption failed. Please try again.';
-      Alert.alert('Redemption Failed', message);
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.response?.data?.details || 'Redemption failed. Please try again.';
+      error('Redemption Failed', message);
     } finally {
       setRedeeming(false);
     }
@@ -451,7 +447,7 @@ export default function RedeemScreen({ navigation }: any) {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, color: colors.textSecondary, fontSize: 16 },
@@ -541,7 +537,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  productCardSelected: { borderColor: colors.success, backgroundColor: '#E8F5E9' },
+  productCardSelected: { 
+    borderColor: colors.success, 
+    backgroundColor: isDark ? '#1B5E20' : '#E8F5E9' 
+  },
   productInfo: { flex: 1 },
   productName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
   productDescription: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
@@ -584,22 +583,22 @@ const createStyles = (colors: any) => StyleSheet.create({
   biometricInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: isDark ? '#0D47A1' : '#E3F2FD',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   biometricIcon: { fontSize: 24, marginRight: 12 },
-  biometricText: { flex: 1, fontSize: 14, color: '#1976D2' },
+  biometricText: { flex: 1, fontSize: 14, color: isDark ? '#90CAF9' : '#1976D2' },
   warningCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
+    backgroundColor: isDark ? '#4E342E' : '#FFF3E0',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
   },
   warningIcon: { fontSize: 20, marginRight: 12 },
-  warningText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 20 },
+  warningText: { flex: 1, fontSize: 13, color: isDark ? '#FFCC80' : '#E65100', lineHeight: 20 },
   redeemButton: { backgroundColor: colors.success, borderRadius: 25, padding: 18, alignItems: 'center', marginBottom: 20 },
   redeemButtonDisabled: { opacity: 0.7 },
   redeemButtonText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },

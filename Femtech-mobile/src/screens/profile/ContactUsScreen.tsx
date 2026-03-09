@@ -6,15 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Linking,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 
 export default function ContactUsScreen({ navigation }: any) {
   const { colors, isDark } = useTheme();
+  const { error, alert } = useAlert();
   const styles = createStyles(colors, isDark);
 
   const [subject, setSubject] = useState('');
@@ -23,7 +24,7 @@ export default function ContactUsScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      error('Error', 'Please fill in all fields');
       return;
     }
 
@@ -31,7 +32,7 @@ export default function ContactUsScreen({ navigation }: any) {
     // TODO: Send to API
     setTimeout(() => {
       setSending(false);
-      Alert.alert(
+      alert(
         'Message Sent',
         'Thank you for contacting us. We\'ll get back to you within 24 hours.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
@@ -157,7 +158,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -239,7 +240,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: isDark ? colors.surface : colors.background,
+    backgroundColor: isDark ? '#333333' : colors.background,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,

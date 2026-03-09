@@ -5,15 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../store/ThemeContext';
 import { useLanguage } from '../../store/LanguageContext';
+import { useAlert } from '../../hooks/useAlert';
 
 export default function LanguageScreen({ navigation }: any) {
   const { colors, isDark } = useTheme();
   const { language, languages, setLanguage, t } = useLanguage();
+  const { alert, error } = useAlert();
 
   const styles = createStyles(colors, isDark);
 
@@ -25,14 +26,17 @@ export default function LanguageScreen({ navigation }: any) {
       
       const langName = languages.find(l => l.code === langCode)?.native || langCode;
       
-      Alert.alert(
+      alert(
         t('settings.language_changed') || 'Language Changed',
         `${t('settings.language_changed_to') || 'Language changed to'} ${langName}`,
         [{ text: t('common.ok') || 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error) {
-      console.log('Error changing language:', error);
-      Alert.alert(t('common.error') || 'Error', t('settings.language_change_failed') || 'Failed to change language');
+    } catch (err) {
+      console.log('Error changing language:', err);
+      error(
+        t('common.error') || 'Error',
+        t('settings.language_change_failed') || 'Failed to change language'
+      );
     }
   };
 
@@ -106,7 +110,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },

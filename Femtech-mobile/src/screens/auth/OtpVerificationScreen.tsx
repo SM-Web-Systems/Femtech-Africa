@@ -1,13 +1,15 @@
 ﻿import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 import { authApi } from '../../api';
 
 export default function OtpVerificationScreen({ route, navigation }: any) {
   const { phone, country } = route.params;
   const { colors, isDark } = useTheme();
+  const { success, error: showError } = useAlert();
   const styles = createStyles(colors, isDark);
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -36,7 +38,6 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
     setError('');
 
     try {
-      // Call real API
       const response = await authApi.verifyOtp(phone, otpCode);
       
       if (response.token && response.user) {
@@ -57,9 +58,9 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
   const handleResend = async () => {
     try {
       await authApi.requestOtp(phone, country || 'ZA');
-      Alert.alert('OTP Sent', 'A new code has been sent to your phone.');
+      success('OTP Sent', 'A new code has been sent to your phone.');
     } catch (err) {
-      Alert.alert('Error', 'Failed to resend OTP. Try again.');
+      showError('Error', 'Failed to resend OTP. Try again.');
     }
   };
 

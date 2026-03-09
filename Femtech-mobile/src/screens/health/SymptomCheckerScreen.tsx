@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 import { riskApi } from '../../api/risk';
 
 const COMMON_SYMPTOMS = [
@@ -33,32 +33,37 @@ const URGENCY_CONFIG = {
   EMERGENCY: {
     color: '#DC2626',
     bgColor: '#FEE2E2',
+    darkBgColor: '#450A0A',
     icon: 'alert-circle',
     title: 'Emergency - Seek Immediate Care',
   },
   URGENT: {
     color: '#F59E0B',
     bgColor: '#FEF3C7',
+    darkBgColor: '#451A03',
     icon: 'warning',
     title: 'Urgent - See Doctor Today',
   },
   MODERATE: {
     color: '#3B82F6',
     bgColor: '#DBEAFE',
+    darkBgColor: '#1E3A5F',
     icon: 'information-circle',
     title: 'Schedule Appointment Soon',
   },
   LOW: {
     color: '#10B981',
     bgColor: '#D1FAE5',
+    darkBgColor: '#064E3B',
     icon: 'checkmark-circle',
     title: 'Monitor at Home',
   },
 };
 
 export default function SymptomCheckerScreen({ navigation }: any) {
-  const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const { colors, isDark } = useTheme();
+  const { alert, error } = useAlert();
+  const styles = createStyles(colors, isDark);
 
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [description, setDescription] = useState('');
@@ -75,7 +80,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (selectedSymptoms.length === 0 && !description.trim()) {
-      Alert.alert('Please select symptoms or describe how you feel');
+      alert('Missing Information', 'Please select symptoms or describe how you feel');
       return;
     }
 
@@ -86,9 +91,9 @@ export default function SymptomCheckerScreen({ navigation }: any) {
         description: description.trim(),
       });
       setResult(response);
-    } catch (error) {
-      console.error('Symptom check error:', error);
-      Alert.alert('Error', 'Failed to analyze symptoms. Please try again.');
+    } catch (err) {
+      console.error('Symptom check error:', err);
+      error('Error', 'Failed to analyze symptoms. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +106,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
   };
 
   const handleEmergency = () => {
-    Alert.alert(
+    alert(
       'Emergency Services',
       'If you are experiencing a medical emergency, please call emergency services immediately.',
       [
@@ -120,14 +125,14 @@ export default function SymptomCheckerScreen({ navigation }: any) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleReset} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Assessment Result</Text>
             <View style={{ width: 40 }} />
           </View>
 
           {/* Urgency Card */}
-          <View style={[styles.urgencyCard, { backgroundColor: urgencyConfig.bgColor }]}>
+          <View style={[styles.urgencyCard, { backgroundColor: isDark ? urgencyConfig.darkBgColor : urgencyConfig.bgColor }]}>
             <Ionicons name={urgencyConfig.icon as any} size={48} color={urgencyConfig.color} />
             <Text style={[styles.urgencyTitle, { color: urgencyConfig.color }]}>
               {urgencyConfig.title}
@@ -146,7 +151,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
               <Text style={styles.sectionTitle}>Recommendations</Text>
               {result.recommendations.map((rec: string, index: number) => (
                 <View key={index} style={styles.recommendationItem}>
-                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
                   <Text style={styles.recommendationText}>{rec}</Text>
                 </View>
               ))}
@@ -181,7 +186,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
 
           {/* Disclaimer */}
           <View style={styles.disclaimer}>
-            <Ionicons name="information-circle-outline" size={16} color={theme.colors.textSecondary} />
+            <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.disclaimerText}>
               This is not a medical diagnosis. Always consult with your healthcare provider for proper evaluation.
             </Text>
@@ -197,7 +202,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Symptom Checker</Text>
           <View style={{ width: 40 }} />
@@ -205,7 +210,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
 
         {/* Intro */}
         <View style={styles.introCard}>
-          <Ionicons name="medical" size={32} color={theme.colors.primary} />
+          <Ionicons name="medical" size={32} color={colors.primary} />
           <Text style={styles.introText}>
             Select your symptoms or describe how you're feeling. Our AI will help assess the urgency and provide guidance.
           </Text>
@@ -226,7 +231,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
               <Ionicons
                 name={symptom.icon as any}
                 size={18}
-                color={selectedSymptoms.includes(symptom.id) ? '#FFF' : theme.colors.text}
+                color={selectedSymptoms.includes(symptom.id) ? '#FFF' : colors.text}
               />
               <Text
                 style={[
@@ -245,7 +250,7 @@ export default function SymptomCheckerScreen({ navigation }: any) {
         <TextInput
           style={styles.textInput}
           placeholder="Tell us more about how you're feeling..."
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
           value={description}
@@ -281,11 +286,11 @@ export default function SymptomCheckerScreen({ navigation }: any) {
   );
 }
 
-const createStyles = (theme: any) =>
+const createStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       padding: 16,
@@ -303,10 +308,10 @@ const createStyles = (theme: any) =>
     headerTitle: {
       fontSize: 20,
       fontWeight: '700',
-      color: theme.colors.text,
+      color: colors.text,
     },
     introCard: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       padding: 16,
       flexDirection: 'row',
@@ -317,13 +322,13 @@ const createStyles = (theme: any) =>
     introText: {
       flex: 1,
       fontSize: 14,
-      color: theme.colors.textSecondary,
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     sectionTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: theme.colors.text,
+      color: colors.text,
       marginBottom: 12,
       marginTop: 8,
     },
@@ -337,37 +342,37 @@ const createStyles = (theme: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 20,
       paddingVertical: 8,
       paddingHorizontal: 12,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: colors.border,
     },
     symptomChipSelected: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
     },
     symptomChipText: {
       fontSize: 13,
-      color: theme.colors.text,
+      color: colors.text,
     },
     symptomChipTextSelected: {
       color: '#FFF',
     },
     textInput: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       padding: 16,
       fontSize: 15,
-      color: theme.colors.text,
+      color: colors.text,
       minHeight: 100,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: colors.border,
       marginBottom: 20,
     },
     submitButton: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: colors.primary,
       borderRadius: 12,
       padding: 16,
       flexDirection: 'row',
@@ -389,7 +394,7 @@ const createStyles = (theme: any) =>
       gap: 8,
       marginTop: 20,
       padding: 12,
-      backgroundColor: '#FEE2E2',
+      backgroundColor: isDark ? '#450A0A' : '#FEE2E2',
       borderRadius: 8,
     },
     emergencyNoticeText: {
@@ -410,14 +415,14 @@ const createStyles = (theme: any) =>
       textAlign: 'center',
     },
     resultSection: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
     },
     resultText: {
       fontSize: 15,
-      color: theme.colors.text,
+      color: colors.text,
       lineHeight: 22,
     },
     recommendationItem: {
@@ -429,7 +434,7 @@ const createStyles = (theme: any) =>
     recommendationText: {
       flex: 1,
       fontSize: 14,
-      color: theme.colors.text,
+      color: colors.text,
       lineHeight: 20,
     },
     warningItem: {
@@ -441,7 +446,7 @@ const createStyles = (theme: any) =>
     warningText: {
       flex: 1,
       fontSize: 14,
-      color: theme.colors.text,
+      color: colors.text,
       lineHeight: 20,
     },
     actionButtons: {
@@ -463,15 +468,15 @@ const createStyles = (theme: any) =>
       fontWeight: '600',
     },
     resetButton: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       padding: 16,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: colors.border,
     },
     resetButtonText: {
-      color: theme.colors.text,
+      color: colors.text,
       fontSize: 16,
       fontWeight: '600',
     },
@@ -480,13 +485,13 @@ const createStyles = (theme: any) =>
       alignItems: 'flex-start',
       gap: 8,
       padding: 12,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 8,
     },
     disclaimerText: {
       flex: 1,
       fontSize: 12,
-      color: theme.colors.textSecondary,
+      color: colors.textSecondary,
       lineHeight: 18,
     },
   });

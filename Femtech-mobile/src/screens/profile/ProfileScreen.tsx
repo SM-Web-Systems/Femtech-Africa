@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,16 +14,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
 import { useLanguage } from '../../store/LanguageContext';
+import { useAlert } from '../../hooks/useAlert';
 import { profileApi } from '../../api';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
   const { colors, isDark } = useTheme();
   const { getCurrentLanguage, t } = useLanguage();
+  const { confirm } = useAlert();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isDark);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -44,19 +45,12 @@ export default function ProfileScreen({ navigation }: any) {
   );
 
   const handleLogout = () => {
-    Alert.alert(
+    confirm(
       t('auth.logout'),
       t('auth.logoutConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('auth.logout'),
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
-        },
-      ]
+      async () => {
+        await logout();
+      }
     );
   };
 
@@ -224,7 +218,7 @@ export default function ProfileScreen({ navigation }: any) {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -246,6 +240,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatarContainer: {
     marginRight: 16,
@@ -266,7 +265,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   avatarText: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.white,
+    color: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,
@@ -306,6 +305,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuItem: {
     flexDirection: 'row',

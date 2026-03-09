@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -14,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 import { profileApi } from '../../api';
 
 export default function EditProfileScreen({ navigation }: any) {
   const { user, updateUser } = useAuth();
   const { colors, isDark } = useTheme();
+  const { alert, success, error } = useAlert();
   const styles = createStyles(colors, isDark);
 
   const [loading, setLoading] = useState(true);
@@ -49,8 +50,8 @@ export default function EditProfileScreen({ navigation }: any) {
         emergencyPhone: data.emergencyPhone || '',
         avatarUrl: data.avatarUrl || '',
       });
-    } catch (error) {
-      console.log('Error fetching profile:', error);
+    } catch (err) {
+      console.log('Error fetching profile:', err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ export default function EditProfileScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!profile.name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      error('Error', 'Please enter your name');
       return;
     }
 
@@ -77,12 +78,10 @@ export default function EditProfileScreen({ navigation }: any) {
         updateUser({ name: profile.name.trim() });
       }
 
-      Alert.alert('Success', 'Profile updated successfully', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (error: any) {
-      console.log('Error saving profile:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
+      success('Success', 'Profile updated successfully', () => navigation.goBack());
+    } catch (err: any) {
+      console.log('Error saving profile:', err);
+      error('Error', err.response?.data?.error || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -92,7 +91,7 @@ export default function EditProfileScreen({ navigation }: any) {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photos');
+      alert('Permission Required', 'Please allow access to your photos');
       return;
     }
 
@@ -264,7 +263,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -296,7 +295,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   avatarSection: {
     alignItems: 'center',
     paddingVertical: 24,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
   },
   avatarWrapper: {
     position: 'relative',

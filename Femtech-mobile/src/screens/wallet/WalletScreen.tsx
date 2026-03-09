@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { walletApi } from '../../api';
 import { useWallet } from '../../store/WalletContext';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 
 interface Token {
   symbol: string;
@@ -20,6 +21,7 @@ interface Token {
 export default function WalletScreen({ navigation }: any) {
   const { balance, refreshBalance } = useWallet();
   const { colors, isDark } = useTheme();
+  const { alert, success, error, confirm } = useAlert();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -57,8 +59,8 @@ export default function WalletScreen({ navigation }: any) {
           setTransactions([]);
         }
       }
-    } catch (error) {
-      console.log('Error fetching wallet:', error);
+    } catch (err) {
+      console.log('Error fetching wallet:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -81,7 +83,6 @@ export default function WalletScreen({ navigation }: any) {
     try {
       const result = await walletApi.createWallet();
       
-      // Save the secret key to SecureStore for later retrieval
       if (result.secretKey) {
         await SecureStore.setItemAsync('wallet_secret_key', result.secretKey);
         console.log('Secret key saved to SecureStore');
@@ -93,8 +94,8 @@ export default function WalletScreen({ navigation }: any) {
       });
       setShowCreateModal(false);
       setShowSecretKey(true);
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to create wallet');
+    } catch (err: any) {
+      error('Error', err.response?.data?.error || 'Failed to create wallet');
     } finally {
       setCreating(false);
     }
@@ -102,7 +103,7 @@ export default function WalletScreen({ navigation }: any) {
 
   const handleImportWallet = async () => {
     if (!importKey.startsWith('S') || importKey.length !== 56) {
-      Alert.alert('Invalid Key', 'Please enter a valid Stellar secret key (starts with S, 56 characters)');
+      error('Invalid Key', 'Please enter a valid Stellar secret key (starts with S, 56 characters)');
       return;
     }
 
@@ -110,17 +111,16 @@ export default function WalletScreen({ navigation }: any) {
     try {
       await walletApi.importWallet(importKey);
       
-      // Save the imported secret key to SecureStore
       await SecureStore.setItemAsync('wallet_secret_key', importKey);
       console.log('Imported secret key saved to SecureStore');
       
       setShowImportModal(false);
       setImportKey('');
-      Alert.alert('Success', 'Wallet imported successfully!');
+      success('Success', 'Wallet imported successfully!');
       await refreshBalance();
       fetchData(true);
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to import wallet');
+    } catch (err: any) {
+      error('Error', err.response?.data?.error || 'Failed to import wallet');
     } finally {
       setCreating(false);
     }
@@ -129,33 +129,27 @@ export default function WalletScreen({ navigation }: any) {
   const handleCopySecretKey = async () => {
     if (newWalletKeys?.secretKey) {
       await Clipboard.setStringAsync(newWalletKeys.secretKey);
-      Alert.alert('Copied', 'Secret key copied to clipboard. Store it safely!');
+      success('Copied', 'Secret key copied to clipboard. Store it safely!');
     }
   };
 
   const handleCopyAddress = async () => {
     if (balance?.address) {
       await Clipboard.setStringAsync(balance.address);
-      Alert.alert('Copied', 'Wallet address copied to clipboard');
+      success('Copied', 'Wallet address copied to clipboard');
     }
   };
 
   const handleSecretKeySaved = () => {
-    Alert.alert(
+    confirm(
       'Confirm',
       'Have you saved your secret key in a safe place? You will NOT be able to recover it later!',
-      [
-        { text: 'Go Back', style: 'cancel' },
-        {
-          text: 'Yes, I Saved It',
-          onPress: async () => {
-            setShowSecretKey(false);
-            setNewWalletKeys(null);
-            await refreshBalance();
-            fetchData(true);
-          }
-        }
-      ]
+      async () => {
+        setShowSecretKey(false);
+        setNewWalletKeys(null);
+        await refreshBalance();
+        fetchData(true);
+      }
     );
   };
 
@@ -636,11 +630,11 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontSize: 16, 
     marginBottom: 20, 
     color: colors.text, 
-    backgroundColor: isDark ? colors.surface : colors.background 
+    backgroundColor: colors.background 
   },
 
   keyBox: { 
-    backgroundColor: isDark ? colors.surface : colors.background, 
+    backgroundColor: colors.background, 
     padding: 16, 
     borderRadius: 12, 
     marginBottom: 12, 
@@ -721,7 +715,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: isDark ? colors.surface : colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { quizzesApi } from '../../api';
 import { useTheme } from '../../store/ThemeContext';
+import { useAlert } from '../../hooks/useAlert';
 
 interface Question {
   id: string;
@@ -41,6 +41,7 @@ interface Result {
 export default function QuizDetailScreen({ route, navigation }: any) {
   const { quizId } = route.params;
   const { colors, isDark } = useTheme();
+  const { error } = useAlert();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
@@ -80,9 +81,9 @@ export default function QuizDetailScreen({ route, navigation }: any) {
       if (data.timeLimit) {
         setTimeLeft(data.timeLimit * 60);
       }
-    } catch (error) {
-      console.error('Failed to start quiz:', error);
-      Alert.alert('Error', 'Failed to load quiz');
+    } catch (err) {
+      console.error('Failed to start quiz:', err);
+      error('Error', 'Failed to load quiz');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -133,9 +134,9 @@ export default function QuizDetailScreen({ route, navigation }: any) {
       );
       setResults(result);
       setShowResults(true);
-    } catch (error) {
-      console.error('Failed to submit quiz:', error);
-      Alert.alert('Error', 'Failed to submit quiz');
+    } catch (err) {
+      console.error('Failed to submit quiz:', err);
+      error('Error', 'Failed to submit quiz');
     } finally {
       setSubmitting(false);
     }
@@ -334,7 +335,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -364,7 +365,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: isDark ? colors.surface : '#E0E0E0',
+    backgroundColor: isDark ? '#333333' : '#E0E0E0',
     borderRadius: 4,
   },
   progressFill: {
@@ -438,7 +439,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
