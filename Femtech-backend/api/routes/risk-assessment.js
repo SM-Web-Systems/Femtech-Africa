@@ -70,7 +70,7 @@ function calculateRiskScore(factors) {
 async function getUserRiskFactors(userId) {
   const [pregnancy, medicalHistory, appointments, profile] = await Promise.all([
     prisma.pregnancy.findFirst({
-      where: { user_id: userId, status: pregnancy_status.active },
+      where: { userId: userId, status: pregnancy_status.active },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.medicalHistory.findMany({
@@ -163,7 +163,7 @@ router.get('/analysis', authenticateToken, async (req, res) => {
 
     // Get pregnancy details for context
     const pregnancy = await prisma.pregnancy.findFirst({
-      where: { user_id: userId, status: pregnancy_status.active },
+      where: { userId: userId, status: pregnancy_status.active },
     });
 
     let gestationalWeeks = null;
@@ -258,7 +258,7 @@ router.post('/symptom-check', authenticateToken, async (req, res) => {
 
     // Get pregnancy context
     const pregnancy = await prisma.pregnancy.findFirst({
-      where: { user_id: userId, status: pregnancy_status.active },
+      where: { userId: userId, status: pregnancy_status.active },
     });
 
     let gestationalWeeks = null;

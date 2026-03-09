@@ -59,7 +59,7 @@ router.post('/appointments', authenticateToken, async (req, res) => {
     const appointment = await prisma.appointment.create({
       data: {
         userId: req.user.id,
-        facility_id: facilityId,
+        facilityId: facilityId,
         appointment_date: new Date(appointmentDate),
         type,
         notes,

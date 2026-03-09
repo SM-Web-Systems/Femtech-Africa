@@ -45,7 +45,7 @@ const buildUserContext = async (userId) => {
   try {
     const [profile, pregnancy, milestones, wallet] = await Promise.all([
       prisma.userProfile.findUnique({ where: { userId } }),
-      prisma.pregnancy.findFirst({ where: { user_id: userId, status: pregnancy_status.active }, orderBy: { createdAt: 'desc' } }),
+      prisma.pregnancy.findFirst({ where: { userId: userId, status: pregnancy_status.active }, orderBy: { createdAt: 'desc' } }),
       prisma.userMilestone.findMany({ where: { userId }, include: { milestoneDefinition: true }, take: 5 }),
       prisma.tokenTransaction.aggregate({ where: { userId }, _sum: { amount: true } })
     ]);
@@ -113,7 +113,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
 router.get('/suggestions', authenticateToken, async (req, res) => {
   try {
     const pregnancy = await prisma.pregnancy.findFirst({
-      where: { user_id: req.user.userId, status: pregnancy_status.active }
+      where: { userId: req.user.userId, status: pregnancy_status.active }
     });
 
     const suggestions = [

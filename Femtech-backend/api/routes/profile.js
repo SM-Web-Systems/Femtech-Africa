@@ -100,16 +100,16 @@ router.delete('/', authenticateToken, async (req, res) => {
     await prisma.redemptionItem.deleteMany({ where: { redemption: { userId: userId } } });
     await prisma.redemption.deleteMany({ where: { userId: userId } });
     await prisma.circleMember.deleteMany({ where: { userId: userId } });
-    await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
-    await prisma.appointment.deleteMany({ where: { user_id: userId } });
-    await prisma.kickSession.deleteMany({ where: { user_id: userId } });
-    await prisma.medicalHistory.deleteMany({ where: { user_id: userId } });
+    await prisma.supportCircle.deleteMany({ where: { ownerId: userId } });
+    await prisma.appointment.deleteMany({ where: { userId: userId } });
+    await prisma.kickSession.deleteMany({ where: { userId: userId } });
+    await prisma.medicalHistory.deleteMany({ where: { userId: userId } });
     await prisma.pregnancy.deleteMany({ where: { userId: userId } });
-    await prisma.emergencyContact.deleteMany({ where: { user_id: userId } });
-    await prisma.digitalDoula.deleteMany({ where: { user_id: userId } });
+    await prisma.emergencyContact.deleteMany({ where: { userId: userId } });
+    await prisma.digitalDoula.deleteMany({ where: { userId: userId } });
     await prisma.consent.deleteMany({ where: { userId: userId } });
     await prisma.session.deleteMany({ where: { userId: userId } });
-    await prisma.smsMessage.deleteMany({ where: { user_id: userId } });
+    await prisma.smsMessage.deleteMany({ where: { userId: userId } });
     await prisma.userProfile.deleteMany({ where: { userId: userId } });
     await prisma.user.delete({ where: { id: userId } });
 
