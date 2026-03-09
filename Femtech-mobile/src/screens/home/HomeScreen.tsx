@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
 import { walletApi, milestonesApi } from '../../api';
-import FloatingChatButton from '../../components/FloatingChatButton';
+import { offlineStorage } from '../../services/OfflineStorage';
+
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
@@ -44,10 +45,30 @@ export default function HomeScreen({ navigation }: any) {
       setBalance(walletData);
       setHasWallet(!!walletData?.address || !!walletData?.hasWallet);
       setMilestones(milestonesData.slice(0, 3));
+
+      // Cache data for offline use
+      await offlineStorage.cacheWallet(walletData);
+      await offlineStorage.cacheMilestones(milestonesData);
+      
     } catch (err: any) {
       const message = err.response?.data?.error || 'Failed to load data';
       console.log('API Error:', message);
-      setError(message);
+      
+      // Try to load cached data
+      const cachedWallet = await offlineStorage.getCachedWallet();
+      const cachedMilestones = await offlineStorage.getCachedMilestones();
+      
+      if (cachedWallet) {
+        setBalance(cachedWallet);
+        setHasWallet(!!cachedWallet?.address || !!cachedWallet?.hasWallet);
+      }
+      if (cachedMilestones) {
+        setMilestones(cachedMilestones.slice(0, 3));
+      }
+      
+      if (!cachedWallet && !cachedMilestones) {
+        setError(message);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,7 +104,6 @@ export default function HomeScreen({ navigation }: any) {
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
-        <FloatingChatButton onPress={openAIChat} />
       </SafeAreaView>
     );
   }
@@ -194,9 +214,6 @@ export default function HomeScreen({ navigation }: any) {
         {/* Extra padding for floating button */}
         <View style={{ height: 80 }} />
       </ScrollView>
-
-      {/* Floating AI Chat Button */}
-      <FloatingChatButton onPress={openAIChat} />
     </SafeAreaView>
   );
 }
@@ -240,7 +257,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   actionIcon: { fontSize: 32, marginBottom: 8 },
   actionText: { fontSize: 14, fontWeight: '600', color: colors.text },
 
-  // AI Promo Card
   aiPromoCard: { 
     backgroundColor: colors.primary + '15', 
     borderRadius: 16, 

@@ -7,12 +7,13 @@ import { AuthProvider } from './src/store/AuthContext';
 import { WalletProvider } from './src/store/WalletContext';
 import { ThemeProvider, useTheme } from './src/store/ThemeContext';
 import { LanguageProvider } from './src/store/LanguageContext';
+import { NetworkProvider } from './src/store/NetworkContext';
+import OfflineBanner from './src/components/OfflineBanner';
 import RootNavigator from './src/navigation';
 
 function AppContent() {
   const { isDark, colors } = useTheme();
 
-  // Extend the default themes with our custom colors
   const navigationTheme = isDark
     ? {
         ...DarkTheme,
@@ -43,6 +44,7 @@ function AppContent() {
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={navigationTheme}>
+        <OfflineBanner />
         <RootNavigator />
       </NavigationContainer>
     </>
@@ -57,7 +59,9 @@ export default function App() {
           <LanguageProvider>
             <ThemeProvider>
               <WalletProvider>
-                <AppContent />
+                <NetworkProvider>
+                  <AppContent />
+                </NetworkProvider>
               </WalletProvider>
             </ThemeProvider>
           </LanguageProvider>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../store/ThemeContext';
 
 // Screen imports
@@ -25,6 +26,7 @@ import {
   LanguageScreen,
 } from '../screens/profile';
 import AIChatScreen from '../screens/ai/AIChatScreen';
+import FloatingChatButton from '../components/FloatingChatButton';
 
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -93,81 +95,91 @@ function TabIcon({ icon, focused, color }: { icon: string; focused: boolean; col
   );
 }
 
-// Tab Navigator
+// Tab Navigator with Global Floating Button
 function TabNavigator() {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<any>();
+
+  const openAIChat = () => {
+    navigation.navigate('AIChat');
+  };
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeStackNavigator}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🏠" focused={focused} color={color} />
-          ),
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '600',
+          },
         }}
-      />
-      <Tab.Screen
-        name="Learn"
-        component={LearnStackNavigator}
-        options={{
-          tabBarLabel: 'Learn',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="📚" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Milestones"
-        component={MilestonesScreen}
-        options={{
-          tabBarLabel: 'Milestones',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🎯" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Wallet"
-        component={WalletStackNavigator}
-        options={{
-          tabBarLabel: 'Wallet',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="💰" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileStackNavigator}
-        options={{
-          tabBarLabel: 'Settings',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="⚙️" focused={focused} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="Home"
+          component={HomeStackNavigator}
+          options={{
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon icon="🏠" focused={focused} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Learn"
+          component={LearnStackNavigator}
+          options={{
+            tabBarLabel: 'Learn',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon icon="📚" focused={focused} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Milestones"
+          component={MilestonesScreen}
+          options={{
+            tabBarLabel: 'Milestones',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon icon="🎯" focused={focused} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Wallet"
+          component={WalletStackNavigator}
+          options={{
+            tabBarLabel: 'Wallet',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon icon="💰" focused={focused} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileStackNavigator}
+          options={{
+            tabBarLabel: 'Settings',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon icon="⚙️" focused={focused} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+      
+      {/* Global Floating Chat Button - visible on all tabs */}
+      <FloatingChatButton onPress={openAIChat} />
+    </View>
   );
 }
 
