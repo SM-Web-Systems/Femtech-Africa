@@ -17,7 +17,7 @@ export const walletApi = {
   },
 
   getTransactions: async () => {
-    const response = await apiClient.get('/my/transactions');
+    const response = await apiClient.get('/wallet/transactions'); // FIXED
     return response.data;
   },
 

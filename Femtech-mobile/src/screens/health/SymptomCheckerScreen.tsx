@@ -15,7 +15,7 @@ import { useAlert } from '../../hooks/useAlert';
 import { riskApi } from '../../api/risk';
 
 const COMMON_SYMPTOMS = [
-  { id: 'headache', label: 'Headache', icon: 'head-outline' },
+  { id: 'headache', label: 'Headache', icon: 'body-outline' },
   { id: 'nausea', label: 'Nausea/Vomiting', icon: 'medical-outline' },
   { id: 'fatigue', label: 'Fatigue', icon: 'battery-dead-outline' },
   { id: 'bleeding', label: 'Bleeding', icon: 'water-outline' },
