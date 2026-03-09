@@ -164,7 +164,7 @@ router.post('/redeem', authenticateToken, async (req, res) => {
       const redemption = await tx.redemption.create({
         data: {
           userId: userId,
-          partnerId: partnerId,
+          partner_id: partnerId,
           type: partner.type,
           totalTokens: tokenAmount,
           status: 'completed',
