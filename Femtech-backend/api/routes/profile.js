@@ -100,7 +100,7 @@ router.delete('/', authenticateToken, async (req, res) => {
     await prisma.redemptionItem.deleteMany({ where: { redemption: { userId: userId } } });
     await prisma.redemption.deleteMany({ where: { userId: userId } });
     await prisma.circleMember.deleteMany({ where: { userId: userId } });
-    await prisma.supportCircle.deleteMany({ where: { ownerId: userId } });
+    await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
     await prisma.appointment.deleteMany({ where: { userId: userId } });
     await prisma.kickSession.deleteMany({ where: { userId: userId } });
     await prisma.medicalHistory.deleteMany({ where: { userId: userId } });
