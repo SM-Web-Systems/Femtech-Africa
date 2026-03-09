@@ -11,11 +11,8 @@ export const riskApi = {
     return response.data;
   },
 
-  checkSymptoms: async (symptoms: string[], description?: string) => {
-    const response = await apiClient.post('/risk/symptom-check', {
-      symptoms,
-      description,
-    });
+  checkSymptoms: async (data: { symptoms: string[]; description: string }) => {
+    const response = await apiClient.post('/risk/symptom-check', data);
     return response.data;
   },
 };

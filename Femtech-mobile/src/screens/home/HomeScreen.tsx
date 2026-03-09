@@ -192,6 +192,14 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.actionIcon}>🩺</Text>
             <Text style={styles.actionText}>Health Check</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('SymptomChecker')}>
+            <Text style={styles.actionIcon}>🩹</Text>
+            <Text style={styles.actionText}>Symptoms</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={openAIChat}>
+            <Text style={styles.actionIcon}>✨</Text>
+            <Text style={styles.actionText}>MamaAI</Text>
+          </TouchableOpacity>
         </View>
 
         {/* AI Assistant Promo Card */}
