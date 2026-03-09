@@ -1,12 +1,11 @@
-﻿// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\screens\home\HomeScreen.tsx
-
-import { useFocusEffect } from '@react-navigation/native';
+﻿import { useFocusEffect } from '@react-navigation/native';
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
 import { useTheme } from '../../store/ThemeContext';
 import { walletApi, milestonesApi } from '../../api';
+import FloatingChatButton from '../../components/FloatingChatButton';
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
@@ -70,6 +69,10 @@ export default function HomeScreen({ navigation }: any) {
     await logout();
   };
 
+  const openAIChat = () => {
+    navigation.navigate('AIChat');
+  };
+
   const completedCount = milestones.filter(m => m.status === 'completed').length;
   const pendingRewards = milestones.filter(m => m.status === 'completed' && !m.reward_minted).length;
 
@@ -80,6 +83,7 @@ export default function HomeScreen({ navigation }: any) {
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
+        <FloatingChatButton onPress={openAIChat} />
       </SafeAreaView>
     );
   }
@@ -165,16 +169,34 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.actionIcon}>📚</Text>
             <Text style={styles.actionText}>Quizzes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
-            <Text style={styles.actionIcon}>📅</Text>
-            <Text style={styles.actionText}>Appointments</Text>
+          <TouchableOpacity style={styles.actionCard} onPress={openAIChat}>
+            <Text style={styles.actionIcon}>🤖</Text>
+            <Text style={styles.actionText}>MamaAI</Text>
           </TouchableOpacity>
         </View>
+
+        {/* AI Assistant Promo Card */}
+        <TouchableOpacity style={styles.aiPromoCard} onPress={openAIChat}>
+          <View style={styles.aiPromoContent}>
+            <Text style={styles.aiPromoIcon}>✨</Text>
+            <View style={styles.aiPromoTextContainer}>
+              <Text style={styles.aiPromoTitle}>Ask MamaAI</Text>
+              <Text style={styles.aiPromoSubtitle}>Get instant answers about your pregnancy journey</Text>
+            </View>
+            <Text style={styles.aiPromoArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.userInfo}>
           <Text style={styles.userInfoText}>Logged in as: {user?.phone}</Text>
         </View>
+
+        {/* Extra padding for floating button */}
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* Floating AI Chat Button */}
+      <FloatingChatButton onPress={openAIChat} />
     </SafeAreaView>
   );
 }
@@ -217,6 +239,23 @@ const createStyles = (colors: any) => StyleSheet.create({
   actionCard: { width: '48%', backgroundColor: colors.card, borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   actionIcon: { fontSize: 32, marginBottom: 8 },
   actionText: { fontSize: 14, fontWeight: '600', color: colors.text },
+
+  // AI Promo Card
+  aiPromoCard: { 
+    backgroundColor: colors.primary + '15', 
+    borderRadius: 16, 
+    padding: 16, 
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  aiPromoContent: { flexDirection: 'row', alignItems: 'center' },
+  aiPromoIcon: { fontSize: 32, marginRight: 12 },
+  aiPromoTextContainer: { flex: 1 },
+  aiPromoTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 2 },
+  aiPromoSubtitle: { fontSize: 13, color: colors.textSecondary },
+  aiPromoArrow: { fontSize: 20, color: colors.primary, fontWeight: 'bold' },
+
   userInfo: { marginTop: 20, padding: 16, backgroundColor: colors.card, borderRadius: 12 },
   userInfoText: { color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
 });

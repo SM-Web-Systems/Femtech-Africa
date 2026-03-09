@@ -782,3 +782,19 @@ Test Results:
 - `getBalance(publicKey)` - Fetch XLM and MAMA balances
 - `mintTokens(destination, amount)` - Mint MAMA tokens from distributor
 - `burnTokens(userSecretKey, amount)` - Burn tokens for redemptions
+
+March 9, 2026
+Security Screen Updates (Femtech-mobile/src/screens/profile/SecurityScreen.tsx)
+Features:
+
+Wallet address display with copy icon
+Secret key reveal (requires biometric authentication) with inline copy icon
+Simplified UI: removed separate modal and export button for secret key
+Delete Profile functionality in "Danger Zone" section
+Two-step deletion confirmation (modal + native alert)
+Dark mode support throughout
+Key Functions:
+
+handleRevealSecretKey() - Authenticates via biometrics, retrieves key from SecureStore
+handleCopySecretKey() / handleCopyAddress() - Copies to clipboard via expo-clipboard
+handleDeleteProfile() / confirmDeleteProfile() - Deletes all user data from backend and clears local storage

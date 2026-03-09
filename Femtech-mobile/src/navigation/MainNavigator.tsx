@@ -24,8 +24,10 @@ import {
   AppearanceScreen,
   LanguageScreen,
 } from '../screens/profile';
+import AIChatScreen from '../screens/ai/AIChatScreen';
 
 const Tab = createBottomTabNavigator();
+const RootStack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 const LearnStack = createNativeStackNavigator();
 const WalletStack = createNativeStackNavigator();
@@ -91,8 +93,8 @@ function TabIcon({ icon, focused, color }: { icon: string; focused: boolean; col
   );
 }
 
-// Main Tab Navigator
-export default function MainNavigator() {
+// Tab Navigator
+function TabNavigator() {
   const { colors, isDark } = useTheme();
 
   return (
@@ -166,6 +168,23 @@ export default function MainNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+// Main Navigator with Root Stack (for modals like AI Chat)
+export default function MainNavigator() {
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Tabs" component={TabNavigator} />
+      <RootStack.Screen 
+        name="AIChat" 
+        component={AIChatScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+    </RootStack.Navigator>
   );
 }
 
