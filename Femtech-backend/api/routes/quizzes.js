@@ -211,14 +211,13 @@ router.post('/:id/submit', authenticateToken, async (req, res) => {
               type: 'mint_milestone',
               amount: quiz.reward_amount,
               status: 'confirmed',
-              txHash: txResult.hash,
-              description: `Quiz reward: ${quiz.title}`
+              tx_hash: txResult.hash
             }
           });
 
           reward = {
             amount: quiz.reward_amount,
-            txHash: txResult.hash
+            tx_hash: txResult.hash
           };
         } catch (mintError) {
           console.error('Mint error:', mintError);
