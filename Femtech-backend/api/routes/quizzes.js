@@ -208,7 +208,7 @@ router.post('/:id/submit', authenticateToken, async (req, res) => {
           await prisma.tokenTransaction.create({
             data: {
               userId,
-              type: 'mint_bonus',
+              type: 'mint_milestone',
               amount: quiz.reward_amount,
               status: 'confirmed',
               txHash: txResult.hash,
