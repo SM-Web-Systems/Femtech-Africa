@@ -320,26 +320,23 @@ Response:
 # GET /api/v1/milestones/my
 Authorization: Bearer {JWT_TOKEN}
 Response:
-
 {
-  "data": [
+  "milestones": [
     {
-      "id": "f1000000-0000-4000-8000-000000000001",
-      "status": "completed",
-      "progress": 100,
-      "reward_minted": false,
-      "rewardAmount": 20,
-      "milestone_definitions": {
-        "code": "PROFILE_COMPLETE",
-        "name": "Complete Profile",
-        "description": "Complete your health profile",
-        "rewardAmount": 20,
-        "category": "community"
-      },
-      "pregnancy": {...}
+      "id": "uuid",
+      "milestoneDefinitionId": "uuid",
+      "status": "IN_PROGRESS",
+      "progressData": {},
+      "startedAt": "2026-03-09T10:00:00.000Z",
+      "milestoneDefinition": {
+        "id": "uuid",
+        "name": "First Antenatal Visit",
+        "description": "Complete your first clinic visit",
+        "rewardAmount": 50,
+        "category": "antenatal"
+      }
     }
-  ],
-  "count": 5
+  ]
 }
 
 ## Milestone Statuses:
@@ -379,15 +376,14 @@ Authorization: Bearer {JWT_TOKEN}
 Content-Type: application/json
 
 {
-  "milestoneId": "f1000000-0000-4000-8000-000000000001"
+  Body: { "milestoneId": "uuid" }
 }
 Success Response (200):
 
 {
   "success": true,
-  "amount": 20,
-  "txHash": "feaace09b5f6a1867ec6804f49d58db35e7fc633604995fd5cc8275b091ec122",
-  "stellarExpert": "https://stellar.expert/explorer/testnet/tx/feaace09..."
+  "tokensAwarded": 20,
+  "transactionHash": "feaace09b5f6a1867ec6804f49d58db35e7fc633604995fd5cc8275b091ec122",
 }
 Error Responses:
 
