@@ -1,5 +1,3 @@
-// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\api\profile.ts
-
 import apiClient from './client';
 
 export const profileApi = {
@@ -26,6 +24,11 @@ export const profileApi = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+
+  deleteProfile: async () => {
+    const response = await apiClient.delete('/profile');
     return response.data;
   },
 };

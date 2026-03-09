@@ -19,6 +19,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '../../store/ThemeContext';
 import { useWallet } from '../../store/WalletContext';
 import { useAuth } from '../../store/AuthContext';
+import { profileApi } from '../../api/profile';
 
 export default function SecurityScreen({ navigation }: any) {
   const { colors, isDark } = useTheme();
@@ -125,7 +126,6 @@ export default function SecurityScreen({ navigation }: any) {
               setDeletingProfile(true);
               
               // Call backend to delete all user data
-              const { profileApi } = require('../../api');
               await profileApi.deleteProfile();
               
               // Clear local secure storage
