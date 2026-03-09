@@ -42,7 +42,7 @@ router.get('/partners/:partnerId/products', authenticateToken, async (req, res) 
 
     const products = await prisma.partnerProduct.findMany({
       where: {
-        partner_id: partnerId,
+        partnerId: partnerId,
         is_available: true,
       },
       select: {
@@ -164,7 +164,7 @@ router.post('/redeem', authenticateToken, async (req, res) => {
       const redemption = await tx.redemption.create({
         data: {
           userId: userId,
-          partner_id: partnerId,
+          partnerId: partnerId,
           type: partner.type,
           totalTokens: tokenAmount,
           status: 'completed',
@@ -179,7 +179,7 @@ router.post('/redeem', authenticateToken, async (req, res) => {
           code: voucherCode,
           userId: userId,
           redemptionId: redemption.id,
-          partner_id: partnerId,
+          partnerId: partnerId,
           productId: productId || null,
           tokensBurned: tokenAmount,
           valueCurrency: 'ZAR',
