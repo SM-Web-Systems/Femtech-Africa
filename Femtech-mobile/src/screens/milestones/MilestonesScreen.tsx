@@ -2,17 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { milestonesApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 const MOCK_MILESTONES = [
   { id: '1', milestone_id: 'm1', status: 'completed', reward_minted: true, milestone_definition: { name: 'Complete Profile', description: 'Fill out your profile information', token_reward: 10 } },
@@ -23,11 +13,14 @@ const MOCK_MILESTONES = [
 ];
 
 export default function MilestonesScreen() {
+  const { colors, isDark } = useTheme();
   const [milestones, setMilestones] = useState<any[]>(MOCK_MILESTONES);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [usingMockData, setUsingMockData] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  const styles = createStyles(colors, isDark);
 
   const fetchMilestones = async () => {
     try {
@@ -73,9 +66,9 @@ export default function MilestonesScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return COLORS.success;
-      case 'in_progress': return COLORS.warning;
-      default: return COLORS.primary;
+      case 'completed': return '#4CAF50';
+      case 'in_progress': return '#FF9800';
+      default: return colors.primary;
     }
   };
 
@@ -90,7 +83,14 @@ export default function MilestonesScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView 
         style={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         <Text style={styles.title}>Milestones</Text>
         <Text style={styles.subtitle}>Complete milestones to earn MAMA tokens</Text>
@@ -144,30 +144,126 @@ export default function MilestonesScreen() {
             )}
           </View>
         ))}
+        
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { flex: 1, padding: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 8 },
-  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 16 },
-  mockBanner: { backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginBottom: 16 },
-  mockText: { color: '#E65100', fontSize: 13, textAlign: 'center' },
-  card: { backgroundColor: COLORS.card, borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  milestoneName: { fontSize: 18, fontWeight: '600', color: COLORS.text, flex: 1, marginRight: 12 },
-  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  badgeText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
-  description: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 12 },
-  reward: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  progressContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  progressBar: { flex: 1, height: 8, backgroundColor: '#E0E0E0', borderRadius: 4, marginRight: 10 },
-  progressFill: { height: '100%', backgroundColor: COLORS.warning, borderRadius: 4 },
-  progressText: { fontSize: 14, color: COLORS.textSecondary, width: 40 },
-  claimButton: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  claimButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 },
-  buttonDisabled: { opacity: 0.6 },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+    padding: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  mockBanner: {
+    backgroundColor: isDark ? '#4E342E' : '#FFF3E0',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  mockText: {
+    color: isDark ? '#FFCC80' : '#E65100',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.4 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  milestoneName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
+    marginRight: 12,
+  },
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  description: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  reward: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: isDark ? colors.surface : '#E0E0E0',
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF9800',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    width: 40,
+  },
+  claimButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  claimButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  bottomPadding: {
+    height: 20,
+  },
 });

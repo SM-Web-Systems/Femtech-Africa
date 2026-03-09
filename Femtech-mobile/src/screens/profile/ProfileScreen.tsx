@@ -1,187 +1,370 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\screens\profile\ProfileScreen.tsx
+
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
+import { useTheme } from '../../store/ThemeContext';
+import { useLanguage } from '../../store/LanguageContext';
+import { profileApi } from '../../api';
 
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  error: '#F44336',
-};
+export default function ProfileScreen({ navigation }: any) {
+  const { user, logout } = useAuth();
+  const { colors, isDark } = useTheme();
+  const { getCurrentLanguage, t } = useLanguage();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default function ProfileScreen() {
-  const { user, logout, eraseProfile, biometricType, biometricAvailable } = useAuth();
+  const styles = createStyles(colors);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const data = await profileApi.getProfile();
+      setProfile(data);
+    } catch (error) {
+      console.log('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'You will need to use biometrics to login again.',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', onPress: logout },
-      ]
-    );
-  };
-
-  const handleEraseProfile = () => {
-    Alert.alert(
-      'Erase Profile',
-      'This will permanently delete your profile from this device. You will need to register again with OTP. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Erase', 
-          style: 'destructive', 
-          onPress: eraseProfile 
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('auth.logout'),
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          },
         },
       ]
     );
   };
 
   const menuItems = [
-    { icon: '👤', label: 'Edit Profile', onPress: () => Alert.alert('Coming Soon', 'Profile editing will be available soon!') },
-    { icon: '🔔', label: 'Notifications', onPress: () => {} },
-    { icon: '❓', label: 'Help Center', onPress: () => {} },
-    { icon: '📄', label: 'Terms of Service', onPress: () => Linking.openURL('https://mamatokens.com/terms') },
-    { icon: '🔏', label: 'Privacy Policy', onPress: () => Linking.openURL('https://mamatokens.com/privacy') },
+    {
+      title: t('settings.account'),
+      items: [
+        {
+          icon: '👤',
+          label: t('settings.editProfile'),
+          subtitle: t('settings.editProfileSubtitle'),
+          onPress: () => navigation.navigate('EditProfile'),
+        },
+        {
+          icon: '🔐',
+          label: t('settings.security'),
+          subtitle: t('settings.securitySubtitle'),
+          onPress: () => navigation.navigate('Security'),
+        },
+        {
+          icon: '🔔',
+          label: t('settings.notifications'),
+          subtitle: t('settings.notificationsSubtitle'),
+          onPress: () => navigation.navigate('Notifications'),
+        },
+      ],
+    },
+    {
+      title: t('settings.preferences'),
+      items: [
+        {
+          icon: isDark ? '🌙' : '☀️',
+          label: t('settings.appearance'),
+          subtitle: isDark ? t('settings.darkMode') : t('settings.lightMode'),
+          onPress: () => navigation.navigate('Appearance'),
+        },
+        {
+          icon: '🌐',
+          label: t('settings.language'),
+          subtitle: getCurrentLanguage()?.native || 'English',
+          onPress: () => navigation.navigate('Language'),
+        },
+      ],
+    },
+    {
+      title: t('settings.support'),
+      items: [
+        {
+          icon: '❓',
+          label: t('settings.helpCenter'),
+          subtitle: t('settings.helpCenterSubtitle'),
+          onPress: () => navigation.navigate('HelpCenter'),
+        },
+        {
+          icon: '💬',
+          label: t('settings.contactUs'),
+          subtitle: t('settings.contactUsSubtitle'),
+          onPress: () => navigation.navigate('ContactUs'),
+        },
+      ],
+    },
+    {
+      title: t('settings.legal'),
+      items: [
+        {
+          icon: '📄',
+          label: t('settings.terms'),
+          subtitle: t('settings.termsSubtitle'),
+          onPress: () => navigation.navigate('Terms'),
+        },
+        {
+          icon: '🔒',
+          label: t('settings.privacyPolicy'),
+          subtitle: t('settings.privacySubtitle'),
+          onPress: () => navigation.navigate('PrivacyPolicy'),
+        },
+      ],
+    },
   ];
+
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scroll}>
-        <Text style={styles.title}>Profile</Text>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t('settings.title')}</Text>
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.phone ? user.phone.slice(-2) : 'M'}
-            </Text>
+        {/* Profile Header */}
+        <TouchableOpacity
+          style={styles.profileCard}
+          onPress={() => navigation.navigate('EditProfile')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.avatarContainer}>
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {getInitials(profile?.name || user?.name || '')}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.phone}>{user?.phone || 'No phone'}</Text>
-            <Text style={styles.country}>{user?.country || 'ZA'}</Text>
-          </View>
-        </View>
-
-        {/* Security Info */}
-        <View style={styles.securityCard}>
-          <Text style={styles.securityIcon}>
-            {biometricType === 'Face ID' ? '👤' : '👆'}
-          </Text>
-          <View style={styles.securityInfo}>
-            <Text style={styles.securityTitle}>{biometricType} Protected</Text>
-            <Text style={styles.securitySubtitle}>
-              Your account is secured with {biometricType}
+            <Text style={styles.profileName}>
+              {profile?.name || user?.name || t('settings.setupProfile')}
             </Text>
+            <Text style={styles.profilePhone}>{profile?.phone || user?.phone || ''}</Text>
+            {profile?.email && (
+              <Text style={styles.profileEmail}>{profile.email}</Text>
+            )}
           </View>
-        </View>
+          <Text style={styles.profileArrow}>›</Text>
+        </TouchableOpacity>
 
-        {/* Menu Items */}
-        <View style={styles.menuCard}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.menuItem, index < menuItems.length - 1 && styles.menuItemBorder]}
-              onPress={item.onPress}
-            >
-              <Text style={styles.menuIcon}>{item.icon}</Text>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Text style={styles.menuArrow}>›</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Menu Sections */}
+        {menuItems.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.menuCard}>
+              {section.items.map((item, itemIndex) => (
+                <View key={itemIndex}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={item.onPress}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.menuIcon}>{item.icon}</Text>
+                    <View style={styles.menuContent}>
+                      <Text style={styles.menuLabel}>{item.label}</Text>
+                      <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                    </View>
+                    <Text style={styles.menuArrow}>›</Text>
+                  </TouchableOpacity>
+                  {itemIndex < section.items.length - 1 && (
+                    <View style={styles.menuDivider} />
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutIcon}>🚪</Text>
+          <Text style={styles.logoutText}>{t('auth.logout')}</Text>
         </TouchableOpacity>
 
-        {/* Erase Profile Button */}
-        <TouchableOpacity style={styles.eraseButton} onPress={handleEraseProfile}>
-          <Text style={styles.eraseText}>Erase Profile</Text>
-        </TouchableOpacity>
-
+        {/* App Version */}
         <Text style={styles.version}>MamaTokens v1.0.0</Text>
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { flex: 1, padding: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 20 },
-  
-  profileCard: { 
-    backgroundColor: COLORS.card, 
-    borderRadius: 16, 
-    padding: 20, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+const createStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  avatarText: { fontSize: 24, fontWeight: 'bold', color: COLORS.white },
-  profileInfo: { flex: 1 },
-  phone: { fontSize: 18, fontWeight: '600', color: COLORS.text },
-  country: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  
-  securityCard: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 16,
-    padding: 16,
+  scroll: {
+    flex: 1,
+    padding: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
   },
-  securityIcon: { fontSize: 28, marginRight: 16 },
-  securityInfo: { flex: 1 },
-  securityTitle: { fontSize: 16, fontWeight: '600', color: '#2E7D32' },
-  securitySubtitle: { fontSize: 13, color: '#558B2F', marginTop: 2 },
-  
-  menuCard: { 
-    backgroundColor: COLORS.card, 
-    borderRadius: 16, 
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  avatarContainer: {
+    marginRight: 16,
   },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  menuIcon: { fontSize: 20, marginRight: 16, width: 28 },
-  menuLabel: { flex: 1, fontSize: 16, color: COLORS.text },
-  menuArrow: { fontSize: 20, color: COLORS.textSecondary },
-  
-  logoutButton: { 
-    backgroundColor: COLORS.primary, 
-    borderRadius: 12, 
-    padding: 16, 
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  avatarPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  profilePhone: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  profileArrow: {
+    fontSize: 24,
+    color: colors.textSecondary,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
     marginBottom: 12,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  logoutText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  
-  eraseButton: { 
-    backgroundColor: 'transparent',
+  menuCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  menuIcon: {
+    fontSize: 24,
+    marginRight: 14,
+  },
+  menuContent: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  menuSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  menuArrow: {
+    fontSize: 20,
+    color: colors.textSecondary,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: 54,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.error, 
-    borderRadius: 12, 
-    padding: 16, 
-    alignItems: 'center' 
+    borderColor: colors.danger,
   },
-  eraseText: { color: COLORS.error, fontSize: 16, fontWeight: 'bold' },
-  
-  version: { textAlign: 'center', color: COLORS.textSecondary, marginTop: 20, marginBottom: 40, fontSize: 14 },
+  logoutIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.danger,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 20,
+  },
+  bottomPadding: {
+    height: 40,
+  },
 });

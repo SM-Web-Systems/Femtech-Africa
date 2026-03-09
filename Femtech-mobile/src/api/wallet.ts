@@ -20,4 +20,9 @@ export const walletApi = {
     const response = await apiClient.get('/my/transactions');
     return response.data;
   },
+
+  getSecretKey: async () => {
+    const response = await apiClient.get('/wallet/secret-key');
+    return response.data;
+  },
 };

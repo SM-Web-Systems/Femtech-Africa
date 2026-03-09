@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  border: '#E0E0E0',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 export default function PhoneEntryScreen({ navigation }: any) {
+  const { colors, isDark } = useTheme();
+  const styles = createStyles(colors, isDark);
+
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +35,7 @@ export default function PhoneEntryScreen({ navigation }: any) {
           <TextInput
             style={styles.input}
             placeholder="Phone number"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
@@ -59,16 +54,72 @@ export default function PhoneEntryScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1, padding: 20, paddingTop: 20 },
-  backButton: { marginBottom: 20 },
-  backText: { fontSize: 16, color: COLORS.primary },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 10 },
-  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 40 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 30 },
-  prefix: { paddingHorizontal: 16, fontSize: 18, color: COLORS.text, borderRightWidth: 1, borderRightColor: COLORS.border, paddingVertical: 16 },
-  input: { flex: 1, paddingVertical: 16, paddingHorizontal: 16, fontSize: 18, color: COLORS.text },
-  button: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 20,
+  },
+  backButton: {
+    marginBottom: 20,
+  },
+  backText: {
+    fontSize: 16,
+    color: colors.primary,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 40,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 30,
+  },
+  prefix: {
+    paddingHorizontal: 16,
+    fontSize: 18,
+    color: colors.text,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+    paddingVertical: 16,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    fontSize: 18,
+    color: colors.text,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });

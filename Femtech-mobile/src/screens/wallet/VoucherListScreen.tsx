@@ -1,130 +1,268 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { redemptionsApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  error: '#F44336',
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active: { bg: '#E8F5E9', text: '#4CAF50' },
-  used: { bg: '#E3F2FD', text: '#1976D2' },
-  expired: { bg: '#FFEBEE', text: '#F44336' },
-  cancelled: { bg: '#F5F5F5', text: '#9E9E9E' },
-};
-
-const PARTNER_ICONS: Record<string, string> = {
-  retail: '🛒',
-  transport: '🚗',
-  healthcare: '💊',
-  mobile_money: '📱',
-  nutrition: '🥗',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 interface Voucher {
   id: string;
   code: string;
-  tokensBurned: number;
-  value: { amount: number; currency: string };
-  partner: { name: string; logoUrl: string; type: string } | null;
-  product: { name: string; imageUrl: string } | null;
-  status: string;
-  expiresAt: string;
-  usedAt: string | null;
-  createdAt: string;
+  partner?: {
+    id: string;
+    name: string;
+    category?: string;
+  };
+  product?: {
+    id: string;
+    name: string;
+  };
+  tokenAmount?: number;
+  valueAmount?: number;
+  value?: {
+    amount: number;
+    currency: string;
+  };
+  status: 'active' | 'redeemed' | 'expired' | string;
+  expiresAt?: string;
+  createdAt?: string;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  active: '#4CAF50',
+  redeemed: '#9E9E9E',
+  expired: '#F44336',
+};
+
+const PARTNER_ICONS: { [key: string]: string } = {
+  'Shoprite': '🛒',
+  'Checkers': '🛍️',
+  'Clicks': '💊',
+  'Dis-Chem': '💉',
+  'Woolworths': '🏪',
+  'Pick n Pay': '🛒',
+  'Spar': '🏬',
+  'default': '🎁',
+};
+
 export default function VoucherListScreen({ navigation }: any) {
+  const { colors, isDark } = useTheme();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'redeemed' | 'expired'>('all');
+  const [lastFetch, setLastFetch] = useState(0);
 
-  const lastFetchTime = useRef<number>(0);
-  const hasFetchedOnce = useRef<boolean>(false);
-  const MIN_FETCH_INTERVAL = 5000;
+  const styles = createStyles(colors, isDark);
 
-  const fetchVouchers = useCallback(async (force = false) => {
+  const getStatusColor = (status: string | undefined): string => {
+    if (!status) return '#9E9E9E';
+    return STATUS_COLORS[status] || '#9E9E9E';
+  };
+
+  const fetchVouchers = async (isRefresh = false) => {
     const now = Date.now();
-    if (!force && hasFetchedOnce.current && now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      setLoading(false);
+    if (!isRefresh && now - lastFetch < 5000 && vouchers.length > 0) {
       return;
     }
 
-    lastFetchTime.current = now;
-    hasFetchedOnce.current = true;
-
     try {
-      const data = await redemptionsApi.getMyVouchers(filter || undefined);
-      setVouchers(data);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (vouchers.length === 0) {
+        setLoading(true);
+      }
+
+      const response = await redemptionsApi.getMyVouchers();
+      setVouchers(response.vouchers || response || []);
+      setLastFetch(now);
     } catch (error) {
-      console.error('Failed to fetch vouchers:', error);
+      console.log('Error fetching vouchers:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filter]);
+  };
 
   useFocusEffect(
     useCallback(() => {
-      fetchVouchers(false);
-    }, [fetchVouchers])
+      fetchVouchers();
+    }, [])
   );
 
   const onRefresh = () => {
-    setRefreshing(true);
     fetchVouchers(true);
   };
 
-  const handleFilterChange = (newFilter: string | null) => {
-    setFilter(newFilter);
-    hasFetchedOnce.current = false;
-    setLoading(true);
+  const getFilteredVouchers = () => {
+    if (filter === 'all') return vouchers;
+    return vouchers.filter(v => v.status === filter);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  const getPartnerIcon = (partnerName: string) => {
+    return PARTNER_ICONS[partnerName] || PARTNER_ICONS['default'];
   };
 
-  const getDaysRemaining = (expiresAt: string) => {
-    const now = new Date();
+  const isExpiringSoon = (expiresAt: string | undefined) => {
+  if (!expiresAt) return false;
+  try {
     const expiry = new Date(expiresAt);
-    const diff = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return diff;
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+  } catch {
+    return false;
+  }
+};
+
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-ZA', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return 'N/A';
+  }
+};
+
+  const renderVoucherItem = ({ item }: { item: Voucher }) => {
+    // Safely get the value amount
+    const getValueAmount = () => {
+      if (item.valueAmount !== undefined && item.valueAmount !== null) {
+        return typeof item.valueAmount === 'number' 
+          ? item.valueAmount.toFixed(2) 
+          : parseFloat(item.valueAmount).toFixed(2);
+      }
+      if (item.value?.amount !== undefined) {
+        return typeof item.value.amount === 'number'
+          ? item.value.amount.toFixed(2)
+          : parseFloat(item.value.amount).toFixed(2);
+      }
+      // Fallback: calculate from token amount
+      if (item.tokenAmount) {
+        return (item.tokenAmount * 0.10).toFixed(2);
+      }
+      return '0.00';
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.voucherCard}
+        onPress={() => navigation.navigate('VoucherDetail', { voucherId: item.id })}
+      >
+        <View style={styles.voucherHeader}>
+          <View style={styles.partnerInfo}>
+            <Text style={styles.partnerIcon}>{getPartnerIcon(item.partner?.name || '')}</Text>
+            <View>
+              <Text style={styles.partnerName}>{item.partner?.name || 'Unknown Partner'}</Text>
+              <Text style={styles.productName}>
+                {item.product?.name || item.partner?.category || 'Voucher'}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.status] + '20' }]}>
+            <Text style={[styles.statusText, { color: STATUS_COLORS[item.status] }]}>
+              {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.voucherBody}>
+          <View style={styles.valueContainer}>
+            <Text style={styles.valueLabel}>Value</Text>
+            <Text style={styles.valueAmount}>R{getValueAmount()}</Text>
+          </View>
+          <View style={styles.codeContainer}>
+            <Text style={styles.codeLabel}>Code</Text>
+            <Text style={styles.codeValue}>{item.code || 'N/A'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.voucherFooter}>
+          <Text style={styles.tokenInfo}>{item.tokenAmount || 0} MAMA tokens</Text>
+          {item.status === 'active' && item.expiresAt && (
+            <View style={styles.expiryContainer}>
+              {isExpiringSoon(item.expiresAt) && (
+                <Text style={styles.expiringSoon}>⚠️ </Text>
+              )}
+              <Text style={[
+                styles.expiryText,
+                isExpiringSoon(item.expiresAt) && styles.expiryWarning
+              ]}>
+                Expires {formatDate(item.expiresAt)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
   };
 
-  const filters = [
-    { key: null, label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'used', label: 'Used' },
-    { key: 'expired', label: 'Expired' },
-  ];
+  const renderFilterTabs = () => (
+    <View style={styles.filterContainer}>
+      {(['all', 'active', 'redeemed', 'expired'] as const).map((filterOption) => (
+        <TouchableOpacity
+          key={filterOption}
+          style={[
+            styles.filterTab,
+            filter === filterOption && styles.filterTabActive,
+          ]}
+          onPress={() => setFilter(filterOption)}
+        >
+          <Text style={[
+            styles.filterTabText,
+            filter === filterOption && styles.filterTabTextActive,
+          ]}>
+            {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
-  if (loading && !hasFetchedOnce.current) {
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyIcon}>🎫</Text>
+      <Text style={styles.emptyTitle}>No vouchers yet</Text>
+      <Text style={styles.emptySubtitle}>
+        Redeem your MAMA tokens for vouchers from our partner stores
+      </Text>
+      <TouchableOpacity
+        style={styles.redeemButton}
+        onPress={() => navigation.navigate('Redeem')}
+      >
+        <Text style={styles.redeemButtonText}>Redeem Tokens</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Vouchers</Text>
+          <View style={{ width: 40 }} />
+        </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading vouchers...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -133,173 +271,241 @@ export default function VoucherListScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Back</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Vouchers</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Redeem')}>
-          <Text style={styles.addButton}>+ New</Text>
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
-      {/* Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContainer}
-      >
-        {filters.map((f) => (
-          <TouchableOpacity
-            key={f.key || 'all'}
-            style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-            onPress={() => handleFilterChange(f.key)}
-          >
-            <Text style={[styles.filterChipText, filter === f.key && styles.filterChipTextActive]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {renderFilterTabs()}
 
-      <ScrollView
-        style={styles.content}
+      <FlatList
+        data={getFilteredVouchers()}
+        renderItem={renderVoucherItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
-      >
-        {vouchers.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🎫</Text>
-            <Text style={styles.emptyTitle}>No Vouchers Yet</Text>
-            <Text style={styles.emptyText}>Redeem your MAMA tokens to get vouchers</Text>
-            <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('Redeem')}
-            >
-              <Text style={styles.emptyButtonText}>Redeem Tokens</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          vouchers.map((voucher) => {
-            const statusStyle = STATUS_COLORS[voucher.status] || STATUS_COLORS.active;
-            const daysRemaining = getDaysRemaining(voucher.expiresAt);
-            const isExpiringSoon = voucher.status === 'active' && daysRemaining <= 7 && daysRemaining > 0;
-
-            return (
-              <TouchableOpacity
-                key={voucher.id}
-                style={styles.voucherCard}
-                onPress={() => navigation.navigate('VoucherDetail', { voucherId: voucher.id })}
-              >
-                <View style={styles.voucherHeader}>
-                  <View style={styles.partnerInfo}>
-                    <Text style={styles.partnerIcon}>
-                      {PARTNER_ICONS[voucher.partner?.type || 'retail'] || '🎫'}
-                    </Text>
-                    <View>
-                      <Text style={styles.partnerName}>{voucher.partner?.name || 'Partner'}</Text>
-                      {voucher.product && (
-                        <Text style={styles.productName}>{voucher.product.name}</Text>
-                      )}
-                    </View>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                    <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                      {voucher.status.toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.voucherBody}>
-                  <View style={styles.valueContainer}>
-                    <Text style={styles.valueLabel}>Value</Text>
-                    <Text style={styles.valueAmount}>
-                      {voucher.value.currency} {voucher.value.amount.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.codeContainer}>
-                    <Text style={styles.codeLabel}>Code</Text>
-                    <Text style={styles.codeValue}>{voucher.code}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.voucherFooter}>
-                  {voucher.status === 'active' && (
-                    <View style={styles.expiryInfo}>
-                      {isExpiringSoon ? (
-                        <Text style={styles.expiryWarning}>⚠️ Expires in {daysRemaining} days</Text>
-                      ) : (
-                        <Text style={styles.expiryText}>Expires: {formatDate(voucher.expiresAt)}</Text>
-                      )}
-                    </View>
-                  )}
-                  {voucher.status === 'used' && voucher.usedAt && (
-                    <Text style={styles.usedText}>Used on {formatDate(voucher.usedAt)}</Text>
-                  )}
-                  <Text style={styles.viewButton}>View Details →</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+        ListEmptyComponent={renderEmptyState}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: COLORS.textSecondary },
-
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  backButton: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-  addButton: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-
-  filterScroll: { maxHeight: 50, marginBottom: 8 },
-  filterContainer: { paddingHorizontal: 12 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.white, borderRadius: 20, marginHorizontal: 4 },
-  filterChipActive: { backgroundColor: COLORS.primary },
-  filterChipText: { fontSize: 14, color: COLORS.textSecondary },
-  filterChipTextActive: { color: COLORS.white, fontWeight: '600' },
-
-  content: { flex: 1, padding: 16 },
-
-  voucherCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-
-  voucherHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  partnerInfo: { flexDirection: 'row', alignItems: 'center' },
-  partnerIcon: { fontSize: 32, marginRight: 12 },
-  partnerName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-  productName: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 11, fontWeight: 'bold' },
-
-  voucherBody: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F0F0F0' },
-  valueContainer: { alignItems: 'flex-start' },
-  valueLabel: { fontSize: 12, color: COLORS.textSecondary },
-  valueAmount: { fontSize: 24, fontWeight: 'bold', color: COLORS.success, marginTop: 4 },
-  codeContainer: { alignItems: 'flex-end' },
-  codeLabel: { fontSize: 12, color: COLORS.textSecondary },
-  codeValue: { fontSize: 14, fontWeight: '600', color: COLORS.text, marginTop: 4, fontFamily: 'monospace' },
-
-  voucherFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
-  expiryInfo: { flex: 1 },
-  expiryText: { fontSize: 13, color: COLORS.textSecondary },
-  expiryWarning: { fontSize: 13, color: COLORS.warning, fontWeight: '600' },
-  usedText: { fontSize: 13, color: COLORS.textSecondary },
-  viewButton: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
-
-  emptyContainer: { alignItems: 'center', padding: 40 },
-  emptyIcon: { fontSize: 64, marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
-  emptyText: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8, textAlign: 'center' },
-  emptyButton: { backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25, marginTop: 24 },
-  emptyButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-
-  bottomPadding: { height: 20 },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: colors.text,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: isDark ? colors.card : '#F0F0F0',
+  },
+  filterTabActive: {
+    backgroundColor: colors.primary,
+  },
+  filterTabText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  filterTabTextActive: {
+    color: '#FFFFFF',
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  voucherCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  voucherHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  partnerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  partnerIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  partnerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  productName: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  voucherBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  valueContainer: {
+    flex: 1,
+  },
+  valueLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  valueAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  codeContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  codeLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  codeValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    fontFamily: 'monospace',
+  },
+  voucherFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  tokenInfo: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  expiryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  expiryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  expiryWarning: {
+    color: '#FF9800',
+    fontWeight: '500',
+  },
+  expiringSoon: {
+    fontSize: 13,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  redeemButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 25,
+  },
+  redeemButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

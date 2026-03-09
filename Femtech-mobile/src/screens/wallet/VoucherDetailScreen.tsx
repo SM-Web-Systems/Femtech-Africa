@@ -11,24 +11,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { redemptionsApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  error: '#F44336',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
   active: { bg: '#E8F5E9', text: '#4CAF50', icon: '✓' },
   used: { bg: '#E3F2FD', text: '#1976D2', icon: '✓' },
   expired: { bg: '#FFEBEE', text: '#F44336', icon: '✕' },
   cancelled: { bg: '#F5F5F5', text: '#9E9E9E', icon: '✕' },
+};
+
+const STATUS_COLORS_DARK: Record<string, { bg: string; text: string; icon: string }> = {
+  active: { bg: '#1B5E20', text: '#81C784', icon: '✓' },
+  used: { bg: '#0D47A1', text: '#64B5F6', icon: '✓' },
+  expired: { bg: '#B71C1C', text: '#EF9A9A', icon: '✕' },
+  cancelled: { bg: '#424242', text: '#9E9E9E', icon: '✕' },
 };
 
 interface VoucherDetail {
@@ -50,8 +46,12 @@ interface VoucherDetail {
 
 export default function VoucherDetailScreen({ route, navigation }: any) {
   const { voucherId } = route.params;
+  const { colors, isDark } = useTheme();
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const styles = createStyles(colors, isDark);
+  const statusColorMap = isDark ? STATUS_COLORS_DARK : STATUS_COLORS;
 
   useEffect(() => {
     fetchVoucher();
@@ -102,7 +102,7 @@ export default function VoucherDetailScreen({ route, navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading voucher...</Text>
         </View>
       </SafeAreaView>
@@ -116,14 +116,14 @@ export default function VoucherDetailScreen({ route, navigation }: any) {
           <Text style={styles.errorIcon}>❌</Text>
           <Text style={styles.errorText}>Voucher not found</Text>
           <TouchableOpacity style={styles.backButtonLarge} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.backButtonLargeText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  const statusStyle = STATUS_COLORS[voucher.status] || STATUS_COLORS.active;
+  const statusStyle = statusColorMap[voucher.status] || statusColorMap.active;
   const daysRemaining = getDaysRemaining(voucher.expiresAt);
   const isActive = voucher.status === 'active';
 
@@ -250,15 +250,21 @@ export default function VoucherDetailScreen({ route, navigation }: any) {
           <View style={styles.instructionsCard}>
             <Text style={styles.instructionsTitle}>How to Use</Text>
             <View style={styles.instructionStep}>
-              <Text style={styles.stepNumber}>1</Text>
+              <View style={styles.stepNumberContainer}>
+                <Text style={styles.stepNumber}>1</Text>
+              </View>
               <Text style={styles.stepText}>Show this QR code to the cashier</Text>
             </View>
             <View style={styles.instructionStep}>
-              <Text style={styles.stepNumber}>2</Text>
+              <View style={styles.stepNumberContainer}>
+                <Text style={styles.stepNumber}>2</Text>
+              </View>
               <Text style={styles.stepText}>Or provide the voucher code: {voucher.code}</Text>
             </View>
             <View style={styles.instructionStep}>
-              <Text style={styles.stepNumber}>3</Text>
+              <View style={styles.stepNumberContainer}>
+                <Text style={styles.stepNumber}>3</Text>
+              </View>
               <Text style={styles.stepText}>The value will be deducted from your purchase</Text>
             </View>
           </View>
@@ -270,66 +276,316 @@ export default function VoucherDetailScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: COLORS.textSecondary },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  errorIcon: { fontSize: 64, marginBottom: 16 },
-  errorText: { fontSize: 18, color: COLORS.text, marginBottom: 24 },
-  backButtonLarge: { backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25 },
-  backButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    color: colors.text,
+    marginBottom: 24,
+  },
+  backButtonLarge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  backButtonLargeText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  backButton: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-  shareButton: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButton: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  shareButton: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+  },
 
-  content: { flex: 1, padding: 16 },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
 
-  statusBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, marginBottom: 16 },
-  statusIcon: { fontSize: 18, fontWeight: 'bold', marginRight: 8 },
-  statusText: { fontSize: 14, fontWeight: 'bold' },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  statusIcon: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 
-  qrCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5 },
-  qrTitle: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
-  qrCode: { width: 200, height: 200, marginBottom: 16 },
-  qrPlaceholder: { width: 200, height: 200, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderRadius: 12 },
-  qrPlaceholderText: { color: COLORS.textSecondary },
-  codeBox: { backgroundColor: '#F5F5F5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-  codeLabel: { fontSize: 11, color: COLORS.textSecondary, letterSpacing: 1 },
-  codeValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginTop: 4, fontFamily: 'monospace', letterSpacing: 2 },
-  barcode: { fontSize: 12, color: COLORS.textSecondary, marginTop: 12, fontFamily: 'monospace' },
+  qrCard: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  qrTitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  qrCode: {
+    width: 200,
+    height: 200,
+    marginBottom: 16,
+  },
+  qrPlaceholder: {
+    width: 200,
+    height: 200,
+    backgroundColor: isDark ? colors.surface : '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  qrPlaceholderText: {
+    color: colors.textSecondary,
+  },
+  codeBox: {
+    backgroundColor: isDark ? colors.surface : '#F5F5F5',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  codeLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+  },
+  codeValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 4,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+  },
+  barcode: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 12,
+    fontFamily: 'monospace',
+  },
 
-  valueCard: { backgroundColor: COLORS.success, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 16 },
-  valueLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  valueAmount: { fontSize: 36, fontWeight: 'bold', color: COLORS.white, marginTop: 4 },
-  tokensBurned: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 8 },
+  valueCard: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  valueLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  valueAmount: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 4,
+  },
+  tokensBurned: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
+  },
 
-  infoCard: { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, marginBottom: 12 },
-  infoTitle: { fontSize: 12, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  partnerRow: { flexDirection: 'row', alignItems: 'center' },
-  partnerLogo: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  partnerLogoText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
-  partnerName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-  partnerType: { fontSize: 13, color: COLORS.textSecondary, textTransform: 'capitalize' },
-  productName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  expiryDate: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  expiryWarning: { backgroundColor: '#FFF3E0', padding: 10, borderRadius: 8, marginTop: 8 },
-  expiryWarningText: { color: '#E65100', fontSize: 14, fontWeight: '600' },
-  usedDate: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-  usedLocation: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  expiredDate: { fontSize: 16, fontWeight: '600', color: COLORS.error },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  detailLabel: { fontSize: 14, color: COLORS.textSecondary },
-  detailValue: { fontSize: 14, color: COLORS.text },
-  txHash: { fontSize: 12, color: COLORS.primary, maxWidth: 150 },
+  infoCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  infoTitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  partnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  partnerLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  partnerLogoText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  partnerName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  partnerType: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  expiryDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  expiryWarning: {
+    backgroundColor: isDark ? '#4E342E' : '#FFF3E0',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  expiryWarningText: {
+    color: isDark ? '#FFCC80' : '#E65100',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  usedDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  usedLocation: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  expiredDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F44336',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  txHash: {
+    fontSize: 12,
+    color: colors.primary,
+    maxWidth: 150,
+  },
 
-  instructionsCard: { backgroundColor: '#E3F2FD', borderRadius: 16, padding: 16, marginBottom: 16 },
-  instructionsTitle: { fontSize: 14, fontWeight: 'bold', color: '#1976D2', marginBottom: 12 },
-  instructionStep: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  stepNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#1976D2', color: COLORS.white, textAlign: 'center', lineHeight: 24, fontWeight: 'bold', marginRight: 12 },
-  stepText: { flex: 1, fontSize: 14, color: '#1565C0' },
+  instructionsCard: {
+    backgroundColor: isDark ? '#0D47A1' : '#E3F2FD',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  instructionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: isDark ? '#90CAF9' : '#1976D2',
+    marginBottom: 12,
+  },
+  instructionStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  stepNumberContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: isDark ? '#1565C0' : '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepNumber: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    color: isDark ? '#BBDEFB' : '#1565C0',
+  },
 
-  bottomPadding: { height: 40 },
+  bottomPadding: {
+    height: 40,
+  },
 });

@@ -15,23 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useWallet } from '../../store/WalletContext';
+import { useTheme } from '../../store/ThemeContext';
 import { redemptionsApi } from '../../api';
 
-const COLORS = {
-  primary: '#E91E63',
-  secondary: '#9C27B0',
-  background: '#FFF5F8',
-  white: '#FFFFFF',
-  text: '#333333',
-  textLight: '#666666',
-  border: '#F0F0F0',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  error: '#F44336',
-  card: '#FFFFFF',
-};
-
-const EXCHANGE_RATE = 0.10; // 1 MAMA = 0.10 ZAR
+const EXCHANGE_RATE = 0.10;
 
 interface Partner {
   id: string;
@@ -52,6 +39,7 @@ interface Product {
 
 export default function RedeemScreen({ navigation }: any) {
   const { balance, refreshBalance } = useWallet();
+  const { colors } = useTheme();
   
   const [partners, setPartners] = useState<Partner[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -61,8 +49,10 @@ export default function RedeemScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [step, setStep] = useState(1); // 1: Select Partner, 2: Enter Amount, 3: Confirm
+  const [step, setStep] = useState(1);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  const styles = createStyles(colors);
 
   useEffect(() => {
     checkBiometricAvailability();
@@ -131,10 +121,8 @@ export default function RedeemScreen({ navigation }: any) {
   };
 
   const handleAmountChange = (text: string) => {
-    // Only allow numbers
     const numericText = text.replace(/[^0-9]/g, '');
     setTokenAmount(numericText);
-    // Clear product selection if manually entering amount
     if (selectedProduct && numericText !== selectedProduct.tokenCost.toString()) {
       setSelectedProduct(null);
     }
@@ -161,7 +149,6 @@ export default function RedeemScreen({ navigation }: any) {
         fallbackLabel: 'Use PIN',
         disableDeviceFallback: false,
       });
-
       return result.success;
     } catch (error) {
       console.log('Biometric authentication error:', error);
@@ -175,19 +162,13 @@ export default function RedeemScreen({ navigation }: any) {
       return;
     }
 
-    // Require biometric authentication
     if (biometricAvailable) {
       const authenticated = await authenticateWithBiometrics();
       if (!authenticated) {
-        Alert.alert(
-          'Authentication Failed',
-          'Biometric authentication is required to redeem tokens.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Authentication Failed', 'Biometric authentication is required to redeem tokens.', [{ text: 'OK' }]);
         return;
       }
     } else {
-      // Fallback confirmation for devices without biometrics
       const confirmed = await new Promise<boolean>((resolve) => {
         Alert.alert(
           'Confirm Redemption',
@@ -198,17 +179,14 @@ export default function RedeemScreen({ navigation }: any) {
           ]
         );
       });
-
       if (!confirmed) return;
     }
 
-    // Proceed with redemption
     await proceedWithRedemption();
   };
 
   const proceedWithRedemption = async () => {
     setRedeeming(true);
-
     try {
       const response = await redemptionsApi.redeem({
         partnerId: selectedPartner!.id,
@@ -216,24 +194,34 @@ export default function RedeemScreen({ navigation }: any) {
         tokenAmount: parseInt(tokenAmount),
       });
 
-      // Refresh balance after successful redemption
       await refreshBalance();
 
-      // Navigate to voucher detail
+      const voucher = response.voucher || response;
+      const voucherCode = voucher.code || voucher.voucherCode || 'N/A';
+      const voucherValue = voucher.valueAmount ?? voucher.value ?? calculateZARValue();
+      const voucherId = voucher.id || voucher.voucherId;
+
+      const formattedValue = typeof voucherValue === 'number' 
+        ? voucherValue.toFixed(2) 
+        : parseFloat(voucherValue || '0').toFixed(2);
+
       Alert.alert(
         'Redemption Successful! 🎉',
-        `You've redeemed ${tokenAmount} MAMA tokens.\n\nVoucher Code: ${response.voucher.code}\nValue: R${response.voucher.valueAmount.toFixed(2)}`,
+        `You've redeemed ${tokenAmount} MAMA tokens.\n\nVoucher Code: ${voucherCode}\nValue: R${formattedValue}`,
         [
           {
             text: 'View Voucher',
             onPress: () => {
-              navigation.navigate('VoucherDetail', { voucherId: response.voucher.id });
+              if (voucherId) {
+                navigation.navigate('VoucherDetail', { voucherId });
+              } else {
+                navigation.navigate('VoucherList');
+              }
             },
           },
           {
             text: 'Done',
             onPress: () => {
-              // Reset state
               setSelectedPartner(null);
               setSelectedProduct(null);
               setTokenAmount('');
@@ -243,7 +231,6 @@ export default function RedeemScreen({ navigation }: any) {
         ]
       );
     } catch (error: any) {
-      console.log('Redemption error:', error);
       const message = error.response?.data?.error || error.response?.data?.details || 'Redemption failed. Please try again.';
       Alert.alert('Redemption Failed', message);
     } finally {
@@ -254,10 +241,7 @@ export default function RedeemScreen({ navigation }: any) {
   const renderPartnerCard = (partner: Partner) => (
     <TouchableOpacity
       key={partner.id}
-      style={[
-        styles.partnerCard,
-        selectedPartner?.id === partner.id && styles.partnerCardSelected,
-      ]}
+      style={[styles.partnerCard, selectedPartner?.id === partner.id && styles.partnerCardSelected]}
       onPress={() => handlePartnerSelect(partner)}
     >
       <View style={styles.partnerIcon}>
@@ -271,9 +255,7 @@ export default function RedeemScreen({ navigation }: any) {
       <View style={styles.partnerInfo}>
         <Text style={styles.partnerName}>{partner.name}</Text>
         <Text style={styles.partnerType}>{partner.type.toUpperCase()} • {partner.country}</Text>
-        <Text style={styles.partnerDescription} numberOfLines={2}>
-          {partner.description}
-        </Text>
+        <Text style={styles.partnerDescription} numberOfLines={2}>{partner.description}</Text>
       </View>
       <Text style={styles.partnerArrow}>›</Text>
     </TouchableOpacity>
@@ -282,10 +264,7 @@ export default function RedeemScreen({ navigation }: any) {
   const renderProductCard = (product: Product) => (
     <TouchableOpacity
       key={product.id}
-      style={[
-        styles.productCard,
-        selectedProduct?.id === product.id && styles.productCardSelected,
-      ]}
+      style={[styles.productCard, selectedProduct?.id === product.id && styles.productCardSelected]}
       onPress={() => handleProductSelect(product)}
     >
       <View style={styles.productInfo}>
@@ -303,7 +282,7 @@ export default function RedeemScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading partners...</Text>
         </View>
       </SafeAreaView>
@@ -312,12 +291,8 @@ export default function RedeemScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Redeem Tokens</Text>
@@ -327,7 +302,6 @@ export default function RedeemScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Progress Steps */}
       <View style={styles.progressContainer}>
         <View style={[styles.progressStep, step >= 1 && styles.progressStepActive]}>
           <Text style={[styles.progressStepText, step >= 1 && styles.progressStepTextActive]}>1</Text>
@@ -345,16 +319,12 @@ export default function RedeemScreen({ navigation }: any) {
       <ScrollView 
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       >
-        {/* Step 1: Select Partner */}
         {step === 1 && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Select Partner</Text>
             <Text style={styles.stepSubtitle}>Choose where to redeem your tokens</Text>
-            
             {partners.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateText}>No partners available</Text>
@@ -365,7 +335,6 @@ export default function RedeemScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Step 2: Enter Amount */}
         {step === 2 && selectedPartner && (
           <View style={styles.stepContainer}>
             <View style={styles.selectedPartnerBanner}>
@@ -393,7 +362,7 @@ export default function RedeemScreen({ navigation }: any) {
                 onChangeText={handleAmountChange}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={colors.textSecondary}
               />
               <Text style={styles.amountLabel}>MAMA</Text>
             </View>
@@ -405,10 +374,7 @@ export default function RedeemScreen({ navigation }: any) {
             </View>
 
             <TouchableOpacity
-              style={[
-                styles.continueButton,
-                !canProceedToConfirm() && styles.continueButtonDisabled,
-              ]}
+              style={[styles.continueButton, !canProceedToConfirm() && styles.continueButtonDisabled]}
               onPress={() => setStep(3)}
               disabled={!canProceedToConfirm()}
             >
@@ -417,7 +383,6 @@ export default function RedeemScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Step 3: Confirm */}
         {step === 3 && selectedPartner && (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Confirm Redemption</Text>
@@ -427,26 +392,21 @@ export default function RedeemScreen({ navigation }: any) {
                 <Text style={styles.confirmLabel}>Partner</Text>
                 <Text style={styles.confirmValue}>{selectedPartner.name}</Text>
               </View>
-              
               {selectedProduct && (
                 <View style={styles.confirmRow}>
                   <Text style={styles.confirmLabel}>Product</Text>
                   <Text style={styles.confirmValue}>{selectedProduct.name}</Text>
                 </View>
               )}
-              
               <View style={styles.confirmRow}>
                 <Text style={styles.confirmLabel}>Tokens to Burn</Text>
                 <Text style={styles.confirmValueHighlight}>{tokenAmount} MAMA</Text>
               </View>
-              
               <View style={styles.confirmDivider} />
-              
               <View style={styles.confirmRow}>
                 <Text style={styles.confirmLabel}>Voucher Value</Text>
                 <Text style={styles.confirmValueLarge}>R {calculateZARValue()}</Text>
               </View>
-              
               <View style={styles.confirmRow}>
                 <Text style={styles.confirmLabel}>Remaining Balance</Text>
                 <Text style={styles.confirmValue}>
@@ -455,13 +415,10 @@ export default function RedeemScreen({ navigation }: any) {
               </View>
             </View>
 
-            {/* Biometric Info */}
             {biometricAvailable && (
               <View style={styles.biometricInfo}>
                 <Text style={styles.biometricIcon}>🔐</Text>
-                <Text style={styles.biometricText}>
-                  Biometric authentication required to confirm
-                </Text>
+                <Text style={styles.biometricText}>Biometric authentication required to confirm</Text>
               </View>
             )}
 
@@ -478,7 +435,7 @@ export default function RedeemScreen({ navigation }: any) {
               disabled={redeeming}
             >
               {redeeming ? (
-                <ActivityIndicator color={COLORS.white} />
+                <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.redeemButtonText}>
                   {biometricAvailable ? '🔐 Confirm & Redeem' : 'Confirm & Redeem'}
@@ -494,325 +451,136 @@ export default function RedeemScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: COLORS.textLight,
-    fontSize: 16,
-  },
+const createStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, color: colors.textSecondary, fontSize: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: COLORS.primary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  balanceLabel: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  balanceValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
+  backButton: { padding: 8 },
+  backButtonText: { fontSize: 24, color: colors.primary },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  headerRight: { alignItems: 'flex-end' },
+  balanceLabel: { fontSize: 12, color: colors.textSecondary },
+  balanceValue: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
   },
   progressStep: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  progressStepActive: {
-    backgroundColor: COLORS.primary,
-  },
-  progressStepText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.textLight,
-  },
-  progressStepTextActive: {
-    color: COLORS.white,
-  },
-  progressLine: {
-    width: 60,
-    height: 3,
-    backgroundColor: COLORS.border,
-    marginHorizontal: 8,
-  },
-  progressLineActive: {
-    backgroundColor: COLORS.primary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 100,
-  },
-  stepContainer: {
-    padding: 20,
-  },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  stepSubtitle: {
-    fontSize: 14,
-    color: COLORS.textLight,
-    marginBottom: 24,
-  },
+  progressStepActive: { backgroundColor: colors.primary },
+  progressStepText: { fontSize: 14, fontWeight: 'bold', color: colors.textSecondary },
+  progressStepTextActive: { color: colors.white },
+  progressLine: { width: 60, height: 3, backgroundColor: colors.border, marginHorizontal: 8 },
+  progressLineActive: { backgroundColor: colors.primary },
+  content: { flex: 1 },
+  contentContainer: { paddingBottom: 100 },
+  stepContainer: { padding: 20 },
+  stepTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  stepSubtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 24 },
   partnerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  partnerCardSelected: {
-    borderColor: COLORS.primary,
-  },
+  partnerCardSelected: { borderColor: colors.primary },
   partnerIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  partnerIconText: {
-    fontSize: 24,
-  },
-  partnerInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  partnerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  partnerType: {
-    fontSize: 12,
-    color: COLORS.primary,
-    marginTop: 2,
-  },
-  partnerDescription: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 4,
-  },
-  partnerArrow: {
-    fontSize: 24,
-    color: COLORS.textLight,
-  },
+  partnerIconText: { fontSize: 24 },
+  partnerInfo: { flex: 1, marginLeft: 16 },
+  partnerName: { fontSize: 16, fontWeight: 'bold', color: colors.text },
+  partnerType: { fontSize: 12, color: colors.primary, marginTop: 2 },
+  partnerDescription: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
+  partnerArrow: { fontSize: 24, color: colors.textSecondary },
   selectedPartnerBanner: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     alignItems: 'center',
   },
-  selectedPartnerLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  selectedPartnerName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
+  selectedPartnerLabel: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  selectedPartnerName: { fontSize: 18, fontWeight: 'bold', color: colors.white, marginTop: 4 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
   productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  productCardSelected: {
-    borderColor: COLORS.success,
-    backgroundColor: '#E8F5E9',
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  productDescription: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 2,
-  },
-  productCost: {
-    alignItems: 'center',
-  },
-  productCostAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  productCostLabel: {
-    fontSize: 10,
-    color: COLORS.textLight,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    color: COLORS.textLight,
-    fontSize: 12,
-  },
+  productCardSelected: { borderColor: colors.success, backgroundColor: '#E8F5E9' },
+  productInfo: { flex: 1 },
+  productName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  productDescription: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  productCost: { alignItems: 'center' },
+  productCostAmount: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+  productCostLabel: { fontSize: 10, color: colors.textSecondary },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { paddingHorizontal: 16, color: colors.textSecondary, fontSize: 12 },
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
-  amountInput: {
-    flex: 1,
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  amountLabel: {
-    fontSize: 18,
-    color: COLORS.textLight,
-    marginLeft: 8,
-  },
+  amountInput: { flex: 1, fontSize: 32, fontWeight: 'bold', color: colors.text, textAlign: 'center' },
+  amountLabel: { fontSize: 18, color: colors.textSecondary, marginLeft: 8 },
   conversionCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     marginBottom: 24,
   },
-  conversionLabel: {
-    fontSize: 14,
-    color: COLORS.textLight,
-  },
-  conversionValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: COLORS.success,
-    marginVertical: 8,
-  },
-  conversionRate: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  continueButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 25,
-    padding: 18,
-    alignItems: 'center',
-  },
-  continueButtonDisabled: {
-    opacity: 0.5,
-  },
-  continueButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  confirmCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  confirmRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  confirmLabel: {
-    fontSize: 14,
-    color: COLORS.textLight,
-  },
-  confirmValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  confirmValueHighlight: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  confirmValueLarge: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.success,
-  },
-  confirmDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 8,
-  },
+  conversionLabel: { fontSize: 14, color: colors.textSecondary },
+  conversionValue: { fontSize: 36, fontWeight: 'bold', color: colors.success, marginVertical: 8 },
+  conversionRate: { fontSize: 12, color: colors.textSecondary },
+  continueButton: { backgroundColor: colors.primary, borderRadius: 25, padding: 18, alignItems: 'center' },
+  continueButtonDisabled: { opacity: 0.5 },
+  continueButtonText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
+  confirmCard: { backgroundColor: colors.card, borderRadius: 16, padding: 20, marginBottom: 16 },
+  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  confirmLabel: { fontSize: 14, color: colors.textSecondary },
+  confirmValue: { fontSize: 14, fontWeight: '600', color: colors.text },
+  confirmValueHighlight: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+  confirmValueLarge: { fontSize: 24, fontWeight: 'bold', color: colors.success },
+  confirmDivider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
   biometricInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -821,15 +589,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
-  biometricIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  biometricText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1976D2',
-  },
+  biometricIcon: { fontSize: 24, marginRight: 12 },
+  biometricText: { flex: 1, fontSize: 14, color: '#1976D2' },
   warningCard: {
     flexDirection: 'row',
     backgroundColor: '#FFF3E0',
@@ -837,40 +598,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
   },
-  warningIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#E65100',
-    lineHeight: 20,
-  },
-  redeemButton: {
-    backgroundColor: COLORS.success,
-    borderRadius: 25,
-    padding: 18,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  redeemButtonDisabled: {
-    opacity: 0.7,
-  },
-  redeemButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  bottomPadding: {
-    height: 100,
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: COLORS.textLight,
-  },
+  warningIcon: { fontSize: 20, marginRight: 12 },
+  warningText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 20 },
+  redeemButton: { backgroundColor: colors.success, borderRadius: 25, padding: 18, alignItems: 'center', marginBottom: 20 },
+  redeemButtonDisabled: { opacity: 0.7 },
+  redeemButtonText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
+  bottomPadding: { height: 100 },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyStateText: { fontSize: 16, color: colors.textSecondary },
 });

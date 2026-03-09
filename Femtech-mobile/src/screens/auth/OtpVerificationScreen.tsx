@@ -2,19 +2,14 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
+import { useTheme } from '../../store/ThemeContext';
 import { authApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  border: '#E0E0E0',
-};
 
 export default function OtpVerificationScreen({ route, navigation }: any) {
   const { phone, country } = route.params;
+  const { colors, isDark } = useTheme();
+  const styles = createStyles(colors, isDark);
+
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +67,7 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}> Back</Text>
+          <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
 
         <Text style={styles.title}>Verify your phone</Text>
@@ -83,12 +78,17 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
             <TextInput
               key={index}
               ref={(ref) => { if (ref) inputs.current[index] = ref; }}
-              style={[styles.otpInput, digit && styles.otpInputFilled, error && styles.otpInputError]}
+              style={[
+                styles.otpInput, 
+                digit && styles.otpInputFilled, 
+                error && styles.otpInputError
+              ]}
               keyboardType="number-pad"
               maxLength={1}
               value={digit}
               onChangeText={(value) => handleOtpChange(value, index)}
               editable={!loading}
+              placeholderTextColor={colors.textSecondary}
             />
           ))}
         </View>
@@ -97,7 +97,7 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
         {loading && <Text style={styles.loadingText}>Verifying...</Text>}
 
         <View style={styles.hintBox}>
-          <Text style={styles.hintText}> Test code: 123456</Text>
+          <Text style={styles.hintText}>💡 Test code: 123456</Text>
         </View>
 
         <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
@@ -108,21 +108,89 @@ export default function OtpVerificationScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1, padding: 20, paddingTop: 20 },
-  backButton: { marginBottom: 20 },
-  backText: { fontSize: 16, color: COLORS.primary },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 10 },
-  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 40 },
-  otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  otpInput: { width: 50, height: 60, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, backgroundColor: COLORS.white, textAlign: 'center', fontSize: 24, fontWeight: 'bold', color: COLORS.text },
-  otpInputFilled: { borderColor: COLORS.primary, backgroundColor: '#FFF0F5' },
-  otpInputError: { borderColor: '#FF5252' },
-  errorText: { textAlign: 'center', color: '#FF5252', fontSize: 14, marginBottom: 20 },
-  loadingText: { textAlign: 'center', color: COLORS.primary, fontSize: 16, marginBottom: 20 },
-  hintBox: { backgroundColor: '#FFF0F5', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
-  hintText: { color: COLORS.primary, fontSize: 14 },
-  resendButton: { alignItems: 'center', padding: 10 },
-  resendText: { color: COLORS.textSecondary, fontSize: 14 },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 20,
+  },
+  backButton: {
+    marginBottom: 20,
+  },
+  backText: {
+    fontSize: 16,
+    color: colors.primary,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 40,
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  otpInput: {
+    width: 50,
+    height: 60,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  otpInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: isDark ? 'rgba(233, 30, 99, 0.15)' : '#FFF0F5',
+  },
+  otpInputError: {
+    borderColor: '#FF5252',
+    backgroundColor: isDark ? 'rgba(255, 82, 82, 0.15)' : '#FFEBEE',
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#FF5252',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  loadingText: {
+    textAlign: 'center',
+    color: colors.primary,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  hintBox: {
+    backgroundColor: isDark ? 'rgba(233, 30, 99, 0.15)' : '#FFF0F5',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  hintText: {
+    color: colors.primary,
+    fontSize: 14,
+  },
+  resendButton: {
+    alignItems: 'center',
+    padding: 10,
+  },
+  resendText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
 });

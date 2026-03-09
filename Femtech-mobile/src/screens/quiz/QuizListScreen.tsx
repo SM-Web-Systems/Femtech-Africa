@@ -11,17 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { quizzesApi, walletApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 const CATEGORY_ICONS: Record<string, string> = {
   pregnancy_basics: '🤰',
@@ -63,12 +53,15 @@ interface QuizAttempt {
 }
 
 export default function QuizListScreen({ navigation }: any) {
+  const { colors, isDark } = useTheme();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [hasWallet, setHasWallet] = useState<boolean | null>(null);
+
+  const styles = createStyles(colors, isDark);
 
   // Rate limiting protection
   const lastFetchTime = useRef<number>(0);
@@ -153,7 +146,7 @@ export default function QuizListScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading quizzes...</Text>
         </View>
       </SafeAreaView>
@@ -231,7 +224,8 @@ export default function QuizListScreen({ navigation }: any) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[COLORS.primary]}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -328,13 +322,35 @@ export default function QuizListScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: COLORS.textSecondary },
-  header: { padding: 20, paddingBottom: 10 },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
-  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  header: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
 
   // No wallet styles
   noWalletContainer: {
@@ -343,73 +359,103 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  noWalletIcon: { fontSize: 64, marginBottom: 16 },
-  noWalletTitle: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
+  noWalletIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  noWalletTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
   noWalletSubtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 32,
   },
   noWalletCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
     width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isDark ? 0.4 : 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
-  noWalletCardIcon: { fontSize: 48, marginBottom: 16 },
-  noWalletCardTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
+  noWalletCardIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  noWalletCardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
   noWalletCardText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 24,
     lineHeight: 20,
   },
   createWalletButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 25,
   },
   createWalletButtonText: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
 
-  categoryScroll: { maxHeight: 50 },
-  categoryContainer: { paddingHorizontal: 16, gap: 8 },
+  categoryScroll: {
+    maxHeight: 50,
+  },
+  categoryContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
   categoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 20,
     marginRight: 8,
   },
-  categoryChipActive: { backgroundColor: COLORS.primary },
-  categoryChipText: { color: COLORS.textSecondary, fontSize: 14 },
-  categoryChipTextActive: { color: COLORS.white, fontWeight: '600' },
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+  },
+  categoryChipText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  categoryChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
 
-  quizList: { flex: 1, padding: 16 },
+  quizList: {
+    flex: 1,
+    padding: 16,
+  },
 
   // Quiz Card
   quizCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isDark ? 0.4 : 0.1,
     shadowRadius: 4,
     elevation: 3,
     position: 'relative',
@@ -417,7 +463,7 @@ const styles = StyleSheet.create({
   },
   quizCardPassed: {
     borderWidth: 2,
-    borderColor: COLORS.success,
+    borderColor: '#4CAF50',
   },
 
   // Passed Stamp
@@ -425,7 +471,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: -30,
-    backgroundColor: COLORS.success,
+    backgroundColor: '#4CAF50',
     paddingHorizontal: 36,
     paddingVertical: 6,
     transform: [{ rotate: '45deg' }],
@@ -433,21 +479,37 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   passedStampText: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
 
-  quizHeader: { flexDirection: 'row', marginBottom: 12 },
-  quizIcon: { fontSize: 36, marginRight: 12 },
-  quizInfo: { flex: 1 },
-  quizTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text },
-  quizDescription: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
+  quizHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  quizIcon: {
+    fontSize: 36,
+    marginRight: 12,
+  },
+  quizInfo: {
+    flex: 1,
+  },
+  quizTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  quizDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
 
   // Best Score Badge
   bestScoreBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: isDark ? '#0D47A1' : '#E3F2FD',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -455,7 +517,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bestScoreText: {
-    color: '#1976D2',
+    color: isDark ? '#90CAF9' : '#1976D2',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -466,13 +528,27 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: colors.border,
   },
-  metaItem: { alignItems: 'center' },
-  metaLabel: { fontSize: 12, color: COLORS.textSecondary },
-  metaValue: { fontSize: 14, fontWeight: '600', color: COLORS.text, marginTop: 2 },
-  rewardText: { color: COLORS.primary },
-  rewardClaimed: { color: COLORS.success },
+  metaItem: {
+    alignItems: 'center',
+  },
+  metaLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  metaValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 2,
+  },
+  rewardText: {
+    color: colors.primary,
+  },
+  rewardClaimed: {
+    color: '#4CAF50',
+  },
 
   quizFooter: {
     flexDirection: 'row',
@@ -480,26 +556,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
-  difficultyBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  difficultyText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+  difficultyBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  difficultyText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
 
   startButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  startText: { color: COLORS.white, fontWeight: '600' },
+  startText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   retakeButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.success,
+    borderColor: '#4CAF50',
   },
-  retakeText: { color: COLORS.success },
+  retakeText: {
+    color: '#4CAF50',
+  },
 
-  emptyContainer: { padding: 40, alignItems: 'center' },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: COLORS.textSecondary, fontSize: 16, textAlign: 'center' },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
 
-  bottomPadding: { height: 20 },
+  bottomPadding: {
+    height: 20,
+  },
 });

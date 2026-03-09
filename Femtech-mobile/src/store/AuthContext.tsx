@@ -1,3 +1,5 @@
+// D:\SM-WEB\FEMTECH-AFRICA\Femtech-mobile\src\store\AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -6,6 +8,8 @@ interface User {
   id: string;
   phone: string;
   country: string;
+  name?: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -20,6 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   eraseProfile: () => Promise<void>;
   loginWithBiometric: () => Promise<boolean>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    await SecureStore.setItemAsync('user_data', JSON.stringify(updatedUser));
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -133,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       eraseProfile,
       loginWithBiometric,
+      updateUser,
     }}>
       {children}
     </AuthContext.Provider>

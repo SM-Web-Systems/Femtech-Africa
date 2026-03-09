@@ -1,23 +1,25 @@
-﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, TextInput, Clipboard } from 'react-native';
+﻿import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, TextInput } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { walletApi } from '../../api';
 import { useWallet } from '../../store/WalletContext';
+import { useTheme } from '../../store/ThemeContext';
 
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-};
+interface Token {
+  symbol: string;
+  name: string;
+  balance: number;
+  icon: string;
+  color: string;
+  value?: string;
+}
 
 export default function WalletScreen({ navigation }: any) {
   const { balance, refreshBalance } = useWallet();
+  const { colors, isDark } = useTheme();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,8 @@ export default function WalletScreen({ navigation }: any) {
   const [newWalletKeys, setNewWalletKeys] = useState<{ publicKey: string; secretKey: string } | null>(null);
   const [importKey, setImportKey] = useState('');
   const [creating, setCreating] = useState(false);
+
+  const styles = createStyles(colors, isDark);
 
   const lastFetchTime = useRef<number>(0);
   const hasFetchedOnce = useRef<boolean>(false);
@@ -76,6 +80,13 @@ export default function WalletScreen({ navigation }: any) {
     setCreating(true);
     try {
       const result = await walletApi.createWallet();
+      
+      // Save the secret key to SecureStore for later retrieval
+      if (result.secretKey) {
+        await SecureStore.setItemAsync('wallet_secret_key', result.secretKey);
+        console.log('Secret key saved to SecureStore');
+      }
+      
       setNewWalletKeys({
         publicKey: result.publicKey,
         secretKey: result.secretKey,
@@ -98,6 +109,11 @@ export default function WalletScreen({ navigation }: any) {
     setCreating(true);
     try {
       await walletApi.importWallet(importKey);
+      
+      // Save the imported secret key to SecureStore
+      await SecureStore.setItemAsync('wallet_secret_key', importKey);
+      console.log('Imported secret key saved to SecureStore');
+      
       setShowImportModal(false);
       setImportKey('');
       Alert.alert('Success', 'Wallet imported successfully!');
@@ -110,10 +126,17 @@ export default function WalletScreen({ navigation }: any) {
     }
   };
 
-  const handleCopySecretKey = () => {
+  const handleCopySecretKey = async () => {
     if (newWalletKeys?.secretKey) {
-      Clipboard.setString(newWalletKeys.secretKey);
+      await Clipboard.setStringAsync(newWalletKeys.secretKey);
       Alert.alert('Copied', 'Secret key copied to clipboard. Store it safely!');
+    }
+  };
+
+  const handleCopyAddress = async () => {
+    if (balance?.address) {
+      await Clipboard.setStringAsync(balance.address);
+      Alert.alert('Copied', 'Wallet address copied to clipboard');
     }
   };
 
@@ -138,10 +161,29 @@ export default function WalletScreen({ navigation }: any) {
 
   const truncateAddress = (address: string) => {
     if (!address || address.length < 16) return address;
-    return `${address.slice(0, 8)}...${address.slice(-8)}`;
+    return `${address.slice(0, 12)}...${address.slice(-12)}`;
+  };
+
+  const getNumericBalance = (value: string | number | undefined): number => {
+    if (!value) return 0;
+    return typeof value === 'string' ? parseFloat(value) : value;
   };
 
   const hasWallet = balance?.hasWallet || false;
+
+  const getOtherTokens = (): Token[] => {
+    const tokens: Token[] = [];
+    const xlmBalance = getNumericBalance(balance?.xlmBalance);
+    tokens.push({
+      symbol: 'XLM',
+      name: 'Stellar Lumens',
+      balance: xlmBalance,
+      icon: '✦',
+      color: '#000000',
+      value: 'Network Fee',
+    });
+    return tokens;
+  };
 
   // No Wallet State
   if (!loading && !hasWallet) {
@@ -224,6 +266,7 @@ export default function WalletScreen({ navigation }: any) {
                 <TextInput
                   style={styles.secretKeyInput}
                   placeholder="Secret key (starts with S...)"
+                  placeholderTextColor={colors.textSecondary}
                   value={importKey}
                   onChangeText={setImportKey}
                   autoCapitalize="characters"
@@ -266,8 +309,8 @@ export default function WalletScreen({ navigation }: any) {
                   <Text style={styles.keyLabel}>Secret Key (SAVE THIS!):</Text>
                   <Text style={styles.secretKeyValue}>{newWalletKeys?.secretKey}</Text>
                 </View>
-                <TouchableOpacity style={styles.copyButton} onPress={handleCopySecretKey}>
-                  <Text style={styles.copyButtonText}>📋 Copy Secret Key</Text>
+                <TouchableOpacity style={styles.copyKeyButton} onPress={handleCopySecretKey}>
+                  <Text style={styles.copyKeyButtonText}>📋 Copy Secret Key</Text>
                 </TouchableOpacity>
                 <View style={styles.warningBox}>
                   <Text style={styles.warningText}>
@@ -286,45 +329,87 @@ export default function WalletScreen({ navigation }: any) {
   }
 
   // Has Wallet State
+  const mamaBalance = getNumericBalance(balance?.mamaBalance);
+  const otherTokens = getOtherTokens();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         <Text style={styles.title}>Wallet</Text>
 
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>
-            {parseFloat(balance?.mamaBalance || '0').toFixed(2)}
-          </Text>
-          <Text style={styles.tokenLabel}>MAMA Tokens</Text>
-
-          <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>Wallet Address:</Text>
-            <Text style={styles.address}>{truncateAddress(balance?.address || '')}</Text>
+        {/* Wallet Address Row */}
+        <View style={styles.addressRow}>
+          <View style={styles.addressInfo}>
+            <Text style={styles.addressLabel}>Wallet Address</Text>
+            <Text style={styles.addressValue}>{truncateAddress(balance?.address || '')}</Text>
           </View>
+          <TouchableOpacity style={styles.copyIconButton} onPress={handleCopyAddress}>
+            <Text style={styles.copyIconText}>📋</Text>
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('Redeem')}
-            >
-              <Text style={styles.actionButtonText}>🎁 Redeem</Text>
-            </TouchableOpacity>
+        {/* MAMA Token Card - Highlighted */}
+        <View style={styles.mamaCard}>
+          <View style={styles.mamaLeft}>
+            <View style={styles.mamaIconContainer}>
+              <Text style={styles.mamaIcon}>🪙</Text>
+            </View>
+            <View style={styles.mamaInfo}>
+              <Text style={styles.mamaSymbol}>MAMA</Text>
+              <Text style={styles.mamaName}>MamaTokens</Text>
+            </View>
+          </View>
+          <View style={styles.mamaRight}>
+            <Text style={styles.mamaBalance}>{mamaBalance.toFixed(2)}</Text>
+            <Text style={styles.mamaValue}>≈ R {(mamaBalance * 0.10).toFixed(2)}</Text>
           </View>
         </View>
 
+        {/* Other Tokens Section */}
+        <Text style={styles.sectionTitle}>Other Tokens</Text>
+        <View style={styles.tokensList}>
+          {otherTokens.map((token, index) => (
+            <View key={token.symbol}>
+              <View style={styles.tokenItem}>
+                <View style={[styles.tokenIconContainer, { backgroundColor: isDark ? '#333333' : `${token.color}15` }]}>
+                  <Text style={styles.tokenIcon}>{token.icon}</Text>
+                </View>
+                <View style={styles.tokenInfo}>
+                  <Text style={styles.tokenSymbol}>{token.symbol}</Text>
+                  <Text style={styles.tokenName}>{token.name}</Text>
+                </View>
+                <View style={styles.tokenBalanceContainer}>
+                  <Text style={styles.tokenBalance}>
+                    {token.symbol === 'XLM' ? token.balance.toFixed(4) : token.balance.toFixed(2)}
+                  </Text>
+                  {token.value && <Text style={styles.tokenValue}>{token.value}</Text>}
+                </View>
+              </View>
+              {index < otherTokens.length - 1 && <View style={styles.tokenDivider} />}
+            </View>
+          ))}
+        </View>
+
         {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.quickActionCard}
             onPress={() => navigation.navigate('Redeem')}
           >
             <Text style={styles.quickActionIcon}>🛒</Text>
-            <Text style={styles.quickActionText}>Redeem Tokens</Text>
-            <Text style={styles.quickActionSubtext}>Convert to vouchers</Text>
+            <Text style={styles.quickActionText}>Redeem</Text>
+            <Text style={styles.quickActionSubtext}>Get vouchers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -332,11 +417,12 @@ export default function WalletScreen({ navigation }: any) {
             onPress={() => navigation.navigate('VoucherList')}
           >
             <Text style={styles.quickActionIcon}>🎫</Text>
-            <Text style={styles.quickActionText}>My Vouchers</Text>
-            <Text style={styles.quickActionSubtext}>View & use vouchers</Text>
+            <Text style={styles.quickActionText}>Vouchers</Text>
+            <Text style={styles.quickActionSubtext}>View & use</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Transactions Section */}
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
 
         {transactions.length === 0 ? (
@@ -345,10 +431,21 @@ export default function WalletScreen({ navigation }: any) {
             <Text style={styles.emptySubtext}>Complete milestones to earn MAMA tokens!</Text>
           </View>
         ) : (
-          transactions.map((tx: any) => (
+          transactions.slice(0, 10).map((tx: any) => (
             <View key={tx.id} style={styles.transactionCard}>
-              <View style={[styles.txIcon, { backgroundColor: parseFloat(tx.amount) > 0 ? '#E8F5E9' : '#FFEBEE' }]}>
-                <Text style={styles.txIconText}>{parseFloat(tx.amount) > 0 ? '↓' : '↑'}</Text>
+              <View style={[
+                styles.txIcon, 
+                { backgroundColor: parseFloat(tx.amount) > 0 
+                  ? (isDark ? '#1B5E20' : '#E8F5E9') 
+                  : (isDark ? '#B71C1C' : '#FFEBEE') 
+                }
+              ]}>
+                <Text style={[
+                  styles.txIconText,
+                  { color: parseFloat(tx.amount) > 0 ? '#4CAF50' : '#F44336' }
+                ]}>
+                  {parseFloat(tx.amount) > 0 ? '↓' : '↑'}
+                </Text>
               </View>
               <View style={styles.txDetails}>
                 <Text style={styles.txDescription}>{tx.type.replace(/_/g, ' ')}</Text>
@@ -367,95 +464,498 @@ export default function WalletScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { flex: 1, padding: 20 },
-  noWalletContainer: { flexGrow: 1 },
-  title: { fontSize: 28, fontWeight: 'bold', color: COLORS.text, marginBottom: 20 },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background 
+  },
+  scroll: { 
+    flex: 1, 
+    padding: 20 
+  },
+  noWalletContainer: { 
+    flexGrow: 1 
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: colors.text, 
+    marginBottom: 20 
+  },
 
   // No Wallet Styles
-  noWalletCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 20 },
-  noWalletIcon: { fontSize: 64, marginBottom: 16 },
-  noWalletTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginBottom: 12 },
-  noWalletText: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 24 },
-  createButton: { backgroundColor: COLORS.primary, paddingVertical: 16, paddingHorizontal: 40, borderRadius: 25, width: '100%', marginBottom: 12 },
-  createButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 18, textAlign: 'center' },
-  importButton: { backgroundColor: 'transparent', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 25, width: '100%', borderWidth: 2, borderColor: COLORS.primary },
-  importButtonText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 18, textAlign: 'center' },
+  noWalletCard: { 
+    backgroundColor: colors.card, 
+    borderRadius: 20, 
+    padding: 32, 
+    alignItems: 'center', 
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  noWalletIcon: { 
+    fontSize: 64, 
+    marginBottom: 16 
+  },
+  noWalletTitle: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: colors.text, 
+    marginBottom: 12 
+  },
+  noWalletText: { 
+    fontSize: 16, 
+    color: colors.textSecondary, 
+    textAlign: 'center', 
+    marginBottom: 24, 
+    lineHeight: 24 
+  },
+  createButton: { 
+    backgroundColor: colors.primary, 
+    paddingVertical: 16, 
+    paddingHorizontal: 40, 
+    borderRadius: 25, 
+    width: '100%', 
+    marginBottom: 12 
+  },
+  createButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: 'bold', 
+    fontSize: 18, 
+    textAlign: 'center' 
+  },
+  importButton: { 
+    backgroundColor: 'transparent', 
+    paddingVertical: 16, 
+    paddingHorizontal: 40, 
+    borderRadius: 25, 
+    width: '100%', 
+    borderWidth: 2, 
+    borderColor: colors.primary 
+  },
+  importButtonText: { 
+    color: colors.primary, 
+    fontWeight: 'bold', 
+    fontSize: 18, 
+    textAlign: 'center' 
+  },
 
-  infoCard: { backgroundColor: '#E3F2FD', borderRadius: 16, padding: 20 },
-  infoTitle: { fontSize: 16, fontWeight: 'bold', color: '#1565C0', marginBottom: 8 },
-  infoText: { fontSize: 14, color: '#1565C0', lineHeight: 22 },
+  infoCard: { 
+    backgroundColor: isDark ? '#1A237E' : '#E3F2FD', 
+    borderRadius: 16, 
+    padding: 20 
+  },
+  infoTitle: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: isDark ? '#90CAF9' : '#1565C0', 
+    marginBottom: 8 
+  },
+  infoText: { 
+    fontSize: 14, 
+    color: isDark ? '#90CAF9' : '#1565C0', 
+    lineHeight: 22 
+  },
 
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.text, marginBottom: 12, textAlign: 'center' },
-  modalText: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 24 },
-  warningBox: { backgroundColor: '#FFF3E0', padding: 16, borderRadius: 12, marginBottom: 20 },
-  warningText: { color: '#E65100', fontSize: 14, lineHeight: 20 },
-  modalButtons: { flexDirection: 'row', gap: 12 },
-  modalCancelButton: { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.textSecondary },
-  modalCancelText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 16, textAlign: 'center' },
-  modalConfirmButton: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: COLORS.primary },
-  modalConfirmText: { color: COLORS.white, fontWeight: '600', fontSize: 16, textAlign: 'center' },
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.6)', 
+    justifyContent: 'flex-end' 
+  },
+  modalContent: { 
+    backgroundColor: colors.card, 
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24, 
+    padding: 24, 
+    paddingBottom: 40 
+  },
+  modalTitle: { 
+    fontSize: 22, 
+    fontWeight: 'bold', 
+    color: colors.text, 
+    marginBottom: 12, 
+    textAlign: 'center' 
+  },
+  modalText: { 
+    fontSize: 16, 
+    color: colors.textSecondary, 
+    textAlign: 'center', 
+    marginBottom: 20, 
+    lineHeight: 24 
+  },
+  warningBox: { 
+    backgroundColor: isDark ? '#4E342E' : '#FFF3E0', 
+    padding: 16, 
+    borderRadius: 12, 
+    marginBottom: 20 
+  },
+  warningText: { 
+    color: isDark ? '#FFCC80' : '#E65100', 
+    fontSize: 14, 
+    lineHeight: 20 
+  },
+  modalButtons: { 
+    flexDirection: 'row', 
+    gap: 12 
+  },
+  modalCancelButton: { 
+    flex: 1, 
+    paddingVertical: 14, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: colors.textSecondary 
+  },
+  modalCancelText: { 
+    color: colors.textSecondary, 
+    fontWeight: '600', 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
+  modalConfirmButton: { 
+    flex: 1, 
+    paddingVertical: 14, 
+    borderRadius: 12, 
+    backgroundColor: colors.primary 
+  },
+  modalConfirmText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
 
-  secretKeyInput: { borderWidth: 1, borderColor: '#DDD', borderRadius: 12, padding: 16, fontSize: 16, marginBottom: 20 },
+  secretKeyInput: { 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    borderRadius: 12, 
+    padding: 16, 
+    fontSize: 16, 
+    marginBottom: 20, 
+    color: colors.text, 
+    backgroundColor: isDark ? colors.surface : colors.background 
+  },
 
-  keyBox: { backgroundColor: '#F5F5F5', padding: 16, borderRadius: 12, marginBottom: 12, width: '100%' },
-  secretKeyBox: { backgroundColor: '#FFEBEE' },
-  keyLabel: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 },
-  keyValue: { fontSize: 14, color: COLORS.text, fontFamily: 'monospace' },
-  secretKeyValue: { fontSize: 12, color: '#C62828', fontFamily: 'monospace' },
-  copyButton: { backgroundColor: '#E3F2FD', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, marginBottom: 16 },
-  copyButtonText: { color: '#1565C0', fontWeight: '600', fontSize: 16, textAlign: 'center' },
-  savedButton: { backgroundColor: COLORS.success, paddingVertical: 16, borderRadius: 12, width: '100%' },
-  savedButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16, textAlign: 'center' },
+  keyBox: { 
+    backgroundColor: isDark ? colors.surface : colors.background, 
+    padding: 16, 
+    borderRadius: 12, 
+    marginBottom: 12, 
+    width: '100%' 
+  },
+  secretKeyBox: { 
+    backgroundColor: isDark ? '#4A1A1A' : '#FFEBEE' 
+  },
+  keyLabel: { 
+    fontSize: 12, 
+    color: colors.textSecondary, 
+    marginBottom: 4 
+  },
+  keyValue: { 
+    fontSize: 14, 
+    color: colors.text, 
+    fontFamily: 'monospace' 
+  },
+  secretKeyValue: { 
+    fontSize: 12, 
+    color: isDark ? '#EF9A9A' : '#C62828', 
+    fontFamily: 'monospace' 
+  },
+  copyKeyButton: { 
+    backgroundColor: isDark ? '#0D47A1' : '#E3F2FD', 
+    paddingVertical: 12, 
+    paddingHorizontal: 24, 
+    borderRadius: 12, 
+    marginBottom: 16 
+  },
+  copyKeyButtonText: { 
+    color: isDark ? '#90CAF9' : '#1565C0', 
+    fontWeight: '600', 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
+  savedButton: { 
+    backgroundColor: '#4CAF50', 
+    paddingVertical: 16, 
+    borderRadius: 12, 
+    width: '100%' 
+  },
+  savedButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: 'bold', 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
 
-  // Has Wallet Styles
-  balanceCard: { backgroundColor: COLORS.primary, borderRadius: 20, padding: 24, marginBottom: 20, alignItems: 'center' },
-  balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
-  balanceAmount: { color: COLORS.white, fontSize: 48, fontWeight: 'bold', marginVertical: 8 },
-  tokenLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 18, marginBottom: 16 },
-  addressContainer: { backgroundColor: 'rgba(255,255,255,0.15)', padding: 12, borderRadius: 12, width: '100%', marginBottom: 16 },
-  addressLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
-  address: { color: COLORS.white, fontSize: 14, marginTop: 4 },
-  actions: { flexDirection: 'row', marginTop: 8 },
-  actionButton: { backgroundColor: COLORS.white, paddingVertical: 12, paddingHorizontal: 32, borderRadius: 20 },
-  actionButtonText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
+  // Address Row
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addressInfo: {
+    flex: 1,
+  },
+  addressLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  addressValue: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: colors.text,
+  },
+  copyIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: isDark ? colors.surface : colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  copyIconText: {
+    fontSize: 20,
+  },
+
+  // MAMA Card - Highlighted
+  mamaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mamaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mamaIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  mamaIcon: {
+    fontSize: 26,
+  },
+  mamaInfo: {},
+  mamaSymbol: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  mamaName: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  mamaRight: {
+    alignItems: 'flex-end',
+  },
+  mamaBalance: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  mamaValue: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+
+  // Other Tokens List
+  tokensList: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tokenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  tokenDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
+  },
+  tokenIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  tokenIcon: {
+    fontSize: 22,
+  },
+  tokenInfo: {
+    flex: 1,
+  },
+  tokenSymbol: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  tokenName: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  tokenBalanceContainer: {
+    alignItems: 'flex-end',
+  },
+  tokenBalance: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  tokenValue: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
 
   // Quick Actions
-  quickActions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  quickActions: { 
+    flexDirection: 'row', 
+    gap: 12, 
+    marginBottom: 24 
+  },
   quickActionCard: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isDark ? 0.3 : 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  quickActionIcon: { fontSize: 32, marginBottom: 8 },
-  quickActionText: { fontSize: 14, fontWeight: 'bold', color: COLORS.text },
-  quickActionSubtext: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  quickActionIcon: { 
+    fontSize: 32, 
+    marginBottom: 8 
+  },
+  quickActionText: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    color: colors.text 
+  },
+  quickActionSubtext: { 
+    fontSize: 12, 
+    color: colors.textSecondary, 
+    marginTop: 4 
+  },
 
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginBottom: 16 },
-  emptyTransactions: { backgroundColor: COLORS.white, borderRadius: 16, padding: 32, alignItems: 'center' },
-  emptyText: { fontSize: 16, fontWeight: '600', color: COLORS.textSecondary },
-  emptySubtext: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8 },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: colors.text, 
+    marginBottom: 16 
+  },
+  emptyTransactions: { 
+    backgroundColor: colors.card, 
+    borderRadius: 16, 
+    padding: 32, 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyText: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: colors.textSecondary 
+  },
+  emptySubtext: { 
+    fontSize: 14, 
+    color: colors.textSecondary, 
+    marginTop: 8 
+  },
 
-  transactionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, padding: 16, marginBottom: 12 },
-  txIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  txIconText: { fontSize: 20, color: COLORS.primary },
-  txDetails: { flex: 1 },
-  txDescription: { fontSize: 16, fontWeight: '500', color: COLORS.text, textTransform: 'capitalize' },
-  txDate: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
-  txAmount: { fontSize: 16, fontWeight: 'bold' },
-  txPositive: { color: COLORS.success },
-  txNegative: { color: COLORS.primary },
+  transactionCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: colors.card, 
+    borderRadius: 12, 
+    padding: 16, 
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: isDark ? 0.2 : 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  txIcon: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 12 
+  },
+  txIconText: { 
+    fontSize: 20,
+  },
+  txDetails: { 
+    flex: 1 
+  },
+  txDescription: { 
+    fontSize: 16, 
+    fontWeight: '500', 
+    color: colors.text, 
+    textTransform: 'capitalize' 
+  },
+  txDate: { 
+    fontSize: 14, 
+    color: colors.textSecondary, 
+    marginTop: 2 
+  },
+  txAmount: { 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  txPositive: { 
+    color: '#4CAF50' 
+  },
+  txNegative: { 
+    color: colors.primary 
+  },
 
-  bottomPadding: { height: 40 },
+  bottomPadding: { 
+    height: 40 
+  },
 });

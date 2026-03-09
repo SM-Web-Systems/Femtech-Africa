@@ -2,16 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/AuthContext';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 export default function WelcomeScreen({ navigation }: any) {
+  const { colors, isDark } = useTheme();
+  const styles = createStyles(colors, isDark);
+
   const { 
     hasAccount,
     biometricAvailable, 
@@ -66,7 +62,7 @@ export default function WelcomeScreen({ navigation }: any) {
           
           {authenticating ? (
             <>
-              <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
               <Text style={styles.authenticatingText}>Authenticating...</Text>
             </>
           ) : (
@@ -140,32 +136,94 @@ export default function WelcomeScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  logoContainer: { marginBottom: 30 },
-  logo: { width: 100, height: 100, borderRadius: 50, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  logoText: { fontSize: 48, fontWeight: 'bold', color: COLORS.white },
-  title: { fontSize: 32, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
-  subtitle: { fontSize: 18, color: COLORS.textSecondary, marginBottom: 40 },
-  features: { marginBottom: 40 },
-  feature: { fontSize: 16, color: COLORS.text, marginBottom: 12 },
-  authenticatingText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  logoContainer: {
+    marginBottom: 30,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  logoText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    marginBottom: 40,
+  },
+  features: {
+    marginBottom: 40,
+  },
+  feature: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  authenticatingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
   
-  buttonSection: { width: '100%', alignItems: 'center' },
-  welcomeBack: { fontSize: 20, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  savedPhone: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 24 },
+  buttonSection: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  welcomeBack: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  savedPhone: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 24,
+  },
   
   button: { 
-    backgroundColor: COLORS.primary, 
+    backgroundColor: colors.primary, 
     paddingHorizontal: 60, 
     paddingVertical: 16, 
     borderRadius: 30, 
     width: '100%', 
     alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   biometricButton: { 
-    backgroundColor: COLORS.primary, 
+    backgroundColor: colors.primary, 
     paddingHorizontal: 40, 
     paddingVertical: 16, 
     borderRadius: 30, 
@@ -173,10 +231,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  biometricIcon: { fontSize: 24, marginRight: 12 },
-  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+  biometricIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   
-  eraseButton: { marginTop: 40 },
-  eraseText: { color: COLORS.textSecondary, fontSize: 14, textDecorationLine: 'underline' },
+  eraseButton: {
+    marginTop: 40,
+  },
+  eraseText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
 });

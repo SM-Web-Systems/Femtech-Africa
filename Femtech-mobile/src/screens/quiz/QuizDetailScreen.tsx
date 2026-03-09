@@ -10,17 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { quizzesApi } from '../../api';
-
-const COLORS = {
-  primary: '#E91E63',
-  background: '#FFF5F8',
-  text: '#333333',
-  textSecondary: '#666666',
-  white: '#FFFFFF',
-  success: '#4CAF50',
-  error: '#F44336',
-  warning: '#FF9800',
-};
+import { useTheme } from '../../store/ThemeContext';
 
 interface Question {
   id: string;
@@ -50,6 +40,7 @@ interface Result {
 
 export default function QuizDetailScreen({ route, navigation }: any) {
   const { quizId } = route.params;
+  const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
@@ -59,6 +50,8 @@ export default function QuizDetailScreen({ route, navigation }: any) {
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<Result | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  const styles = createStyles(colors, isDark);
 
   useEffect(() => {
     startQuiz();
@@ -158,7 +151,7 @@ export default function QuizDetailScreen({ route, navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading quiz...</Text>
         </View>
       </SafeAreaView>
@@ -307,7 +300,7 @@ export default function QuizDetailScreen({ route, navigation }: any) {
           disabled={selectedAnswer === null || submitting}
         >
           {submitting ? (
-            <ActivityIndicator color={COLORS.white} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.nextButtonText}>
               {currentQuestion === quizData.questions.length - 1
@@ -321,106 +314,255 @@ export default function QuizDetailScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 16, color: COLORS.textSecondary },
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: colors.textSecondary,
+  },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  closeButton: { fontSize: 24, color: COLORS.textSecondary },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, flex: 1, textAlign: 'center' },
-  timer: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
-  timerWarning: { color: COLORS.error },
+  closeButton: {
+    fontSize: 24,
+    color: colors.textSecondary,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
+    textAlign: 'center',
+  },
+  timer: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  timerWarning: {
+    color: '#F44336',
+  },
 
-  progressContainer: { padding: 16, paddingTop: 8 },
-  progressBar: { height: 8, backgroundColor: '#E0E0E0', borderRadius: 4 },
-  progressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 4 },
-  progressText: { textAlign: 'center', marginTop: 8, color: COLORS.textSecondary },
+  progressContainer: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: isDark ? colors.surface : '#E0E0E0',
+    borderRadius: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  progressText: {
+    textAlign: 'center',
+    marginTop: 8,
+    color: colors.textSecondary,
+  },
 
-  questionContainer: { flex: 1, padding: 20 },
-  questionText: { fontSize: 20, fontWeight: '600', color: COLORS.text, marginBottom: 24 },
+  questionContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  questionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 24,
+  },
 
-  optionsContainer: { gap: 12 },
+  optionsContainer: {
+    gap: 12,
+  },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: colors.border,
   },
-  optionButtonSelected: { borderColor: COLORS.primary, backgroundColor: '#FFF0F5' },
+  optionButtonSelected: {
+    borderColor: colors.primary,
+    backgroundColor: isDark ? 'rgba(233, 30, 99, 0.15)' : '#FFF0F5',
+  },
   optionCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: colors.border,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionCircleSelected: { borderColor: COLORS.primary },
-  optionCircleFill: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary },
-  optionText: { flex: 1, fontSize: 16, color: COLORS.text },
-  optionTextSelected: { color: COLORS.primary, fontWeight: '500' },
+  optionCircleSelected: {
+    borderColor: colors.primary,
+  },
+  optionCircleFill: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
+  optionTextSelected: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
 
   navContainer: {
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  prevButton: { flex: 1, padding: 16, alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: COLORS.primary },
-  prevButtonText: { color: COLORS.primary, fontSize: 16, fontWeight: '600' },
-  nextButton: { flex: 2, padding: 16, alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 12 },
-  nextButtonDisabled: { backgroundColor: '#CCC' },
-  nextButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '600' },
+  prevButton: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  prevButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  nextButton: {
+    flex: 2,
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+  },
+  nextButtonDisabled: {
+    backgroundColor: isDark ? '#555555' : '#CCCCCC',
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 
   // Results
-  resultsContainer: { flexGrow: 1, padding: 20 },
-  resultCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 24, alignItems: 'center' },
-  resultEmoji: { fontSize: 64 },
-  resultTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginTop: 16 },
-  resultSubtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 8 },
+  resultsContainer: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  resultCard: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  resultEmoji: {
+    fontSize: 64,
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+  },
+  resultSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
   scoreCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 24,
   },
-  scoreText: { fontSize: 32, fontWeight: 'bold', color: COLORS.white },
-  scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9 },
-  resultStats: { flexDirection: 'row', gap: 40 },
-  statItem: { alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: 'bold', color: COLORS.text },
-  statLabel: { fontSize: 14, color: COLORS.textSecondary },
+  scoreText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+  resultStats: {
+    flexDirection: 'row',
+    gap: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   rewardCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
+    backgroundColor: isDark ? '#4E342E' : '#FFF8E1',
     padding: 16,
     borderRadius: 12,
     marginTop: 24,
   },
-  rewardEmoji: { fontSize: 24, marginRight: 12 },
-  rewardText: { fontSize: 16, color: '#FF8F00', fontWeight: '600' },
+  rewardEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  rewardText: {
+    fontSize: 16,
+    color: isDark ? '#FFCC80' : '#FF8F00',
+    fontWeight: '600',
+  },
   doneButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 48,
     paddingVertical: 16,
     borderRadius: 30,
     marginTop: 24,
   },
-  doneButtonText: { color: COLORS.white, fontSize: 18, fontWeight: 'bold' },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });

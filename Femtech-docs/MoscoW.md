@@ -42,6 +42,8 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Admin Management          | ✅ Done | Create/Edit/Delete admins                 |
 | Multi-language Support    | ✅ Done | Swahili, Zulu, English, French            |
 | Biometric Authentication  | ✅ Done | Fingerprint/Face ID login                 |
+| Quiz System                   | MEDIUM   | 3 days | Educational quizzes with rewards     |
+| Dark Mode                    | LOW      | 1 day   | UI preference                  |
 
 ### 🔲 Pending
 
@@ -58,7 +60,7 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Push Notifications (Firebase) | MEDIUM   | 2 days | Appointment reminders                |
 | Appointment Verification      | MEDIUM   | 2 days | QR code/PIN verification at facility |
 | Kick Counter UI               | MEDIUM   | 1 day  | Baby movement tracking               |
-| Quiz System                   | MEDIUM   | 3 days | Educational quizzes with rewards     |
+
 | Article Content               | MEDIUM   | 2 days | Pregnancy health articles            |
 | Partner API Integration       | MEDIUM   | 5 days | MTN MoMo, Vodacom, etc.              |
 | Facility Locator              | MEDIUM   | 2 days | Map integration for nearby clinics   |
@@ -81,7 +83,7 @@ MoSCoW is a prioritization framework that categorizes features into:
 | Offline Mode                 | LOW      | 1 week  | Work without internet          |
 | Analytics Dashboard          | LOW      | 3 days  | User insights for mothers      |
 | Social Sharing               | LOW      | 1 day   | Share milestones on WhatsApp   |
-| Dark Mode                    | LOW      | 1 day   | UI preference                  |
+
 
 ---
 

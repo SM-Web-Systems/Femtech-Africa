@@ -10,20 +10,33 @@ const prisma = new PrismaClient();
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const profile = await prisma.userProfile.findUnique({
-      where: { user_id: req.user.userId }
+      where: { userId: req.user.userId }
     });
 
     if (!profile) {
       return res.json({ exists: false });
     }
 
+    // Safely decrypt fields (handle null values)
+    const decryptField = (encryptedValue) => {
+      if (!encryptedValue) return null;
+      try {
+        return decrypt(encryptedValue);
+      } catch (e) {
+        return null;
+      }
+    };
+
     res.json({
-      firstName: decrypt(profile.first_name),
-      lastName: decrypt(profile.last_name),
-      dateOfBirth: decrypt(profile.date_of_birth),
-      updatedAt: profile.updated_at
+      exists: true,
+      firstName: decryptField(profile.firstNameEncrypted),
+      lastName: decryptField(profile.lastNameEncrypted),
+      dateOfBirth: decryptField(profile.dateOfBirthEncrypted),
+      avatarUrl: profile.avatarUrl,
+      updatedAt: profile.updatedAt
     });
   } catch (error) {
+    console.error('Get profile error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -31,26 +44,35 @@ router.get('/', authenticateToken, async (req, res) => {
 // Update profile
 router.put('/', authenticateToken, async (req, res) => {
   try {
-    const { firstName, lastName, dateOfBirth } = req.body;
+    const { firstName, lastName, dateOfBirth, avatarUrl } = req.body;
+
+    // Safely encrypt fields (handle null/empty values)
+    const encryptField = (value) => {
+      if (!value || value.trim() === '') return null;
+      return encrypt(value);
+    };
 
     const profile = await prisma.userProfile.upsert({
-      where: { user_id: req.user.userId },
+      where: { userId: req.user.userId },
       update: {
-        first_name: encrypt(firstName),
-        last_name: encrypt(lastName),
-        date_of_birth: encrypt(dateOfBirth),
-        updated_at: new Date()
+        firstNameEncrypted: encryptField(firstName),
+        lastNameEncrypted: encryptField(lastName),
+        dateOfBirthEncrypted: encryptField(dateOfBirth),
+        avatarUrl: avatarUrl || null,
+        updatedAt: new Date()
       },
       create: {
-        user_id: req.user.userId,
-        first_name: encrypt(firstName),
-        last_name: encrypt(lastName),
-        date_of_birth: encrypt(dateOfBirth)
+        userId: req.user.userId,
+        firstNameEncrypted: encryptField(firstName),
+        lastNameEncrypted: encryptField(lastName),
+        dateOfBirthEncrypted: encryptField(dateOfBirth),
+        avatarUrl: avatarUrl || null
       }
     });
 
     res.json({ success: true, message: 'Profile updated' });
   } catch (error) {
+    console.error('Update profile error:', error);
     res.status(500).json({ error: error.message });
   }
 });
