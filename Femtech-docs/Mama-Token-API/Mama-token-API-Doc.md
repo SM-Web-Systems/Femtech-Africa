@@ -317,7 +317,7 @@ Response:
 
 ### Get User's Milestones
 
-# GET /api/v1/my/milestones
+# GET /api/v1/milestones/my
 Authorization: Bearer {JWT_TOKEN}
 Response:
 
@@ -374,7 +374,7 @@ Content-Type: application/json
 
 ### Mint Tokens for Milestone
 
-# POST /api/v1/mint
+# POST /api/v1/milestones/mint
 Authorization: Bearer {JWT_TOKEN}
 Content-Type: application/json
 
@@ -1417,10 +1417,10 @@ Response:
 # GET	    /api/v1/my/pregnancies/:id	Get pregnancy
 # POST	  /api/v1/my/pregnancies	Create pregnancy
 # PUT	    /api/v1/my/pregnancies/:id	Update pregnancy
-# GET	    /api/v1/my/milestones	List user milestones
+# GET	    /api/v1/milestones/my	List user milestones
 # POST	  /api/v1/my/milestones	Start milestone
 # PUT	    /api/v1/my/milestones/:id	Update milestone
-# POST	  /api/v1/mint	Mint tokens
+# POST	  /api/v1/milestones/mint	Mint tokens
 # GET	    /api/v1/my/medical-history	List medical history
 # POST	  /api/v1/my/medical-history	Add medical record
 # GET	    /api/v1/my/appointments	List appointments

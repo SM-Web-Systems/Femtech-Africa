@@ -7,12 +7,12 @@ export const milestonesApi = {
   },
 
   getUserMilestones: async () => {
-    const response = await apiClient.get('/my/milestones');
+    const response = await apiClient.get('/milestones/my');
     return response.data;
   },
 
   mintReward: async (milestoneId: string) => {
-    const response = await apiClient.post('/mint', { milestoneId });
+    const response = await apiClient.post('/milestones/mint', { milestoneId });
     return response.data;
   },
 };
