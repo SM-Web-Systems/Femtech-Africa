@@ -78,3 +78,47 @@ router.put('/', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+// DELETE profile - permanently delete user and all associated data
+router.delete('/', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('Deleting profile for user:', userId);
+
+    await prisma.voucher.deleteMany({ where: { userId: userId } });
+    await prisma.tokenTransaction.deleteMany({ where: { userId: userId } });
+    await prisma.quizAttempt.deleteMany({ where: { userId: userId } });
+    await prisma.notification.deleteMany({ where: { userId: userId } });
+    await prisma.userMilestone.deleteMany({ where: { userId: userId } });
+    await prisma.redemptionItem.deleteMany({ where: { redemption: { userId: userId } } });
+    await prisma.redemption.deleteMany({ where: { userId: userId } });
+    await prisma.circleMember.deleteMany({ where: { userId: userId } });
+    await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
+    await prisma.appointment.deleteMany({ where: { user_id: userId } });
+    await prisma.kickSession.deleteMany({ where: { user_id: userId } });
+    await prisma.medicalHistory.deleteMany({ where: { user_id: userId } });
+    await prisma.pregnancy.deleteMany({ where: { userId: userId } });
+    await prisma.emergencyContact.deleteMany({ where: { user_id: userId } });
+    await prisma.digitalDoula.deleteMany({ where: { user_id: userId } });
+    await prisma.consent.deleteMany({ where: { userId: userId } });
+    await prisma.session.deleteMany({ where: { userId: userId } });
+    await prisma.smsMessage.deleteMany({ where: { user_id: userId } });
+    await prisma.userProfile.deleteMany({ where: { userId: userId } });
+    await prisma.user.delete({ where: { id: userId } });
+
+    console.log('Profile deleted successfully for user:', userId);
+    res.json({ success: true, message: 'Profile and all data permanently deleted' });
+  } catch (error) {
+    console.error('Delete profile error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
