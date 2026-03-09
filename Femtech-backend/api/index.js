@@ -8,6 +8,7 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+app.set('trust proxy', 1);
 app.use(cors({
   origin: process.env.CORS_ORIGINS?.split(',') || '*',
   credentials: true
