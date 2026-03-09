@@ -77,21 +77,13 @@ router.put('/', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
-
-
-
-
-
-
-
-
 // DELETE profile - permanently delete user and all associated data
 router.delete('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     console.log('Deleting profile for user:', userId);
 
+    // Models with userId field (mapped via @map to user_id in DB)
     await prisma.voucher.deleteMany({ where: { userId: userId } });
     await prisma.tokenTransaction.deleteMany({ where: { userId: userId } });
     await prisma.quizAttempt.deleteMany({ where: { userId: userId } });
@@ -100,17 +92,21 @@ router.delete('/', authenticateToken, async (req, res) => {
     await prisma.redemptionItem.deleteMany({ where: { redemption: { userId: userId } } });
     await prisma.redemption.deleteMany({ where: { userId: userId } });
     await prisma.circleMember.deleteMany({ where: { userId: userId } });
-    await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
-    await prisma.appointment.deleteMany({ where: { userId: userId } });
-    await prisma.kickSession.deleteMany({ where: { userId: userId } });
-    await prisma.medicalHistory.deleteMany({ where: { userId: userId } });
     await prisma.pregnancy.deleteMany({ where: { userId: userId } });
-    await prisma.emergencyContact.deleteMany({ where: { userId: userId } });
-    await prisma.digitalDoula.deleteMany({ where: { userId: userId } });
     await prisma.consent.deleteMany({ where: { userId: userId } });
     await prisma.session.deleteMany({ where: { userId: userId } });
-    await prisma.smsMessage.deleteMany({ where: { userId: userId } });
     await prisma.userProfile.deleteMany({ where: { userId: userId } });
+
+    // Models with user_id field (no @map, field name = column name)
+    await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
+    await prisma.appointment.deleteMany({ where: { user_id: userId } });
+    await prisma.kickSession.deleteMany({ where: { user_id: userId } });
+    await prisma.medicalHistory.deleteMany({ where: { user_id: userId } });
+    await prisma.emergencyContact.deleteMany({ where: { user_id: userId } });
+    await prisma.digitalDoula.deleteMany({ where: { user_id: userId } });
+    await prisma.smsMessage.deleteMany({ where: { user_id: userId } });
+
+    // Finally delete user
     await prisma.user.delete({ where: { id: userId } });
 
     console.log('Profile deleted successfully for user:', userId);
