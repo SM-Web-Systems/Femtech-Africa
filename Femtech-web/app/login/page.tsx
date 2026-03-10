@@ -15,7 +15,6 @@ export default function LoginPage() {
   const [country, setCountry] = useState('ZA');
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-
   const [formattedPhone, setFormattedPhone] = useState('');
 
   const formatPhone = (phone: string, country: string): string => {
@@ -27,7 +26,6 @@ export default function LoginPage() {
     return `${countryCodes[country]}${digits}`;
   };
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/profile');
@@ -46,11 +44,9 @@ export default function LoginPage() {
     try {
       const formatted = formatPhone(phone.trim(), country);
       setFormattedPhone(formatted);
-
-      await login(phone.trim(), country);
-      setStep('otp'); // Move to OTP step on success
+      await login(formatted, country);
+      setStep('otp');
     } catch {
-      // Error is already set in AuthContext, but we surface it locally too
       setLocalError('Failed to send OTP. Please check your number and try again.');
     }
   };
@@ -66,7 +62,7 @@ export default function LoginPage() {
 
     try {
       await verifyOtp(formattedPhone, otp.trim());
-      router.push('/profile'); // Redirect on success
+      router.push('/profile');
     } catch {
       setLocalError('Invalid OTP. Please try again.');
     }
@@ -75,16 +71,15 @@ export default function LoginPage() {
   const displayError = localError || error;
 
   return (
-    <main className="login-root">
-      <div className="login-card">
+    <main className="min-h-screen bg-blue-50 flex items-center justify-center px-4">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-10 w-full max-w-md">
 
         {/* Brand */}
-        <div className="login-brand">
-          <span className="login-brand-icon">♀</span>
-          <h1 className="login-title">Femtech</h1>
+        <div className="mb-2">
+          <h1 className="text-3xl font-bold text-blue-600">Femtech</h1>
         </div>
 
-        <p className="login-subtitle">
+        <p className="text-gray-500 text-sm mb-6">
           {step === 'phone'
             ? 'Enter your phone number to receive a one-time code.'
             : `We sent a code to ${phone}. Enter it below.`}
@@ -92,20 +87,23 @@ export default function LoginPage() {
 
         {/* Error */}
         {displayError && (
-          <div className="login-error" role="alert">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-5" role="alert">
             {displayError}
           </div>
         )}
 
         {/* ── Step 1: Phone ── */}
         {step === 'phone' && (
-          <div className="login-form">
-            <div className="input-group">
-              <label htmlFor="country">Country</label>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="country" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Country
+              </label>
               <select
                 id="country"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition w-full"
               >
                 <option value="ZA">🇿🇦 South Africa (+27)</option>
                 <option value="NG">🇳🇬 Nigeria (+234)</option>
@@ -116,8 +114,10 @@ export default function LoginPage() {
               </select>
             </div>
 
-            <div className="input-group">
-              <label htmlFor="phone">Phone Number</label>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="phone" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Phone Number
+              </label>
               <input
                 id="phone"
                 type="tel"
@@ -126,24 +126,30 @@ export default function LoginPage() {
                 onChange={(e) => setPhone(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handlePhoneSubmit()}
                 autoFocus
+                className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition w-full"
               />
             </div>
 
             <button
-              className="login-btn"
               onClick={handlePhoneSubmit}
               disabled={isLoading}
+              className="mt-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-3 transition flex items-center justify-center"
             >
-              {isLoading ? <span className="spinner" /> : 'Send Code'}
+              {isLoading
+                ? <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : 'Send Code'
+              }
             </button>
           </div>
         )}
 
         {/* ── Step 2: OTP ── */}
         {step === 'otp' && (
-          <div className="login-form">
-            <div className="input-group">
-              <label htmlFor="otp">One-Time Code</label>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="otp" className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                One-Time Code
+              </label>
               <input
                 id="otp"
                 type="text"
@@ -154,191 +160,30 @@ export default function LoginPage() {
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => e.key === 'Enter' && handleOtpSubmit()}
                 autoFocus
+                className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition w-full tracking-widest text-center text-lg"
               />
             </div>
 
             <button
-              className="login-btn"
               onClick={handleOtpSubmit}
               disabled={isLoading}
+              className="mt-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-3 transition flex items-center justify-center"
             >
-              {isLoading ? <span className="spinner" /> : 'Verify & Sign In'}
+              {isLoading
+                ? <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : 'Verify & Sign In'
+              }
             </button>
 
             <button
-              className="login-back"
               onClick={() => { setStep('phone'); setOtp(''); clearError(); setLocalError(null); }}
+              className="text-gray-400 hover:text-blue-600 text-sm underline underline-offset-2 transition text-center"
             >
               ← Use a different number
             </button>
           </div>
         )}
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500&display=swap');
-
-        .login-root {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #fdf6f0;
-          font-family: 'DM Sans', sans-serif;
-          padding: 1rem;
-        }
-
-        .login-card {
-          background: #fff;
-          border: 1px solid #f0e8e0;
-          border-radius: 20px;
-          padding: 2.5rem 2rem;
-          width: 100%;
-          max-width: 400px;
-          box-shadow: 0 8px 40px rgba(180, 120, 80, 0.08);
-        }
-
-        .login-brand {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .login-brand-icon {
-          font-size: 1.8rem;
-          color: #c47c5a;
-          line-height: 1;
-        }
-
-        .login-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.8rem;
-          color: #2d1a0e;
-          margin: 0;
-          font-weight: 700;
-        }
-
-        .login-subtitle {
-          color: #8a6a55;
-          font-size: 0.9rem;
-          line-height: 1.5;
-          margin: 0 0 1.5rem;
-        }
-
-        .login-error {
-          background: #fff1ee;
-          border: 1px solid #f5c6b8;
-          color: #b0391a;
-          border-radius: 10px;
-          padding: 0.65rem 0.9rem;
-          font-size: 0.85rem;
-          margin-bottom: 1.25rem;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.4rem;
-        }
-
-        .input-group label {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: #5c3d2a;
-          letter-spacing: 0.03em;
-          text-transform: uppercase;
-        }
-
-        .input-group input,
-        .input-group select {
-          border: 1.5px solid #e8d8cc;
-          border-radius: 10px;
-          padding: 0.7rem 0.9rem;
-          font-size: 1rem;
-          font-family: 'DM Sans', sans-serif;
-          color: #2d1a0e;
-          background: #fdf9f7;
-          outline: none;
-          transition: border-color 0.2s;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .input-group input:focus,
-        .input-group select:focus {
-          border-color: #c47c5a;
-          background: #fff;
-        }
-
-        .login-btn {
-          margin-top: 0.25rem;
-          background: #c47c5a;
-          color: #fff;
-          border: none;
-          border-radius: 10px;
-          padding: 0.85rem;
-          font-size: 1rem;
-          font-family: 'DM Sans', sans-serif;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.2s, transform 0.1s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 48px;
-        }
-
-        .login-btn:hover:not(:disabled) {
-          background: #a8613f;
-        }
-
-        .login-btn:active:not(:disabled) {
-          transform: scale(0.98);
-        }
-
-        .login-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .login-back {
-          background: none;
-          border: none;
-          color: #8a6a55;
-          font-size: 0.85rem;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer;
-          padding: 0;
-          text-align: center;
-          text-decoration: underline;
-          text-underline-offset: 3px;
-        }
-
-        .login-back:hover {
-          color: #c47c5a;
-        }
-
-        .spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-          display: inline-block;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </main>
   );
 }
