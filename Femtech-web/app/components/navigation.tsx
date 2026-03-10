@@ -23,6 +23,12 @@ export default function Navigation() {
                     >
                         About
                     </Link>
+                    <Link
+                        href="/quizzes"
+                        className="text-gray-700 hover:text-blue-600 font-medium transition"
+                    >
+                        Quizzes
+                    </Link>
                 </div>
             </div>
         </nav>
