@@ -35,7 +35,7 @@
 ## Authentication
 
 ### Request OTP
-# POST /api/v1/auth/request-otp 
+# POST /api/v1/auth/otp/request 
 Content-Type: application/json
 
 { "phone": "+27821234567", "country": "ZA" }
@@ -47,7 +47,7 @@ Response:
 }
 
 ### Verify OTP & Login
-# POST /api/v1/auth/verify-otp
+# POST /api/v1/auth/otp/verify
 Content-Type: application/json
 
 {
