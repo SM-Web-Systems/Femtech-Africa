@@ -38,7 +38,10 @@
 # POST /api/v1/auth/otp/request 
 Content-Type: application/json
 
-{ "phone": "+27821234567", "country": "ZA" }
+{
+  "phone": "+27821234567",
+  "country": "ZA"
+}
 
 Response:
 {
