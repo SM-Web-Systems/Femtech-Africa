@@ -6,6 +6,7 @@ import { authApi, CurrentUserResponse } from './authApi';
 interface AuthContextType {
     user: CurrentUserResponse | null;
     isLoading: boolean;
+    isInitialized: boolean;
     isAuthenticated: boolean;
     error: string | null;
     login: (phone: string, country: string) => Promise<void>;
@@ -19,7 +20,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<CurrentUserResponse | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isInitialized, setIsInitialized] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     // check if use is already logged in when app loads
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.log("Auth check failed:", err);
                 } finally {
                     setIsLoading(false);
+                    setIsInitialized(true);
                 }
             }
         }
@@ -100,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             isAuthenticated,
             isLoading,
+            isInitialized,
             error,
             login,
             verifyOtp,

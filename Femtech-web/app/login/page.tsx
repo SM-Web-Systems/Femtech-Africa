@@ -30,7 +30,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      router.push('/profile');
     }
   }, [isAuthenticated, router]);
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
 
     try {
       await verifyOtp(formattedPhone, otp.trim());
-      router.push('/'); // Redirect on success
+      router.push('/profile'); // Redirect on success
     } catch {
       setLocalError('Invalid OTP. Please try again.');
     }
