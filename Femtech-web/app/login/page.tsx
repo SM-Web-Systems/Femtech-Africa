@@ -160,7 +160,7 @@ export default function LoginPage() {
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => e.key === 'Enter' && handleOtpSubmit()}
                 autoFocus
-                className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition w-full tracking-widest text-center text-lg"
+                className="border border-gray-300 rounded-lg px-3 py-2.5 text-gray-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white transition w-full tracking-widest text-center text-lg"
               />
             </div>
 
