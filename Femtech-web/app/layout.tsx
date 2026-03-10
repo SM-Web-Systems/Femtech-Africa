@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Fira_Code } from "next/font/google"
 import Navigation from './components/navigation';
+import { AuthProvider } from './lib/AuthContext';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -20,8 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${firaCode.variable} antialiased`}>
-        <Navigation />
-        {children}
+        <AuthProvider>
+          <Navigation />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
