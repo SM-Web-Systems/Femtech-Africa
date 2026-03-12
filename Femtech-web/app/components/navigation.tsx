@@ -1,18 +1,22 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
-
 import Link from 'next/link';
 
 export default function Navigation() {
     const router = useRouter();
+    const pathname = usePathname();
     const { isAuthenticated, logout } = useAuth();
 
     const handleLogout = () => {
         logout();
         router.push('/');
     }
+
+    // Check if we're on the profile page
+    const isProfilePage = pathname === '/profile';
+
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -44,12 +48,25 @@ export default function Navigation() {
 
                     {/* Auth Button */}
                     {isAuthenticated ? (
-                        <button
-                            onClick={handleLogout}
-                            className="text-gray-700 hover:text-blue-600 font-medium transition"
-                        >
-                            Logout
-                        </button>
+                        <div className="flex gap-6 items-center">
+                            <button
+                                onClick={handleLogout}
+                                className="text-gray-700 hover:text-blue-600 font-medium transition"
+                            >
+                                Logout
+                            </button>
+
+                            {/* Only show Profile link if NOT on profile page */}
+                            {!isProfilePage && (
+                                <Link
+                                    href="/profile"
+                                    className="text-gray-700 hover:text-blue-600 font-medium transition"
+                                >
+                                    Profile
+                                </Link>
+                            )}
+                        </div>
+
                     ) : (
                         <Link
                             href="/login"
