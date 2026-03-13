@@ -4,7 +4,7 @@ export default function About() {
             {/* Hero Section */}
             <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-20">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-5xl font-bold mb-6">About Femtech</h1>
+                    <h1 className="text-5xl font-bold mb-6">About MamaTokens</h1>
                     <p className="text-xl text-blue-100">
                         Our mission is to support the mental health and wellbeing of pregnant mothers
                         across Africa through accessible, compassionate, and evidence-based resources.
@@ -18,7 +18,7 @@ export default function About() {
                     <div>
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Story</h2>
                         <p className="text-lg text-gray-700 leading-relaxed">
-                            Femtech Africa was founded with a simple belief: every pregnant mother deserves
+                            MamaTokens was founded with a simple belief: every pregnant mother deserves
                             access to mental health support and resources. We recognized that maternal mental
                             health is often overlooked, yet it's crucial for both mother and baby.
                         </p>

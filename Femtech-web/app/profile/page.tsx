@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Wallet from '../components/wallet';
 
+import Link from 'next/link';
+
 interface User {
     id: string;
     phone: string;
@@ -80,134 +82,129 @@ export default function ProfilePage() {
     return (
         <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
             {/* Header Section */}
-            <section className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-4 py-16">
-                <div className="max-w-6xl mx-auto">
-                    <div className="flex items-center gap-6 mb-6">
-                        <div className="h-20 w-20 rounded-full bg-blue-400 flex items-center justify-center text-3xl font-bold">
+            <section className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-4 py-12 lg:py-16">
+                <div className="w-full">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
+                        <div className="h-16 w-16 lg:h-20 lg:w-20 rounded-full bg-blue-400 flex items-center justify-center text-2xl lg:text-3xl font-bold flex-shrink-0">
                             {user?.phone?.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                            <h1 className="text-4xl font-bold mb-2">Welcome back!</h1>
-                            <p className="text-blue-100 text-lg">{user?.phone}</p>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-3xl lg:text-4xl font-bold mb-1">Welcome back!</h1>
+                            <p className="text-blue-100 text-base lg:text-lg truncate">{user?.phone}</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Wallet Section */}
-            <section className="px-4 py-12">
-                <div className="max-w-6xl mx-auto">
-                    <Wallet />
-                </div>
-            </section>
+            {/* Main Content */}
+            <section className="px-4 py-12 lg:py-16">
+                <div className="w-full">
+                    {/* Wallet Section */}
+                    {user?.walletAddress ? (
+                        <div className="mb-12 lg:mb-16">
+                            <Wallet />
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg border border-gray-200 p-6 lg:p-8 mb-12 lg:mb-16">
+                            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">Wallet</h2>
+                            <p className="text-gray-600 mb-6">You don't have a wallet yet. Get started by creating a new one or importing an existing wallet.</p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Link
+                                    href="/wallet/create"
+                                    className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-base"
+                                >
+                                    Create Wallet
+                                </Link>
+                                <Link
+                                    href="/wallet/import"
+                                    className="inline-flex items-center justify-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition text-base"
+                                >
+                                    Import Wallet
+                                </Link>
+                            </div>
+                        </div>
+                    )}
 
-            {/* Profile Information Section */}
-            <section className="px-4 py-12">
-                <div className="max-w-6xl mx-auto">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-8">Account Information</h2>
+                    {/* Account Information Section */}
+                    <div>
+                        <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-6 lg:mb-8">Account Information</h2>
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* Left Column */}
-                        <div className="space-y-4">
+                        {/* Grid Layout */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                             {/* Phone Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <span className="text-xl">📱</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">📱</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Phone Number</p>
-                                        <p className="text-lg font-semibold text-gray-900">{user?.phone}</p>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Phone</p>
                                 </div>
+                                <p className="text-base lg:text-lg font-semibold text-gray-900 break-all">{user?.phone}</p>
                             </div>
 
                             {/* Country Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
-                                        <span className="text-xl">🌍</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">🌍</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Country</p>
-                                        <p className="text-lg font-semibold text-gray-900">{user?.country}</p>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Country</p>
                                 </div>
+                                <p className="text-base lg:text-lg font-semibold text-gray-900">{user?.country}</p>
                             </div>
 
                             {/* Role Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                                        <span className="text-xl">👤</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">👤</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Account Role</p>
-                                        <p className="text-lg font-semibold text-gray-900 capitalize">{user?.role}</p>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Role</p>
                                 </div>
+                                <p className="text-base lg:text-lg font-semibold text-gray-900 capitalize">{user?.role}</p>
                             </div>
-                        </div>
 
-                        {/* Right Column */}
-                        <div className="space-y-4">
                             {/* Status Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-yellow-100 flex items-center justify-center">
-                                        <span className="text-xl">✓</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">✓</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Account Status</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className={`h-2 w-2 rounded-full ${user?.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                            <p className="text-lg font-semibold text-gray-900 capitalize">{user?.status}</p>
-                                        </div>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Status</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className={`h-2.5 w-2.5 rounded-full ${user?.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                                    <p className="text-base lg:text-lg font-semibold text-gray-900 capitalize">{user?.status}</p>
                                 </div>
                             </div>
 
                             {/* Member Since Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <span className="text-xl">📅</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">📅</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Member Since</p>
-                                        <p className="text-lg font-semibold text-gray-900">
-                                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                                        </p>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Joined</p>
                                 </div>
+                                <p className="text-base lg:text-lg font-semibold text-gray-900">
+                                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                </p>
                             </div>
 
                             {/* Last Login Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                        <span className="text-xl">🔐</span>
+                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg lg:text-xl">🔐</span>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">Last Login</p>
-                                        <p className="text-lg font-semibold text-gray-900">
-                                            {user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                                        </p>
-                                    </div>
+                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Last Login</p>
                                 </div>
+                                <p className="text-base lg:text-lg font-semibold text-gray-900">
+                                    {user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                </p>
                             </div>
                         </div>
                     </div>
-
-                    {/* Wallet Address Section */}
-                    {user?.walletAddress && (
-                        <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Stellar Wallet</h3>
-                            <div className="bg-gray-50 rounded p-4 break-all font-mono text-sm text-gray-700">
-                                {user.walletAddress}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </section>
         </main>

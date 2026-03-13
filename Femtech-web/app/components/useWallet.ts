@@ -1,0 +1,52 @@
+import { create } from 'domain';
+import apiClient from '../lib/apiClient';
+
+export interface WalletAddressResponse {
+    stellarAddress: string;
+}
+
+interface WalletBalanceResponse {
+    xlmBalance: string;
+    mamaBalance: string;
+}
+
+interface WalletDataResponse {
+    xlmBalance: string;
+    mamaBalance: string;
+    stellarAddress: string;
+}
+
+export interface CreateWalletResponse {
+    success: boolean;
+    publicKey: string;
+    secretKey: string;
+    message: string;
+    stellarExpert: string;
+}
+
+
+export const walletApi = {
+    getWalletAddress: async (): Promise<WalletAddressResponse> => {
+        const response = await apiClient.get('/wallet/balance');
+        return { stellarAddress: response.data.stellarAddress };
+    },
+
+    getWalletBalance: async (): Promise<WalletBalanceResponse> => {
+        const response = await apiClient.get('/wallet/balance');
+        return { xlmBalance: response.data.xlmBalance, mamaBalance: response.data.mamaBalance };
+    },
+
+    getWalletData: async (): Promise<WalletDataResponse> => {
+        const response = await apiClient.get('/wallet/balance');
+        return {
+            xlmBalance: response.data.xlmBalance,
+            mamaBalance: response.data.mamaBalance,
+            stellarAddress: response.data.stellarAddress
+        };
+    },
+
+    createWallet: async (): Promise<CreateWalletResponse> => {
+        const response = await apiClient.post('/wallet/create');
+        return response.data;
+    }
+}

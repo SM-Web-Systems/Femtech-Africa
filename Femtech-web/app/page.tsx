@@ -1,5 +1,4 @@
 import FAQ from "./components/faq";
-import QuizzesList from "./components/QuizzesList";
 
 export default function Home() {
   return (

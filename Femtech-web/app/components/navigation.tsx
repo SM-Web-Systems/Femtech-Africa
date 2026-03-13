@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Navigation() {
     const router = useRouter();
@@ -14,15 +15,16 @@ export default function Navigation() {
         router.push('/');
     }
 
-    // Check if we're on the profile page
+    // Check if we're on the profile page or the create wallet page to conditionally hide the Profile link
     const isProfilePage = pathname === '/profile';
+    const isCreateWalletPage = pathname === '/wallet/create';
 
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
                 {/* Logo/Brand */}
                 <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700">
-                    Femtech
+                    MamaTokens
                 </Link>
 
                 {/* Navigation Links */}
@@ -49,15 +51,8 @@ export default function Navigation() {
                     {/* Auth Button */}
                     {isAuthenticated ? (
                         <div className="flex gap-6 items-center">
-                            <button
-                                onClick={handleLogout}
-                                className="text-gray-700 hover:text-blue-600 font-medium transition"
-                            >
-                                Logout
-                            </button>
-
-                            {/* Only show Profile link if NOT on profile page */}
-                            {!isProfilePage && (
+                            {/* Only show Profile link if NOT on profile page or create wallet page */}
+                            {!isProfilePage && !isCreateWalletPage && (
                                 <Link
                                     href="/profile"
                                     className="text-gray-700 hover:text-blue-600 font-medium transition"
@@ -65,6 +60,12 @@ export default function Navigation() {
                                     Profile
                                 </Link>
                             )}
+                            <button
+                                onClick={handleLogout}
+                                className="text-gray-700 hover:text-blue-600 font-medium transition"
+                            >
+                                Logout
+                            </button>
                         </div>
 
                     ) : (
