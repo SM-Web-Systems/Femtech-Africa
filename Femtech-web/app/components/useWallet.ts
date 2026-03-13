@@ -5,12 +5,12 @@ export interface WalletAddressResponse {
     stellarAddress: string;
 }
 
-interface WalletBalanceResponse {
+export interface WalletBalanceResponse {
     xlmBalance: string;
     mamaBalance: string;
 }
 
-interface WalletDataResponse {
+export interface WalletDataResponse {
     xlmBalance: string;
     mamaBalance: string;
     stellarAddress: string;
@@ -22,6 +22,12 @@ export interface CreateWalletResponse {
     secretKey: string;
     message: string;
     stellarExpert: string;
+}
+
+export interface ImportWalletResponse {
+    success: boolean;
+    publicKey: string;
+    message: string;
 }
 
 
@@ -48,5 +54,10 @@ export const walletApi = {
     createWallet: async (): Promise<CreateWalletResponse> => {
         const response = await apiClient.post('/wallet/create');
         return response.data;
-    }
+    },
+
+    importWallet: async (secretKey: string): Promise<ImportWalletResponse> => {
+        const response = await apiClient.post('/wallet/import', { secretKey });
+        return response.data;
+    },
 }
