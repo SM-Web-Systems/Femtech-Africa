@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Wallet from '../components/wallet';
 
+import Link from 'next/link';
+
 interface User {
     id: string;
     phone: string;
@@ -95,11 +97,29 @@ export default function ProfilePage() {
             </section>
 
             {/* Wallet Section */}
-            <section className="px-4 py-12">
-                <div className="max-w-6xl mx-auto">
-                    <Wallet />
-                </div>
-            </section>
+            {user?.walletAddress ? (
+                <section className="px-4 py-12">
+                    <div className="max-w-6xl mx-auto">
+                        <Wallet />
+                    </div>
+                </section>
+            ) : (
+                <section className="px-4 py-12">
+                    <div className="max-w-6xl mx-auto">
+                        <Link
+                            href="/wallet/create"
+                            className="text-gray-700 hover:text-blue-600 font-medium transition"
+                        >
+                            Create
+                        </Link> or <Link
+                            href="/wallet/import"
+                            className="text-gray-700 hover:text-blue-600 font-medium transition"
+                        >
+                            Import
+                        </Link> Wallet
+                    </div>
+                </section>
+            )}
 
             {/* Profile Information Section */}
             <section className="px-4 py-12">
@@ -198,16 +218,6 @@ export default function ProfilePage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Wallet Address Section */}
-                    {user?.walletAddress && (
-                        <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Stellar Wallet</h3>
-                            <div className="bg-gray-50 rounded p-4 break-all font-mono text-sm text-gray-700">
-                                {user.walletAddress}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </section>
         </main>

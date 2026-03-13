@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import apiClient from '../lib/apiClient';
+import { useState, useEffect } from 'react';
+import { walletApi } from './useWallet';
 
 interface WalletData {
     xlmBalance: string;
@@ -19,11 +19,11 @@ export default function Wallet() {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await apiClient.get('/wallet/balance');
+                const response = await walletApi.getWalletData();
                 setWallet({
-                    xlmBalance: response.data.xlmBalance,
-                    mamaBalance: response.data.mamaBalance,
-                    stellarAddress: response.data.stellarAddress,
+                    xlmBalance: response.xlmBalance,
+                    mamaBalance: response.mamaBalance,
+                    stellarAddress: response.stellarAddress,
                 });
             } catch (err) {
                 console.error('Failed to fetch wallet info:', err);
