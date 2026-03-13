@@ -4,13 +4,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 
 export default function Navigation() {
     const router = useRouter();
     const pathname = usePathname();
     const { isAuthenticated, logout } = useAuth();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -26,7 +24,7 @@ export default function Navigation() {
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
                 {/* Logo/Brand */}
                 <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700">
-                    Femtech
+                    MamaTokens
                 </Link>
 
                 {/* Navigation Links */}
@@ -53,13 +51,6 @@ export default function Navigation() {
                     {/* Auth Button */}
                     {isAuthenticated ? (
                         <div className="flex gap-6 items-center">
-                            <button
-                                onClick={handleLogout}
-                                className="text-gray-700 hover:text-blue-600 font-medium transition"
-                            >
-                                Logout
-                            </button>
-
                             {/* Only show Profile link if NOT on profile page or create wallet page */}
                             {!isProfilePage && !isCreateWalletPage && (
                                 <Link
@@ -69,6 +60,12 @@ export default function Navigation() {
                                     Profile
                                 </Link>
                             )}
+                            <button
+                                onClick={handleLogout}
+                                className="text-gray-700 hover:text-blue-600 font-medium transition"
+                            >
+                                Logout
+                            </button>
                         </div>
 
                     ) : (
