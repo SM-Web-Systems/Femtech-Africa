@@ -18,6 +18,7 @@ export default function Navigation() {
     // Check if we're on the profile page or the create wallet page to conditionally hide the Profile link
     const isProfilePage = pathname === '/profile';
     const isCreateWalletPage = pathname === '/wallet/create';
+    const isImportWalletPage = pathname === '/wallet/import';
 
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -51,8 +52,8 @@ export default function Navigation() {
                     {/* Auth Button */}
                     {isAuthenticated ? (
                         <div className="flex gap-6 items-center">
-                            {/* Only show Profile link if NOT on profile page or create wallet page */}
-                            {!isProfilePage && !isCreateWalletPage && (
+                            {/* Only show Profile link if NOT on profile page, create wallet page, or import wallet page */}
+                            {!isProfilePage && !isCreateWalletPage && !isImportWalletPage && (
                                 <Link
                                     href="/profile"
                                     className="text-gray-700 hover:text-blue-600 font-medium transition"
