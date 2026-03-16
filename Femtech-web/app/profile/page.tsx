@@ -23,7 +23,7 @@ export default function ProfilePage() {
     const { isAuthenticated, isLoading, isInitialized } = useAuth();
 
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start with true (not false!)
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -54,29 +54,9 @@ export default function ProfilePage() {
     if (loading) {
         return (
             <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-                <style jsx>{`
-                    @keyframes pulse-ring {
-                        0% {
-                            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-                        }
-                        70% {
-                            box-shadow: 0 0 0 20px rgba(59, 130, 246, 0);
-                        }
-                        100% {
-                            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-                        }
-                    }
-                    .loading-spinner {
-                        animation: spin 2s linear infinite;
-                    }
-                    @keyframes spin {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-                `}</style>
                 <div className="text-center">
                     <div className="mb-6 relative w-16 h-16 mx-auto">
-                        <div className="loading-spinner absolute inset-0 rounded-full border-2 border-slate-200 border-t-blue-500"></div>
+                        <div className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
                     </div>
                     <p className="text-sm font-medium text-slate-500 tracking-wide">Loading your profile...</p>
                 </div>
@@ -104,82 +84,12 @@ export default function ProfilePage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-            <style jsx>{`
-                @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-                
-                * {
-                    font-family: 'Sora', sans-serif;
-                }
-                
-                code, pre {
-                    font-family: 'JetBrains Mono', monospace;
-                }
-
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                @keyframes fadeInScale {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.95);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-
-                @keyframes shimmer {
-                    0%, 100% {
-                        background-position: -1000px 0;
-                    }
-                    50% {
-                        background-position: 1000px 0;
-                    }
-                }
-
-                .header-section {
-                    animation: fadeInUp 0.6s ease-out;
-                }
-
-                .content-section {
-                    animation: fadeInUp 0.6s ease-out 0.1s both;
-                }
-
-                .info-card {
-                    animation: fadeInScale 0.4s ease-out;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                .info-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-                }
-
-                .wallet-section {
-                    animation: fadeInUp 0.6s ease-out 0.2s both;
-                }
-
-                .avatar {
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-                }
-            `}</style>
-
             {/* Main Content */}
-            <section className="content-section relative px-4 py-16 lg:py-20">
+            <section className="relative px-4 py-16 lg:py-20">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
                         {/* Wallet Section - Spans 1 column on desktop */}
-                        <div className="wallet-section lg:col-span-1">
+                        <div className="lg:col-span-1">
                             <div className="mb-3">
                                 <h2 className="text-2xl font-bold text-slate-900">Wallet</h2>
                                 <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2"></div>
@@ -195,13 +105,13 @@ export default function ProfilePage() {
                                     <div className="flex flex-col gap-3">
                                         <Link
                                             href="/wallet/create"
-                                            className="info-card inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-sm"
+                                            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-sm"
                                         >
                                             Create Wallet
                                         </Link>
                                         <Link
                                             href="/wallet/import"
-                                            className="info-card inline-flex items-center justify-center px-6 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-900 font-semibold rounded-lg transition-all duration-200 text-sm"
+                                            className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-900 font-semibold rounded-lg transition-all duration-200 text-sm"
                                         >
                                             Import Wallet
                                         </Link>
@@ -220,7 +130,7 @@ export default function ProfilePage() {
                             {/* 2-Column Grid for Account Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Phone Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Phone</p>
@@ -231,7 +141,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Country Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Country</p>
@@ -242,7 +152,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Role Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Role</p>
@@ -253,7 +163,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Status Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</p>
@@ -267,7 +177,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Member Since Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Joined</p>
@@ -280,7 +190,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Last Login Card */}
-                                <div className="info-card bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Last Login</p>

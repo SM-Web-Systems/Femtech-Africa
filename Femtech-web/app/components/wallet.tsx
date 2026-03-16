@@ -92,166 +92,59 @@ export default function Wallet() {
 
     return (
         <div className="space-y-8">
-            <style jsx>{`
-                @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
-
-                * {
-                    font-family: 'Sora', sans-serif;
-                }
-
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                @keyframes fadeInScale {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.95);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-
-                @keyframes shimmer {
-                    0%, 100% {
-                        opacity: 1;
-                    }
-                    50% {
-                        opacity: 0.8;
-                    }
-                }
-
-                @keyframes glow {
-                    0%, 100% {
-                        box-shadow: 0 0 0 0 var(--glow-color);
-                    }
-                    50% {
-                        box-shadow: 0 0 0 8px rgba(0, 0, 0, 0);
-                    }
-                }
-
-                .wallet-card {
-                    animation: fadeInScale 0.5s ease-out;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                }
-
-                .wallet-card:nth-child(1) {
-                    animation-delay: 0s;
-                    --glow-color: rgba(168, 85, 247, 0.5);
-                }
-
-                .wallet-card:nth-child(2) {
-                    animation-delay: 0.1s;
-                    --glow-color: rgba(59, 130, 246, 0.5);
-                }
-
-                .wallet-card:nth-child(3) {
-                    animation-delay: 0.2s;
-                    --glow-color: rgba(34, 197, 94, 0.5);
-                }
-
-                .wallet-card:hover {
-                    transform: translateY(-8px) scale(1.02);
-                }
-
-                .wallet-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
-                    pointer-events: none;
-                }
-
-                .balance-number {
-                    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                }
-
-                .wallet-icon {
-                    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
-                    animation: shimmer 3s ease-in-out infinite;
-                }
-
-                .transaction-item {
-                    animation: fadeInUp 0.3s ease-out;
-                    transition: all 0.2s ease-out;
-                }
-
-                .transaction-item:hover {
-                    background-color: rgba(59, 130, 246, 0.05);
-                    transform: translateX(4px);
-                }
-            `}</style>
-
-            {/* Balance Cards Grid - Horizontal Layout */}
+            {/* Balance Cards Grid */}
             <div className="space-y-4">
                 {/* XLM Balance Card */}
-                <div className="wallet-card bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-800 rounded-2xl p-6 text-white shadow-xl border border-purple-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
+                <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-800 rounded-2xl p-6 text-white shadow-xl border border-purple-500/20 hover:-translate-y-2 transition-transform duration-300">
+                    <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-100 text-xs font-semibold uppercase tracking-wider mr-3 opacity-80">
+                            <p className="text-purple-100 text-xs font-semibold uppercase tracking-wider opacity-80">
                                 XLM Balance
                             </p>
                             <p className="text-purple-200 text-xs font-medium mt-1">Stellar Lumens</p>
                         </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                        <p className="balance-number text-4xl font-bold">
-                            {wallet?.xlmBalance || '0'}
-                        </p>
-                        <p className="text-purple-100 text-xs opacity-75 mt-1">Primary network token</p>
+                        <div className="text-right">
+                            <p className="text-4xl font-bold text-white">
+                                {wallet?.xlmBalance || '0'}
+                            </p>
+                            <p className="text-purple-100 text-xs opacity-75 mt-1">Primary token</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* MAMA Balance Card */}
-                <div className="wallet-card bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-white shadow-xl border border-blue-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-white shadow-xl border border-blue-500/20 hover:-translate-y-2 transition-transform duration-300">
+                    <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider mr-3 opacity-80">
+                            <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider opacity-80">
                                 MAMA Balance
                             </p>
                             <p className="text-blue-200 text-xs font-medium mt-1">MAMA Tokens</p>
                         </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                        <p className="balance-number text-4xl font-bold">
-                            {wallet?.mamaBalance || '0'}
-                        </p>
-                        <p className="text-blue-100 text-xs opacity-75 mt-1">Community token</p>
+                        <div className="text-right">
+                            <p className="text-4xl font-bold text-white">
+                                {wallet?.mamaBalance || '0'}
+                            </p>
+                            <p className="text-blue-100 text-xs opacity-75 mt-1">Community token</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Total Value Card */}
-                <div className="wallet-card bg-gradient-to-r from-emerald-600 via-green-700 to-teal-800 rounded-2xl p-6 text-white shadow-xl border border-green-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
+                <div className="bg-gradient-to-r from-emerald-600 via-green-700 to-teal-800 rounded-2xl p-6 text-white shadow-xl border border-green-500/20 hover:-translate-y-2 transition-transform duration-300">
+                    <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-xs font-semibold uppercase tracking-wider opacity-80">
                                 Total Value
                             </p>
                             <p className="text-green-200 text-xs font-medium mt-1">Combined Value</p>
                         </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                        <p className="balance-number text-4xl font-bold">
-                            {totalValue}
-                        </p>
-                        <p className="text-green-100 text-xs opacity-75 mt-1">XLM + MAMA</p>
+                        <div className="text-right">
+                            <p className="text-4xl font-bold text-white">
+                                {totalValue}
+                            </p>
+                            <p className="text-green-100 text-xs opacity-75 mt-1">XLM + MAMA</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -268,35 +161,33 @@ export default function Wallet() {
                     </div>
 
                     <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200 mb-3">
-                        <p className="text-sm text-slate-900 font-mono break-all leading-relaxed font-medium">
+                        <p className="text-sm text-slate-900 font-mono break-all leading-relaxed">
                             {wallet.stellarAddress}
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={copyToClipboard}
-                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${copiedAddress
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-blue-100 hover:bg-blue-200 text-blue-700 active:scale-95'
-                                }`}
-                        >
-                            {copiedAddress ? (
-                                <>
-                                    <span>✓</span>
-                                    <span>Copied!</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>📋</span>
-                                    <span>Copy Address</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    <button
+                        onClick={copyToClipboard}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${copiedAddress
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-blue-100 hover:bg-blue-200 text-blue-700 active:scale-95'
+                            }`}
+                    >
+                        {copiedAddress ? (
+                            <>
+                                <span>✓</span>
+                                <span>Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>📋</span>
+                                <span>Copy Address</span>
+                            </>
+                        )}
+                    </button>
 
                     <p className="text-xs text-slate-600 mt-4 leading-relaxed">
-                        Use this address to receive payments on the Stellar network. Keep it private and secure.
+                        Use this address to receive payments on the Stellar network.
                     </p>
                 </div>
             )}
@@ -320,7 +211,7 @@ export default function Wallet() {
                             </div>
                         </div>
                         <span
-                            className={`text-2xl transition-transform duration-300 group-hover:scale-110 ${isDropdownOpen ? 'rotate-90' : 'rotate-0'
+                            className={`text-2xl transition-transform duration-300 ${isDropdownOpen ? 'rotate-90' : 'rotate-0'
                                 }`}
                         >
                             ▶
@@ -340,18 +231,18 @@ export default function Wallet() {
                                         href={`https://stellar.expert/explorer/public/tx/${tx.tx_hash}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="transaction-item block"
+                                        className="block"
                                     >
-                                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 hover:border-blue-300 group">
+                                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all">
                                             <div className="flex items-start justify-between gap-3 mb-2">
                                                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider">
                                                     Transaction {index + 1}
                                                 </p>
-                                                <span className="text-sm text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition">
+                                                <span className="text-sm text-blue-600 font-medium">
                                                     View ↗
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-slate-900 font-mono break-all leading-relaxed font-medium">
+                                            <p className="text-sm text-slate-900 font-mono break-all">
                                                 {tx.tx_hash}
                                             </p>
                                         </div>
