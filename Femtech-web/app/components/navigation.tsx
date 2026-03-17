@@ -43,6 +43,12 @@ export default function Navigation() {
                         About
                     </Link>
                     <Link
+                        href="/milestones"
+                        className="text-gray-700 hover:text-blue-600 font-medium transition"
+                    >
+                        Milestones
+                    </Link>
+                    <Link
                         href="/quizzes"
                         className="text-gray-700 hover:text-blue-600 font-medium transition"
                     >

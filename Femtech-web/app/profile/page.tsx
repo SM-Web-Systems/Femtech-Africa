@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Wallet from '../components/wallet';
+import { milestonesApi, UserMilestoneResponse } from '../components/useMilestones';
 
 import Link from 'next/link';
 
@@ -24,8 +25,10 @@ export default function ProfilePage() {
     const { isAuthenticated, isLoading, isInitialized } = useAuth();
 
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start with true (not false!)
     const [error, setError] = useState<string | null>(null);
+
+    const [userMilestones, setUserMilestones] = useState<UserMilestoneResponse[]>([]);
 
     useEffect(() => {
         if (!isInitialized) return;
@@ -40,7 +43,9 @@ export default function ProfilePage() {
                 setLoading(true);
                 setError(null);
                 const response = await apiClient.get('/auth/me');
+                const milestonesResponse = await milestonesApi.getUserMilestones();
                 setUser(response.data);
+                setUserMilestones(milestonesResponse);
             } catch (err) {
                 console.error('Failed to fetch user profile:', err);
                 setError('Failed to load profile. Please try again later.');
@@ -54,10 +59,12 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+            <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading your profile...</p>
+                    <div className="mb-6 relative w-16 h-16 mx-auto">
+                        <div className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
+                    </div>
+                    <p className="text-sm font-medium text-slate-500 tracking-wide">Loading your profile...</p>
                 </div>
             </main>
         );
@@ -65,12 +72,14 @@ export default function ProfilePage() {
 
     if (error) {
         return (
-            <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center">
-                    <p className="text-red-600 font-semibold mb-4">{error}</p>
+            <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center px-4">
+                <div className="bg-white border border-red-100 rounded-2xl p-8 max-w-md text-center shadow-sm">
+                    <div className="mb-4 text-4xl">⚠️</div>
+                    <p className="text-red-600 font-semibold mb-2">{error}</p>
+                    <p className="text-sm text-slate-500 mb-6">Try logging in again or contact support if the problem persists.</p>
                     <button
                         onClick={() => router.push('/login')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
+                        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium text-sm"
                     >
                         Back to Login
                     </button>
@@ -80,133 +89,157 @@ export default function ProfilePage() {
     }
 
     return (
-        <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-            {/* Header Section */}
-            <section className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-4 py-12 lg:py-16">
-                <div className="w-full">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
-                        <div className="h-16 w-16 lg:h-20 lg:w-20 rounded-full bg-blue-400 flex items-center justify-center text-2xl lg:text-3xl font-bold flex-shrink-0">
-                            {user?.phone?.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-3xl lg:text-4xl font-bold mb-1">Welcome back!</h1>
-                            <p className="text-blue-100 text-base lg:text-lg truncate">{user?.phone}</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
+        <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
             {/* Main Content */}
-            <section className="px-4 py-12 lg:py-16">
-                <div className="w-full">
-                    {/* Wallet Section */}
-                    {user?.walletAddress ? (
-                        <div className="mb-12 lg:mb-16">
-                            <Wallet />
+            <section className="relative px-4 py-16 lg:py-20">
+                <div className="w-full max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
+                        {/* Wallet Section - Spans 1 column on desktop */}
+                        <div className="lg:col-span-1">
+                            <div className="mb-3">
+                                <h2 className="text-2xl font-bold text-slate-900">Wallet</h2>
+                                <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2"></div>
+                            </div>
+
+                            {user?.walletAddress ? (
+                                <Wallet />
+                            ) : (
+                                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm h-full flex flex-col justify-between">
+                                    <div>
+                                        <p className="text-slate-600 mb-6 leading-relaxed text-sm">Get started by creating a new wallet or importing an existing one.</p>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        <Link
+                                            href="/wallet/create"
+                                            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-sm"
+                                        >
+                                            Create Wallet
+                                        </Link>
+                                        <Link
+                                            href="/wallet/import"
+                                            className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-900 font-semibold rounded-lg transition-all duration-200 text-sm"
+                                        >
+                                            Import Wallet
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <div className="bg-white rounded-lg border border-gray-200 p-6 lg:p-8 mb-12 lg:mb-16">
-                            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">Wallet</h2>
-                            <p className="text-gray-600 mb-6">You don't have a wallet yet. Get started by creating a new one or importing an existing wallet.</p>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <Link
-                                    href="/wallet/create"
-                                    className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-base"
-                                >
-                                    Create Wallet
-                                </Link>
-                                <Link
-                                    href="/wallet/import"
-                                    className="inline-flex items-center justify-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition text-base"
-                                >
-                                    Import Wallet
-                                </Link>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Account Information Section */}
-                    <div>
-                        <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-6 lg:mb-8">Account Information</h2>
-
-                        {/* Grid Layout */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                            {/* Phone Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">📱</span>
-                                    </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Phone</p>
-                                </div>
-                                <p className="text-base lg:text-lg font-semibold text-gray-900 break-all">{user?.phone}</p>
+                        {/* Account Information Section - Spans 2 columns on desktop */}
+                        <div className="lg:col-span-2">
+                            <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-slate-900">Account Information</h2>
+                                <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2"></div>
                             </div>
 
-                            {/* Country Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">🌍</span>
+                            {/* 2-Column Grid for Account Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Phone Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Phone</p>
+                                            <p className="text-lg font-bold text-slate-900 break-all">{user?.phone}</p>
+                                        </div>
+                                        <span className="text-2xl">📱</span>
                                     </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Country</p>
                                 </div>
-                                <p className="text-base lg:text-lg font-semibold text-gray-900">{user?.country}</p>
-                            </div>
 
-                            {/* Role Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">👤</span>
+                                {/* Country Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Country</p>
+                                            <p className="text-lg font-bold text-slate-900">{user?.country}</p>
+                                        </div>
+                                        <span className="text-2xl">🌍</span>
                                     </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Role</p>
                                 </div>
-                                <p className="text-base lg:text-lg font-semibold text-gray-900 capitalize">{user?.role}</p>
-                            </div>
 
-                            {/* Status Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">✓</span>
+                                {/* Role Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Role</p>
+                                            <p className="text-lg font-bold text-slate-900 capitalize">{user?.role}</p>
+                                        </div>
+                                        <span className="text-2xl">👤</span>
                                     </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Status</p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className={`h-2.5 w-2.5 rounded-full ${user?.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                    <p className="text-base lg:text-lg font-semibold text-gray-900 capitalize">{user?.status}</p>
-                                </div>
-                            </div>
 
-                            {/* Member Since Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">📅</span>
+                                {/* Status Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <div className={`h-3 w-3 rounded-full ${user?.status === 'active' ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'}`}></div>
+                                                <p className="text-lg font-bold text-slate-900 capitalize">{user?.status}</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl">✓</span>
                                     </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Joined</p>
                                 </div>
-                                <p className="text-base lg:text-lg font-semibold text-gray-900">
-                                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                                </p>
-                            </div>
 
-                            {/* Last Login Card */}
-                            <div className="bg-white rounded-lg border border-gray-200 p-5 lg:p-6 hover:shadow-md transition">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-lg lg:text-xl">🔐</span>
+                                {/* Member Since Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Joined</p>
+                                            <p className="text-lg font-bold text-slate-900">
+                                                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                            </p>
+                                        </div>
+                                        <span className="text-2xl">📅</span>
                                     </div>
-                                    <p className="text-xs lg:text-sm text-gray-500 font-medium uppercase tracking-wide">Last Login</p>
                                 </div>
-                                <p className="text-base lg:text-lg font-semibold text-gray-900">
-                                    {user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                                </p>
+
+                                {/* Last Login Card */}
+                                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Last Login</p>
+                                            <p className="text-lg font-bold text-slate-900">
+                                                {user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                                            </p>
+                                        </div>
+                                        <span className="text-2xl">🔐</span>
+                                    </div>
+                                </div>
+                                <div className="lg:col-span-3 mt-10">
+                                    <div className="mb-3">
+                                        <h2 className="text-2xl font-bold text-slate-900">Completed Milestones</h2>
+                                        <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2"></div>
+                                    </div>
+
+                                    {/* User Milestones */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {userMilestones.length === 0 ? (
+                                            <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm col-span-full text-center">
+                                                <p className="text-slate-600">No milestones found. Start your journey to earn rewards!</p>
+                                            </div>
+                                        ) : (
+                                            userMilestones.map((milestone) => (
+                                                <div key={milestone.id} onClick={() => {
+                                                    router.push(`/milestones/${milestone.id}`);
+                                                }} className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{milestone.milestone_definitions.category}</p>
+                                                            <p className="text-lg font-bold text-slate-900">{milestone.milestone_definitions.name}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-        </main>
+        </main >
     );
 }
