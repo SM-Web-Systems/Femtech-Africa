@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Wallet from '../components/wallet';
+import { milestonesApi, UserMilestoneResponse } from '../components/useMilestones';
+
 import Link from 'next/link';
 
 interface User {
@@ -26,6 +28,8 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true); // Start with true (not false!)
     const [error, setError] = useState<string | null>(null);
 
+    const [userMilestones, setUserMilestones] = useState<UserMilestoneResponse[]>([]);
+
     useEffect(() => {
         if (!isInitialized) return;
 
@@ -39,7 +43,9 @@ export default function ProfilePage() {
                 setLoading(true);
                 setError(null);
                 const response = await apiClient.get('/auth/me');
+                const milestonesResponse = await milestonesApi.getUserMilestones();
                 setUser(response.data);
+                setUserMilestones(milestonesResponse);
             } catch (err) {
                 console.error('Failed to fetch user profile:', err);
                 setError('Failed to load profile. Please try again later.');
@@ -201,11 +207,39 @@ export default function ProfilePage() {
                                         <span className="text-2xl">🔐</span>
                                     </div>
                                 </div>
+                                <div className="lg:col-span-3 mt-10">
+                                    <div className="mb-3">
+                                        <h2 className="text-2xl font-bold text-slate-900">Completed Milestones</h2>
+                                        <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2"></div>
+                                    </div>
+
+                                    {/* User Milestones */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {userMilestones.length === 0 ? (
+                                            <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm col-span-full text-center">
+                                                <p className="text-slate-600">No milestones found. Start your journey to earn rewards!</p>
+                                            </div>
+                                        ) : (
+                                            userMilestones.map((milestone) => (
+                                                <div key={milestone.id} onClick={() => {
+                                                    router.push(`/milestones/${milestone.id}`);
+                                                }} className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{milestone.milestone_definitions.category}</p>
+                                                            <p className="text-lg font-bold text-slate-900">{milestone.milestone_definitions.name}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-        </main>
+        </main >
     );
 }
