@@ -19,6 +19,8 @@ export default function Navigation() {
     const isProfilePage = pathname === '/profile';
     const isCreateWalletPage = pathname === '/wallet/create';
     const isImportWalletPage = pathname === '/wallet/import';
+    const isMilestonePage = pathname === '/milestones';
+    const isQuizzesPage = pathname === '/quizzes';
 
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -42,18 +44,21 @@ export default function Navigation() {
                     >
                         About
                     </Link>
-                    <Link
-                        href="/milestones"
-                        className="text-gray-700 hover:text-blue-600 font-medium transition"
-                    >
-                        Milestones
-                    </Link>
-                    <Link
-                        href="/quizzes"
-                        className="text-gray-700 hover:text-blue-600 font-medium transition"
-                    >
-                        Quizzes
-                    </Link>
+                    {!isMilestonePage && (
+                        <Link
+                            href="/milestones"
+                            className="text-gray-700 hover:text-blue-600 font-medium transition"
+                        >
+                            Milestones
+                        </Link>)}
+                    {!isQuizzesPage && (
+                        <Link
+                            href="/quizzes"
+                            className="text-gray-700 hover:text-blue-600 font-medium transition"
+                        >
+                            Quizzes
+                        </Link>
+                    )}
 
                     {/* Auth Button */}
                     {isAuthenticated ? (
