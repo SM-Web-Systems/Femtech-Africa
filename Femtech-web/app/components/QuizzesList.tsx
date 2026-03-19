@@ -1,9 +1,37 @@
 'use client';
 
-import { useQuizzes } from './useQuizzes';
+import { quizzesApi, Quizz } from './useQuizzes';
+import { useState, useEffect } from 'react';
 
 export default function QuizzesList() {
-    const { quizzes, loading, error } = useQuizzes();
+
+    const [quizzes, setQuizzes] = useState<Quizz[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchQuizzes = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const response = await quizzesApi.getQuizzes();
+
+                setQuizzes(response);
+            }
+            catch (err) {
+                const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+                setError(errorMessage);
+                console.error('Error fetching quizzes:', err);
+            }
+            finally {
+                setLoading(false);
+            }
+        }
+
+        fetchQuizzes();
+
+    }, []); // Empty dependency array means this runs once on mount
 
     if (loading) {
         return <div className="text-center py-8">Loading quizzes...</div>;

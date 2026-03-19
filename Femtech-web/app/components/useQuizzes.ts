@@ -1,69 +1,60 @@
 'use-client';
 
-import { useState, useEffect } from 'react';
+import apiClient from '../lib/apiClient';
 
-interface Quizz {
+export interface Quizz {
     id: string;
     title: string;
     description: string;
     category: string;
     difficulty: string;
-    country: string | null;
-    language: string;
     time_limit_mins: number;
     pass_threshold: number;
     reward_amount: number;
-    milestone_def_id: string | null;
-    is_active: boolean;
-    createdAt: string;
-    updatedAt: string;
     _count: {
         questions: number;
     };
+    questionCount: number;
 }
 
-interface UseQuizzResult {
+export interface UseQuizzResult {
     quizzes: Quizz[];
     loading: boolean;
     error: string | null;
 }
 
-export function useQuizzes(): UseQuizzResult {
-    const [quizzes, setQuizzes] = useState<Quizz[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+export const quizzesApi = {
+    // Get all quizzes
+    getQuizzes: async (category?: string) => {
+        const params = category ? `?category=${category}` : '';
+        const response = await apiClient.get(`/quizzes${params}`);
+        return response.data;
+    },
 
-    useEffect(() => {
-        const fetchQuizzes = async () => {
-            try {
-                setLoading(true);
-                setError(null);
+    // Get quiz details with questions
+    getQuiz: async (quizId: string) => {
+        const response = await apiClient.get(`/quizzes/${quizId}`);
+        return response.data;
+    },
 
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiUrl}api/v1/quizzes`);
+    // Start quiz attempt
+    startQuiz: async (quizId: string) => {
+        const response = await apiClient.post(`/quizzes/${quizId}/start`);
+        return response.data;
+    },
 
-                console.log(apiUrl)
+    // Submit quiz answers
+    submitQuiz: async (quizId: string, answers: any[], startedAt: string) => {
+        const response = await apiClient.post(`/quizzes/${quizId}/submit`, {
+            answers,
+            startedAt,
+        });
+        return response.data;
+    },
 
-                if (!response.ok) {
-                    throw new Error(`Error fetching quizzes: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                setQuizzes(data);
-            }
-            catch (err) {
-                const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-                setError(errorMessage);
-                console.error('Error fetching quizzes:', err);
-            }
-            finally {
-                setLoading(false);
-            }
-        }
-
-        fetchQuizzes();
-
-    }, []); // Empty dependency array means this runs once on mount
-
-    return { quizzes, loading, error };
-}
+    // Get user's quiz attempts
+    getMyAttempts: async () => {
+        const response = await apiClient.get('/quizzes/my/attempts');
+        return response.data;
+    },
+};
