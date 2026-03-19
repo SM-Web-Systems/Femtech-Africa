@@ -44,7 +44,7 @@ interface QuizResult {
 export default function QuizDetailPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isInitialized } = useAuth();
 
     const [quiz, setQuiz] = useState<QuizDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -57,6 +57,12 @@ export default function QuizDetailPage() {
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
+        // Wait for auth to completely finish initializing
+        if (!isInitialized) {
+            return; // Still loading, don't do anything yet
+        }
+
+        // Now auth is done. Check if user is NOT authenticated
         if (!isAuthenticated) {
             router.push('/login');
             return;
@@ -72,7 +78,6 @@ export default function QuizDetailPage() {
                 console.log('Questions:', response.questions);
 
                 setQuiz(response);
-                // Initialize answers array with null values
                 setAnswers(new Array(response.questions?.length || 0).fill(null));
             } catch (err) {
                 console.error('Failed to fetch quiz:', err);
@@ -85,7 +90,7 @@ export default function QuizDetailPage() {
         if (id) {
             fetchQuiz();
         }
-    }, [id, isAuthenticated]);
+    }, [id, isInitialized, isAuthenticated]);
 
     const handleStartQuiz = async () => {
         try {
