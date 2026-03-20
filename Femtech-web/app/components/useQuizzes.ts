@@ -17,13 +17,7 @@ export interface Quizz {
     questionCount: number;
 }
 
-export interface UseQuizzResult {
-    quizzes: Quizz[];
-    loading: boolean;
-    error: string | null;
-}
-
-export interface QuizAttempt {
+export interface QuizzAttempt {
     id: string;
     userId: string;
     quizId: string;
@@ -43,22 +37,17 @@ export interface QuizAttempt {
     };
 }
 
-export interface QuizWithAttempts {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    difficulty: string;
-    language: string;
-    timeLimit: number;
-    passingThreshold: number;
-    questionCount: number;
-    attempts: QuizAttempt[];
+export interface QuizzWithAttempts extends Quizz {
+    attempts: QuizzAttempt[];
     totalAttempts: number;
-    latestAttempt: QuizAttempt | null;
+    latestAttempt: QuizzAttempt | null;
     bestScore: number;
-    reward_amount: number;
-    rewardClaimed: boolean;
+}
+
+export interface UseQuizzResult {
+    quizzes: Quizz[];
+    loading: boolean;
+    error: string | null;
 }
 
 export const quizzesApi = {
