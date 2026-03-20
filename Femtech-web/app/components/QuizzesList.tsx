@@ -1,45 +1,62 @@
 'use client';
 
-import { useQuizzes } from './useQuizzes';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../lib/AuthContext';
+import { useQuizzesWithAttempts } from '../lib/hooks/useQuizzesWithAttempts';
+import QuizzCard from './quizzes/QuizzCard';
 
 export default function QuizzesList() {
-    const { quizzes, loading, error } = useQuizzes();
+    const { isAuthenticated, isInitialized } = useAuth();
+    const { quizzesWithAttempts, loading, error } = useQuizzesWithAttempts(isAuthenticated, isInitialized);
+    const [expandedQuiz, setExpandedQuiz] = useState<string | null>(null);
 
     if (loading) {
-        return <div className="text-center py-8">Loading quizzes...</div>;
+        return (
+            <section className="px-4 py-20">
+                <div className="max-w-6xl mx-auto text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading quizzes...</p>
+                </div>
+            </section>
+        );
     }
 
     if (error) {
-        return <div className="text-center py-8 text-red-500">Error: {error}</div>;
+        return (
+            <section className="px-4 py-20">
+                <div className="max-w-6xl mx-auto">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <p className="text-red-600 font-semibold">{error}</p>
+                    </div>
+                </div>
+            </section>
+        );
     }
 
-    if (quizzes.length === 0) {
-        return <div className="text-center py-8">No quizzes found.</div>;
+    if (quizzesWithAttempts.length === 0) {
+        return (
+            <section className="px-4 py-20">
+                <div className="max-w-6xl mx-auto text-center">
+                    <p className="text-gray-600 text-lg">No quizzes available yet.</p>
+                </div>
+            </section>
+        );
     }
 
     return (
         <section className="px-4 py-20 bg-gray-50">
             <div className="max-w-6xl mx-auto">
-                <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center">
-                    Quizzes
-                </h2>
-
+                <h2 className="text-3xl font-bold text-gray-900 mb-12">Available Quizzes</h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {quizzes.map((quiz) => (
-                        <div
+                    {quizzesWithAttempts.map((quiz) => (
+                        <QuizzCard
                             key={quiz.id}
-                            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition"
-                        >
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                {quiz.title}
-                            </h3>
-                            <p className="text-gray-600 text-sm">
-                                {quiz.description || 'Description not specified'}
-                            </p>
-                            <p className="text-gray-600 text-sm">
-                                Difficulty: {quiz.difficulty || 'Not specified'}
-                            </p>
-                        </div>
+                            quizz={quiz}
+                            isAuthenticated={isAuthenticated}
+                            isExpanded={expandedQuiz === quiz.id}
+                            onToggleExpand={() => setExpandedQuiz(expandedQuiz === quiz.id ? null : quiz.id)}
+                        />
                     ))}
                 </div>
             </div>
