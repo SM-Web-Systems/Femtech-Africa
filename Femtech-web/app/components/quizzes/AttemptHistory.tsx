@@ -32,7 +32,7 @@ export default function AttemptHistory({ quiz, isExpanded, onToggleExpand }: Att
                     </div>
                     <p className="text-xs opacity-75">{formatDate(quiz.latestAttempt.completedAt)}</p>
                     <p className="font-semibold mt-1">{quiz.latestAttempt.score}%</p>
-                    {quiz.latestAttempt.rewardGranted && (
+                    {quiz.attempts.find(attempt => attempt.rewardGranted) && (
                         <p className="text-xs mt-2 font-semibold">✓ Reward Claimed</p>
                     )}
                 </div>

@@ -320,12 +320,14 @@ export default function QuizDetailPage() {
                         </div>
                     </div>
 
-                    {passed && (
+                    {result.reward ? (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                             <p className="text-green-900 font-semibold mb-1">You earned {quiz.reward_amount} MAMA tokens!</p>
                             <p className="text-sm text-green-800">These have been added to your wallet.</p>
                         </div>
-                    )}
+                    ) : (<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                        <p className="text-green-900 font-semibold mb-1">You have already claimed {quiz.reward_amount} MAMA tokens for this quiz</p>
+                    </div>)}
 
                     {!passed && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
