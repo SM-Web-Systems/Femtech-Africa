@@ -23,6 +23,44 @@ export interface UseQuizzResult {
     error: string | null;
 }
 
+export interface QuizAttempt {
+    id: string;
+    userId: string;
+    quizId: string;
+    score: number;
+    passed: boolean;
+    answers: any[];
+    started_at: string;
+    completedAt: string;
+    duration_seconds: number;
+    rewardGranted: boolean;
+    created_at: string;
+    quiz: {
+        id: string;
+        title: string;
+        category: string;
+        reward_amount: number;
+    };
+}
+
+export interface QuizWithAttempts {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    difficulty: string;
+    language: string;
+    timeLimit: number;
+    passingThreshold: number;
+    questionCount: number;
+    attempts: QuizAttempt[];
+    totalAttempts: number;
+    latestAttempt: QuizAttempt | null;
+    bestScore: number;
+    reward_amount: number;
+    rewardClaimed: boolean;
+}
+
 export const quizzesApi = {
     // Get all quizzes
     getQuizzes: async (category?: string) => {
