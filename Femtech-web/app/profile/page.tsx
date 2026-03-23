@@ -4,7 +4,7 @@ import apiClient from '../lib/apiClient';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
-import Wallet from '../components/wallet';
+import Wallet from '../components/Wallet';
 import { milestonesApi, UserMilestoneResponse } from '../lib/services/useMilestones';
 
 import Link from 'next/link';

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
-import { walletApi } from "../../components/useWallet";
+import { walletApi } from "../../lib/services/useWallet";
 
 export default function ImportWallet() {
 

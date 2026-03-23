@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { walletApi, CreateWalletResponse } from "../../components/useWallet";
+import { walletApi, CreateWalletResponse } from "../../lib/services/useWallet";
 import { useRouter } from 'next/navigation';
 
 export default function CreateWallet() {
