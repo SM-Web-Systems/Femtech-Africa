@@ -37,12 +37,6 @@ export default function Navigation() {
                     >
                         Home
                     </Link>
-                    <Link
-                        href="/about"
-                        className="text-gray-700 hover:text-blue-600 font-medium transition"
-                    >
-                        About
-                    </Link>
                     {!isMilestonePage && (
                         <Link
                             href="/milestones"
