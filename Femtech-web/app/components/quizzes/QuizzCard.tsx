@@ -61,13 +61,13 @@ export default function QuizzCard({ quizz, isAuthenticated, isExpanded, onToggle
                     </div>
                 )}
 
-                {/* Action Button */}
-                <Link
-                    href={`/quizzes/${quizz.id}`}
-                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
-                >
-                    {getButtonText(quizz.latestAttempt)}
-                </Link>
+                {isAuthenticated && (
+                    <Link
+                        href={`/quizzes/${quizz.id}`}
+                        className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+                    >
+                        {getButtonText(quizz.latestAttempt)}
+                    </Link>)}
             </div>
         </div>
     );
