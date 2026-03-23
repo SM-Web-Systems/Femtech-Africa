@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
 import Wallet from '../components/wallet';
-import { milestonesApi, UserMilestoneResponse } from '../components/useMilestones';
+import { milestonesApi, UserMilestoneResponse } from '../lib/services/useMilestones';
 
 import Link from 'next/link';
 
