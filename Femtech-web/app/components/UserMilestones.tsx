@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { milestonesApi, UserMilestoneResponse } from './useMilestones';
+import { milestonesApi, UserMilestoneResponse } from '../lib/services/useMilestones';
 
 export default function UserMilestones() {
     const [userMilestones, setUserMilestones] = useState<UserMilestoneResponse[]>([]);

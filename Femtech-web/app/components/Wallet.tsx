@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { walletApi } from './useWallet';
+import { walletApi } from '../lib/services/useWallet';
 
 interface WalletData {
     xlmBalance: string;

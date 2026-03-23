@@ -4,24 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
-import { milestonesApi, UserMilestoneResponse } from '../../components/useMilestones';
-
-// id: string;
-//     userId: string;
-//     pregnancyId: string;
-//     milestone_def_id: string;
-//     status: string;
-//     progress: number;
-//     progressData: any;
-//     startedAt: string;
-//     completedAt: string;
-//     expiresAt: string | null;
-//     rewardAmount: number;
-//     reward_minted: boolean;
-//     reward_tx_hash: string;
-//     reward_minted_at: string;
-//     createdAt: string;
-//     updatedAt: string;
+import { milestonesApi, UserMilestoneResponse } from '../../lib/services/useMilestones';
 
 const getMilestoneIcon = (status: string): string => {
     const icons: { [key: string]: string } = {

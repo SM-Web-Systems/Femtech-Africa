@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../lib/AuthContext';
-import { useQuizzesWithAttempts } from '../lib/hooks/useQuizzesWithAttempts';
-import QuizzCard from './quizzes/QuizzCard';
+import { useAuth } from '../../lib/AuthContext';
+import { useQuizzesWithAttempts } from '../../lib/hooks/useQuizzesWithAttempts';
+import QuizzCard from './QuizzCard';
 
 export default function QuizzesList() {
     const { isAuthenticated, isInitialized } = useAuth();

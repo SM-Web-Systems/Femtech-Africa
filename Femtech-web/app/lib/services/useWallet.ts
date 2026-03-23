@@ -1,5 +1,6 @@
-import { create } from 'domain';
-import apiClient from '../lib/apiClient';
+'use-client';
+
+import apiClient from '../apiClient';
 
 export interface WalletAddressResponse {
     stellarAddress: string;

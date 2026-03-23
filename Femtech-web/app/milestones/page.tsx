@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { milestonesApi, MilestoneResponse, UserMilestoneResponse } from '../components/useMilestones';
+import { milestonesApi, MilestoneResponse, UserMilestoneResponse } from '../lib/services/useMilestones';
 import Link from 'next/link';
 
 interface MilestoneWithProgress extends MilestoneResponse {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Fira_Code } from "next/font/google"
-import Navigation from './components/navigation';
+import Navigation from './components/Navigation';
 import { AuthProvider } from './lib/AuthContext';
 import "./globals.css";
 

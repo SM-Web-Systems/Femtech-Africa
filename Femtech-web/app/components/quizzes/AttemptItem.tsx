@@ -1,6 +1,6 @@
 'use client';
 
-import { QuizzAttempt } from '../useQuizzes';
+import { QuizzAttempt } from '../../lib/services/useQuizzes';
 import { formatDate, getStatusIcon } from '../../lib/utils/quizzUtils';
 
 interface AttemptItemProps {
