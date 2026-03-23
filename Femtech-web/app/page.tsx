@@ -170,14 +170,6 @@ export default function Home() {
           <p className="text-lg text-blue-100 max-w-2xl mx-auto">
             Begin your journey today. Complete your first milestone, earn your first MAMA token, and unlock better maternal healthcare.
           </p>
-          <div className="flex gap-4 justify-center pt-4 flex-wrap">
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
-              Create Account
-            </button>
-            <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-              Learn More
-            </button>
-          </div>
         </div>
       </section>
     </main>
