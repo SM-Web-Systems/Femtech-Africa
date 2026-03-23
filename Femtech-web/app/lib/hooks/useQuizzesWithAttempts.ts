@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { quizzesApi, Quizz, QuizzAttempt, QuizzWithAttempts } from '../../components/useQuizzes';
+import { quizzesApi, Quizz, QuizzAttempt, QuizzWithAttempts } from '../../lib/services/useQuizzes';
 
 export const useQuizzesWithAttempts = (isAuthenticated: boolean, isInitialized: boolean) => {
     const [quizzesWithAttempts, setQuizzesWithAttempts] = useState<QuizzWithAttempts[]>([]);

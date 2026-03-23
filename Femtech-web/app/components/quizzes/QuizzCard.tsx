@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { QuizzWithAttempts, QuizzAttempt } from '../useQuizzes';
+import { QuizzWithAttempts, QuizzAttempt } from '../../lib/services/useQuizzes';
 import { formatDate, getStatusIcon, getButtonText } from '../../lib/utils/quizzUtils';
 import AttemptHistory from './AttemptHistory';
 

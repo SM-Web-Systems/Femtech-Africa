@@ -7,9 +7,6 @@ export default function Quizzes() {
                 {/* Quizzes List Section */}
                 <QuizzesList />
             </section>
-
-
-
         </main>
     )
 }

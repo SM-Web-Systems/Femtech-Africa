@@ -1,6 +1,6 @@
 'use client';
 
-import { QuizzWithAttempts } from '../useQuizzes';
+import { QuizzWithAttempts } from '../../lib/services/useQuizzes';
 import { formatDate, getStatusIcon, getStatusColor } from '../../lib/utils/quizzUtils';
 import AttemptItem from './AttemptItem';
 

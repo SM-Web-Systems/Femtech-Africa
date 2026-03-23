@@ -1,6 +1,6 @@
 'use-client';
 
-import apiClient from '../lib/apiClient';
+import apiClient from '../apiClient';
 
 export interface Quizz {
     id: string;

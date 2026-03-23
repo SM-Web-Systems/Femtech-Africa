@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { quizzesApi } from '../../components/useQuizzes';
+import { quizzesApi } from '../../lib/services/useQuizzes';
 
 export interface QuizQuestion {
     id: string;

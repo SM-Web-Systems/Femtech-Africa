@@ -1,4 +1,4 @@
-import { QuizzAttempt } from '../../components/useQuizzes';
+import { QuizzAttempt } from '../../lib/services/useQuizzes';
 
 export const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
