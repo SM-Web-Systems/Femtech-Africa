@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { walletApi } from '../lib/services/useWallet';
+import { useWalletBalances } from '../lib/hooks/useWalletBalances';
 
 interface WalletData {
     xlmBalance: string;
@@ -16,6 +17,8 @@ export default function Wallet() {
     const [transactionArray, setTransactionArray] = useState<any[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [copiedAddress, setCopiedAddress] = useState(false);
+
+    const { mamaBalance, xlmBalance, loading: balancesLoading, error: balancesError } = useWalletBalances();
 
     useEffect(() => {
         const fetchWalletInfo = async () => {
@@ -85,10 +88,7 @@ export default function Wallet() {
             </div>
         );
     }
-
-    const xlmValue = parseFloat(wallet?.xlmBalance || '0');
-    const mamaValue = parseFloat(wallet?.mamaBalance || '0');
-    const totalValue = (xlmValue + mamaValue).toFixed(2);
+    const totalValue = (parseFloat(xlmBalance) + parseFloat(mamaBalance)).toFixed(2);
 
     return (
         <div className="space-y-8">
@@ -105,7 +105,7 @@ export default function Wallet() {
                         </div>
                         <div className="text-right">
                             <p className="text-4xl font-bold text-white">
-                                {wallet?.xlmBalance || '0'}
+                                {xlmBalance}
                             </p>
                             <p className="text-purple-100 text-xs opacity-75 mt-1">Primary token</p>
                         </div>
@@ -123,7 +123,7 @@ export default function Wallet() {
                         </div>
                         <div className="text-right">
                             <p className="text-4xl font-bold text-white">
-                                {wallet?.mamaBalance || '0'}
+                                {mamaBalance}
                             </p>
                             <p className="text-blue-100 text-xs opacity-75 mt-1">Community token</p>
                         </div>
