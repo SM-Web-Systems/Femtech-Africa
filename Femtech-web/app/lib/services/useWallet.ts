@@ -31,6 +31,22 @@ export interface ImportWalletResponse {
     message: string;
 }
 
+export interface Transaction {
+    id: string;
+    userId: string;
+    type: string;
+    status: string;
+    amount: number;
+    tx_hash: string | null;
+    stellar_tx_id: string | null;
+    milestoneId: string | null;
+    redemptionId: string | null;
+    errorMessage: string | null;
+    retryCount: number;
+    processed_at: string | null;
+    createdAt: string;
+}
+
 
 export const walletApi = {
     getWalletAddress: async (): Promise<WalletAddressResponse> => {
