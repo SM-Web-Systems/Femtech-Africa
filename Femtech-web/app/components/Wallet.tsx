@@ -2,36 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { walletApi } from '../lib/services/useWallet';
-import { useWalletBalances } from '../lib/hooks/useWalletBalances';
+import { useWalletData } from '../lib/hooks/useWalletData';
 import BalanceCard from './wallet/BalanceCard';
-
-interface WalletData {
-    xlmBalance: string;
-    mamaBalance: string;
-    stellarAddress: string;
-}
+import AddressCard from './wallet/AddressCard';
 
 export default function Wallet() {
-    const [wallet, setWallet] = useState<WalletData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [transactionArray, setTransactionArray] = useState<any[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [copiedAddress, setCopiedAddress] = useState(false);
 
-    const { mamaBalance, xlmBalance, loading: balancesLoading, error: balancesError } = useWalletBalances();
+    const { mamaBalance, xlmBalance, stellarAddress, loading: balancesLoading, error: balancesError } = useWalletData();
 
     useEffect(() => {
-        const fetchWalletInfo = async () => {
+        const fetchWalletTransactions = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await walletApi.getWalletData();
-                setWallet({
-                    xlmBalance: response.xlmBalance,
-                    mamaBalance: response.mamaBalance,
-                    stellarAddress: response.stellarAddress,
-                });
                 const transactions = await walletApi.getTransactions();
                 setTransactionArray(transactions);
             } catch (err) {
@@ -41,18 +28,10 @@ export default function Wallet() {
                 setLoading(false);
             }
         };
-        fetchWalletInfo();
+        fetchWalletTransactions();
     }, []);
 
-    const copyToClipboard = () => {
-        if (wallet?.stellarAddress) {
-            navigator.clipboard.writeText(wallet.stellarAddress);
-            setCopiedAddress(true);
-            setTimeout(() => setCopiedAddress(false), 2000);
-        }
-    };
-
-    if (loading) {
+    if (loading || balancesLoading) {
         return (
             <div className="space-y-6">
                 <style jsx>{`
@@ -76,69 +55,30 @@ export default function Wallet() {
         );
     }
 
-    if (error) {
+    if (error || balancesError) {
         return (
             <div className="bg-white border border-red-100 rounded-xl p-6 shadow-sm">
                 <div className="flex items-start gap-3">
                     <span className="text-2xl">⚠️</span>
                     <div>
-                        <p className="text-red-600 font-semibold text-sm">{error}</p>
+                        <p className="text-red-600 font-semibold text-sm">{error || balancesError}</p>
                         <p className="text-red-500 text-xs mt-1">Try refreshing the page or contact support.</p>
                     </div>
                 </div>
             </div>
         );
     }
-    const totalValue = (parseFloat(xlmBalance) + parseFloat(mamaBalance)).toFixed(2);
 
     return (
         <div className="space-y-8">
             {/* Balance Cards Grid */}
             <div className="space-y-4">
-                <BalanceCard xlmBalance={xlmBalance} mamaBalance={mamaBalance} totalValue={totalValue} />
+                <BalanceCard xlmBalance={xlmBalance} mamaBalance={mamaBalance} />
             </div>
 
             {/* Wallet Address Section */}
-            {wallet?.stellarAddress && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-900">Wallet Address</h3>
-                            <p className="text-xs text-slate-500 mt-1 font-medium">Stellar blockchain address</p>
-                        </div>
-                        <span className="text-2xl">🔐</span>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200 mb-3">
-                        <p className="text-sm text-slate-900 font-mono break-all leading-relaxed">
-                            {wallet.stellarAddress}
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={copyToClipboard}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${copiedAddress
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-blue-100 hover:bg-blue-200 text-blue-700 active:scale-95'
-                            }`}
-                    >
-                        {copiedAddress ? (
-                            <>
-                                <span>✓</span>
-                                <span>Copied!</span>
-                            </>
-                        ) : (
-                            <>
-                                <span>📋</span>
-                                <span>Copy Address</span>
-                            </>
-                        )}
-                    </button>
-
-                    <p className="text-xs text-slate-600 mt-4 leading-relaxed">
-                        Use this address to receive payments on the Stellar network.
-                    </p>
-                </div>
+            {stellarAddress && (
+                <AddressCard address={stellarAddress} />
             )}
 
             {/* Transactions Section */}

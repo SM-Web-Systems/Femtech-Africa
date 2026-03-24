@@ -1,10 +1,12 @@
 interface BalanceCardProps {
     xlmBalance: string;
     mamaBalance: string;
-    totalValue: string;
 }
 
-export default function BalanceCard({ xlmBalance, mamaBalance, totalValue }: BalanceCardProps) {
+export default function BalanceCard({ xlmBalance, mamaBalance }: BalanceCardProps) {
+
+    const totalValue = (parseFloat(xlmBalance) + parseFloat(mamaBalance)).toFixed(2);
+
     return (
         <div>
             {/* Balance Cards Grid */}
