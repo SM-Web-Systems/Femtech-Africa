@@ -53,7 +53,7 @@ export default function Navigation() {
                             Quizzes
                         </Link>
                     )}
-                    {!isRedemptionsPage && (
+                    {!isRedemptionsPage && isAuthenticated && (
                         <Link
                             href="/redemptions"
                             className="text-gray-700 hover:text-blue-600 font-medium transition"
