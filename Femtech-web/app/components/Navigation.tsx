@@ -20,6 +20,7 @@ export default function Navigation() {
     const isImportWalletPage = pathname === '/wallet/import';
     const isMilestonePage = pathname === '/milestones';
     const isQuizzesPage = pathname === '/quizzes';
+    const isRedemptionsPage = pathname === '/redemptions';
 
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -50,6 +51,14 @@ export default function Navigation() {
                             className="text-gray-700 hover:text-blue-600 font-medium transition"
                         >
                             Quizzes
+                        </Link>
+                    )}
+                    {!isRedemptionsPage && isAuthenticated && (
+                        <Link
+                            href="/redemptions"
+                            className="text-gray-700 hover:text-blue-600 font-medium transition"
+                        >
+                            Redemptions
                         </Link>
                     )}
 
