@@ -1,3 +1,4 @@
+﻿require("dotenv").config();
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
@@ -64,3 +65,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`MamaTokens API running on port ${PORT}`);
 });
+
