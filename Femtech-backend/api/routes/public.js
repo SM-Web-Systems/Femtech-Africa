@@ -13,7 +13,7 @@ router.get('/health', (req, res) => {
 router.get('/facilities', async (req, res) => {
   try {
     const facilities = await prisma.facility.findMany({
-      where: { is_active: true },
+      where: { isActive: true },
       orderBy: { name: 'asc' }
     });
     res.json(facilities);
@@ -39,7 +39,7 @@ router.get('/articles', async (req, res) => {
 router.get('/quizzes', async (req, res) => {
   try {
     const quizzes = await prisma.quiz.findMany({
-      where: { is_active: true },
+      where: { isActive: true },
       include: { _count: { select: { questions: true } } }
     });
     res.json(quizzes);
