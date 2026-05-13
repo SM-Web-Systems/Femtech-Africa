@@ -20,6 +20,7 @@
     "express-rate-limit": "^8.3.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "pg": "^8.20.0",
     "prisma": "^5.10.0",
     "qrcode": "^1.5.4"
   }
