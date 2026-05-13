@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/app/lib/store/auth.store';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Navigation() {
     const router = useRouter();
@@ -10,6 +11,11 @@ export default function Navigation() {
     const user = useAuthStore((state) => state.user);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const logout = useAuthStore((state) => state.logout);
+    const [hydrated, setHydrated] = useState(false);
+
+    useEffect(() => {
+        setHydrated(true);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -20,8 +26,10 @@ export default function Navigation() {
 
     // Hide nav on auth pages
     const isAuthPage = pathname.startsWith('/auth');
-
     if (isAuthPage) return null;
+
+    // Don't render auth-dependent links until hydrated
+    const showAuthLinks = hydrated && isAuthenticated;
 
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -35,7 +43,7 @@ export default function Navigation() {
                         Home
                     </Link>
                     
-                    {isAuthenticated && (
+                    {showAuthLinks && (
                         <>
                             <Link href="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium transition">
                                 Dashboard
@@ -61,7 +69,7 @@ export default function Navigation() {
                         </>
                     )}
 
-                    {!isAuthenticated && (
+                    {hydrated && !isAuthenticated && (
                         <Link
                             href="/auth/login"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition"

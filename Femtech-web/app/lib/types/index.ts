@@ -1,4 +1,4 @@
-﻿// User & Auth Types
+// User & Auth Types
 export interface User {
   id: string;
   phone: string;
@@ -14,7 +14,7 @@ export interface AuthResponse {
   success: boolean;
   token: string;
   message: string;
-  users: User;
+  user: User;
 }
 
 export interface OtpRequest {

@@ -8,17 +8,34 @@ import { useEffect, useState } from 'react';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const setUser = useAuthStore((state) => state.setUser);
+  const setToken = useAuthStore((state) => state.setToken);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check auth on mount
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
+    const storedToken = localStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user_data');
+    
+    if (!storedToken) {
       router.push('/auth/login');
-    } else {
-      setIsLoading(false);
+      return;
     }
-  }, [router]);
+    
+    // Sync localStorage with Zustand store if store lost state
+    if (!token && storedToken) {
+      setToken(storedToken);
+    }
+    if (!user && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Failed to parse stored user data');
+      }
+    }
+    
+    setIsLoading(false);
+  }, [router, token, user, setToken, setUser]);
 
   if (isLoading) {
     return (
@@ -37,7 +54,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600">MamaTokens Dashboard</h1>
@@ -47,9 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Main Layout */}
       <div className="flex">
-        {/* Sidebar - Desktop only */}
         <nav className="w-64 bg-white border-r border-gray-200 p-6 hidden lg:block min-h-[calc(100vh-80px)]">
           <div className="space-y-2">
             <NavLink href="/dashboard" label="📊 Dashboard" />
@@ -61,7 +75,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </nav>
 
-        {/* Main Content */}
         <main className="flex-1">
           {children}
         </main>
