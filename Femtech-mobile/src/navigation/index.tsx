@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../store/AuthContext';
@@ -23,7 +23,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator id="RootStack" screenOptions={{ headerShown: false }}>
       {isLoggedIn ? (
         <Stack.Screen name="Main" component={MainNavigator} />
       ) : (

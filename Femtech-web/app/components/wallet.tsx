@@ -1,117 +1,70 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { walletApi } from './useWallet';
-
-interface WalletData {
-    xlmBalance: string;
-    mamaBalance: string;
-    stellarAddress: string;
-}
+import { useWalletData } from '../lib/hooks/useWalletData';
+import { useWalletTransactions } from '../lib/hooks/useWalletTransactions';
+import BalanceCard from './wallet/BalanceCard';
+import AddressCard from './wallet/AddressCard';
+import TransactionsList from './wallet/TransactionsList';
 
 export default function Wallet() {
-    const [wallet, setWallet] = useState<WalletData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchWalletInfo = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await walletApi.getWalletData();
-                setWallet({
-                    xlmBalance: response.xlmBalance,
-                    mamaBalance: response.mamaBalance,
-                    stellarAddress: response.stellarAddress,
-                });
-            } catch (err) {
-                console.error('Failed to fetch wallet info:', err);
-                setError('Failed to load wallet information. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchWalletInfo();
-    }, []);
+    const { mamaBalance, xlmBalance, stellarAddress, loading: balancesLoading, error: balancesError } = useWalletData();
+    const { transactionArray, loading: transactionsLoading, error: transactionsError } = useWalletTransactions();
 
-    if (loading) {
+    if (balancesLoading || transactionsLoading) {
         return (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading wallet information...</p>
+            <div className="space-y-6">
+                <style jsx>{`
+                    @keyframes pulse-skeleton {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                    .skeleton {
+                        animation: pulse-skeleton 2s ease-in-out infinite;
+                        background-color: #f1f5f9;
+                        border-radius: 0.75rem;
+                    }
+                `}</style>
+                <div className="h-10 skeleton w-32"></div>
+                <div className="grid md:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-40 skeleton"></div>
+                    ))}
+                </div>
             </div>
         );
     }
 
-    if (error) {
+    if (balancesError || transactionsError) {
         return (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                <p className="text-red-600 font-semibold">{error}</p>
+            <div className="bg-white border border-red-100 rounded-xl p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                        <p className="text-red-600 font-semibold text-sm">{balancesError || transactionsError}</p>
+                        <p className="text-red-500 text-xs mt-1">Try refreshing the page or contact support.</p>
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Your Wallet</h2>
-
-            <div className="grid md:grid-cols-3 gap-6">
-                {/* XLM Balance Card */}
-                <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg p-8 text-white shadow-lg hover:shadow-xl transition">
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <p className="text-purple-100 text-sm font-medium mb-2">XLM Balance</p>
-                            <p className="text-4xl font-bold">{wallet?.xlmBalance || '0'}</p>
-                        </div>
-                        <span className="text-3xl">⭐</span>
-                    </div>
-                    <p className="text-purple-100 text-xs">Stellar Lumens</p>
-                </div>
-
-                {/* MAMA Balance Card */}
-                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-8 text-white shadow-lg hover:shadow-xl transition">
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <p className="text-blue-100 text-sm font-medium mb-2">MAMA Balance</p>
-                            <p className="text-4xl font-bold">{wallet?.mamaBalance || '0'}</p>
-                        </div>
-                        <span className="text-3xl">💎</span>
-                    </div>
-                    <p className="text-blue-100 text-xs">MAMA Tokens</p>
-                </div>
-
-                {/* Quick Stats Card */}
-                <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg p-8 text-white shadow-lg hover:shadow-xl transition">
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <p className="text-green-100 text-sm font-medium mb-2">Total Value</p>
-                            <p className="text-4xl font-bold">
-                                {wallet?.xlmBalance && wallet?.mamaBalance
-                                    ? (parseFloat(wallet.xlmBalance) + parseFloat(wallet.mamaBalance)).toFixed(2)
-                                    : '0'}
-                            </p>
-                        </div>
-                        <span className="text-3xl">💰</span>
-                    </div>
-                    <p className="text-green-100 text-xs">Combined Value</p>
-                </div>
+        <div className="space-y-8">
+            {/* Balance Cards Grid */}
+            <div className="space-y-4">
+                <BalanceCard xlmBalance={xlmBalance} mamaBalance={mamaBalance} />
             </div>
 
             {/* Wallet Address Section */}
-            {wallet?.stellarAddress && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Wallet Address</h3>
-                    <div className="bg-gray-50 rounded p-4 border border-gray-200">
-                        <p className="text-sm text-gray-600 font-mono break-all">
-                            {wallet.stellarAddress}
-                        </p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3">
-                        This is your Stellar blockchain wallet address. Use it to receive payments.
-                    </p>
-                </div>
+            {stellarAddress && (
+                <AddressCard address={stellarAddress} />
             )}
-        </div>
+
+            {/* Transactions Section */}
+            {transactionArray.length > 0 && (
+                <TransactionsList transactionArray={transactionArray} />
+            )}
+        </div >
     );
 }

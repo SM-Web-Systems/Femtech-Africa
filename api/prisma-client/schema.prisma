@@ -1,0 +1,975 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma-client"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, uuid_ossp(map: "uuid-ossp", schema: "public")]
+}
+
+model User {
+  id                                               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phone                                            String             @unique(map: "users_phone_unique") @db.VarChar(20)
+  phoneVerified                                    Boolean            @default(false) @map("phone_verified")
+  phone_verified_at                                DateTime?          @db.Timestamptz(6)
+  country                                          country_code
+  language                                         language_code      @default(en)
+  status                                           user_status        @default(pending)
+  role                                             user_role          @default(mother)
+  walletAddress                                    String?            @unique(map: "users_wallet_unique") @map("wallet_address") @db.VarChar(56)
+  walletCreatedAt                                  DateTime?          @map("wallet_created_at") @db.Timestamptz(6)
+  lastLoginAt                                      DateTime?          @map("last_login_at") @db.Timestamptz(6)
+  login_count                                      Int                @default(0)
+  createdAt                                        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                                        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointments_appointments_user_idTousers         Appointment[]      @relation("appointments_user_idTousers")
+  appointments                                     Appointment[]
+  audit_logs                                       audit_logs[]
+  circle_members_circle_members_invited_byTousers  CircleMember[]     @relation("circle_members_invited_byTousers")
+  circleMembers                                    CircleMember[]
+  consents                                         Consent[]
+  digital_doulas_digital_doulas_user_idTousers     DigitalDoula?      @relation("digital_doulas_user_idTousers")
+  digital_doulas_digital_doulas_verified_byTousers DigitalDoula[]     @relation("digital_doulas_verified_byTousers")
+  emergency_contacts                               EmergencyContact[]
+  kick_sessions                                    KickSession[]
+  medical_history_medical_history_user_idTousers   MedicalHistory[]   @relation("medical_history_user_idTousers")
+  medicalHistory                                   MedicalHistory[]
+  notifications                                    Notification[]
+  pregnancies                                      Pregnancy[]
+  quizAttempts                                     QuizAttempt[]
+  redemptions                                      Redemption[]
+  sessions                                         Session[]
+  sms_messages                                     SmsMessage[]
+  support_circles                                  SupportCircle[]
+  tokenTransactions                                TokenTransaction[]
+  milestones                                       UserMilestone[]
+  profile                                          UserProfile?
+  verifier                                         Verifier[]
+
+  @@index([country], map: "idx_users_country")
+  @@index([createdAt], map: "idx_users_created_at")
+  @@index([phone], map: "idx_users_phone")
+  @@index([status], map: "idx_users_status")
+  @@map("users")
+}
+
+model UserProfile {
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId               String   @unique(map: "user_profiles_user_unique") @map("user_id") @db.Uuid
+  firstNameEncrypted   Bytes?   @map("first_name_encrypted")
+  lastNameEncrypted    Bytes?   @map("last_name_encrypted")
+  dateOfBirthEncrypted Bytes?   @map("date_of_birth_encrypted")
+  avatarUrl            String?  @map("avatar_url") @db.VarChar(500)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_user_profiles_user_id")
+  @@map("user_profiles")
+}
+
+model Consent {
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  consentType consent_type @map("consent_type")
+  version     String       @db.VarChar(20)
+  granted     Boolean
+  grantedAt   DateTime?    @map("granted_at") @db.Timestamptz(6)
+  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  ipAddress   String?      @map("ip_address") @db.Inet
+  userAgent   String?      @map("user_agent")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, consentType, version], map: "consents_user_type_unique")
+  @@index([consentType], map: "idx_consents_type")
+  @@index([userId], map: "idx_consents_user_id")
+  @@map("consents")
+}
+
+model Session {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  deviceId         String?  @map("device_id") @db.VarChar(100)
+  device_info      Json?
+  ipAddress        String?  @map("ip_address") @db.Inet
+  refreshTokenHash String   @unique(map: "sessions_token_unique") @map("refresh_token_hash") @db.VarChar(64)
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  last_used_at     DateTime @default(now()) @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expiresAt], map: "idx_sessions_expires_at")
+  @@index([refreshTokenHash], map: "idx_sessions_token_hash")
+  @@index([userId], map: "idx_sessions_user_id")
+  @@map("sessions")
+}
+
+model OtpCode {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phone       String      @db.VarChar(20)
+  codeHash    String      @map("code_hash") @db.VarChar(64)
+  purpose     otp_purpose
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3) @map("max_attempts")
+  expiresAt   DateTime    @map("expires_at") @db.Timestamptz(6)
+  verified_at DateTime?   @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([expiresAt], map: "idx_otp_codes_expires_at")
+  @@index([phone], map: "idx_otp_codes_phone")
+  @@index([phone, purpose], map: "idx_otp_codes_phone_purpose")
+  @@map("otp_codes")
+}
+
+model Facility {
+  id               String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name             String        @db.VarChar(200)
+  type             facility_type
+  address          String?
+  city             String?       @db.VarChar(100)
+  country          country_code
+  latitude         Decimal?      @db.Decimal(10, 8)
+  longitude        Decimal?      @db.Decimal(11, 8)
+  phone            String?       @db.VarChar(20)
+  email            String?       @db.VarChar(255)
+  website          String?       @db.VarChar(500)
+  operatingHours   Json?         @map("operating_hours")
+  isPartner        Boolean       @default(false) @map("is_partner")
+  partner_since    DateTime?     @db.Date
+  accepts_tokens   Boolean       @default(false)
+  verificationCode String?       @map("verification_code") @db.VarChar(20)
+  isActive         Boolean       @default(true) @map("is_active")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointments     Appointment[]
+  pregnancies      Pregnancy[]
+  verifiers        Verifier[]
+
+  @@index([country], map: "idx_facilities_country")
+  @@index([type], map: "idx_facilities_type")
+  @@map("facilities")
+}
+
+model Pregnancy {
+  id                   String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId               String           @map("user_id") @db.Uuid
+  status               pregnancy_status @default(active)
+  last_period_date     DateTime?        @db.Date
+  estimated_due_date   DateTime         @db.Date
+  conceptionDate       DateTime?        @map("conception_date") @db.Date
+  actual_delivery_date DateTime?        @db.Date
+  gravida              Int              @default(1)
+  parity               Int              @default(0)
+  isHighRisk           Boolean          @default(false) @map("is_high_risk")
+  riskFactors          Json?            @map("risk_factors")
+  risk_score           Int?
+  bloodType            blood_type?      @default(unknown) @map("blood_type")
+  primaryFacilityId    String?          @map("primary_facility_id") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appointments         Appointment[]
+  kickSessions         KickSession[]
+  medicalHistory       MedicalHistory[]
+  primaryFacility      Facility?        @relation(fields: [primaryFacilityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  support_circles      SupportCircle[]
+  milestones           UserMilestone[]
+
+  @@index([estimated_due_date], map: "idx_pregnancies_due_date")
+  @@index([status], map: "idx_pregnancies_status")
+  @@index([userId], map: "idx_pregnancies_user_id")
+  @@map("pregnancies")
+}
+
+model MedicalHistory {
+  id                                   String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                              String           @db.Uuid
+  pregnancyId                          String?          @map("pregnancy_id") @db.Uuid
+  conditionType                        condition_type   @map("condition_type")
+  condition_code                       String?          @db.VarChar(20)
+  condition_name                       String           @db.VarChar(200)
+  status                               condition_status @default(active)
+  diagnosedDate                        DateTime?        @map("diagnosed_date") @db.Date
+  resolved_date                        DateTime?        @db.Date
+  notesEncrypted                       Bytes?           @map("notes_encrypted")
+  verifiedBy                           String?          @map("verified_by") @db.Uuid
+  verifiedAt                           DateTime?        @map("verified_at") @db.Timestamptz(6)
+  createdAt                            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  pregnancy                            Pregnancy?       @relation(fields: [pregnancyId], references: [id], onUpdate: NoAction)
+  users_medical_history_user_idTousers User             @relation("medical_history_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  verifier                             User?            @relation(fields: [verifiedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pregnancyId], map: "idx_medical_history_pregnancy_id")
+  @@index([conditionType], map: "idx_medical_history_type")
+  @@index([user_id], map: "idx_medical_history_user_id")
+  @@map("medical_history")
+}
+
+model Appointment {
+  id                                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                           String             @db.Uuid
+  pregnancyId                       String?            @map("pregnancy_id") @db.Uuid
+  facilityId                        String?            @map("facility_id") @db.Uuid
+  appointment_type                  appointment_type
+  status                            appointment_status @default(scheduled)
+  scheduled_at                      DateTime           @db.Timestamptz(6)
+  duration_minutes                  Int?               @default(30)
+  reminder_sent_at                  DateTime?          @db.Timestamptz(6)
+  completed_at                      DateTime?          @db.Timestamptz(6)
+  verified_at                       DateTime?          @db.Timestamptz(6)
+  verifiedBy                        String?            @map("verified_by") @db.Uuid
+  verification_code                 String?            @db.VarChar(20)
+  notes                             String?
+  createdAt                         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  facility                          Facility?          @relation(fields: [facilityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pregnancy                         Pregnancy?         @relation(fields: [pregnancyId], references: [id], onUpdate: NoAction)
+  users_appointments_user_idTousers User               @relation("appointments_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  verifier                          User?              @relation(fields: [verifiedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([facilityId], map: "idx_appointments_facility_id")
+  @@index([pregnancyId], map: "idx_appointments_pregnancy_id")
+  @@index([scheduled_at], map: "idx_appointments_scheduled_at")
+  @@index([status], map: "idx_appointments_status")
+  @@index([user_id], map: "idx_appointments_user_id")
+  @@map("appointments")
+}
+
+model KickSession {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id         String    @db.Uuid
+  pregnancyId     String    @map("pregnancy_id") @db.Uuid
+  start_time      DateTime  @db.Timestamptz(6)
+  end_time        DateTime? @db.Timestamptz(6)
+  kickCount       Int       @default(0) @map("kick_count")
+  target_count    Int       @default(10)
+  durationMinutes Int?      @map("duration_minutes")
+  notes           String?
+  alertTriggered  Boolean   @default(false) @map("alert_triggered")
+  alert_reason    String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  pregnancy       Pregnancy @relation(fields: [pregnancyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([pregnancyId], map: "idx_kick_sessions_pregnancy_id")
+  @@index([start_time], map: "idx_kick_sessions_start_time")
+  @@index([user_id], map: "idx_kick_sessions_user_id")
+  @@map("kick_sessions")
+}
+
+model EmergencyContact {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id      String   @db.Uuid
+  name         String   @db.VarChar(100)
+  relationship String   @db.VarChar(50)
+  phone        String   @db.VarChar(20)
+  priority     Int      @default(1)
+  is_active    Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users        User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_emergency_contacts_user_id")
+  @@map("emergency_contacts")
+}
+
+model MilestoneDefinition {
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code                    String              @db.VarChar(50)
+  name                    String              @db.VarChar(200)
+  description             String?
+  icon                    String?             @db.VarChar(50)
+  category                milestone_category
+  country                 country_code?
+  rewardAmount            Int                 @map("reward_amount")
+  maxClaimsPerPregnancy   Int                 @default(1) @map("max_claims_per_pregnancy")
+  requiresVerification    Boolean             @default(true) @map("requires_verification")
+  verificationTypes       verification_type[] @default([qr_scan]) @map("verification_types")
+  gestationalWeekMin      Int?                @map("gestational_week_min")
+  gestationalWeekMax      Int?                @map("gestational_week_max")
+  days_to_complete        Int?
+  prerequisite_milestones String[]            @db.Uuid
+  isActive                Boolean             @default(true) @map("is_active")
+  sortOrder               Int                 @default(0) @map("sort_order")
+  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quizzes                 Quiz[]
+  user_milestones         UserMilestone[]
+
+  @@unique([code, country], map: "milestone_definitions_code_country_unique")
+  @@index([category], map: "idx_milestone_definitions_category")
+  @@index([code], map: "idx_milestone_definitions_code")
+  @@index([country], map: "idx_milestone_definitions_country")
+  @@map("milestone_definitions")
+}
+
+model UserMilestone {
+  id                    String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                String              @map("user_id") @db.Uuid
+  pregnancyId           String?             @map("pregnancy_id") @db.Uuid
+  milestone_def_id      String              @db.Uuid
+  status                milestone_status    @default(available)
+  progress              Int                 @default(0)
+  progressData          Json?               @map("progress_data")
+  startedAt             DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt           DateTime?           @map("completed_at") @db.Timestamptz(6)
+  expiresAt             DateTime?           @map("expires_at") @db.Timestamptz(6)
+  rewardAmount          Int?                @map("reward_amount")
+  reward_minted         Boolean             @default(false)
+  reward_tx_hash        String?             @db.VarChar(64)
+  reward_minted_at      DateTime?           @db.Timestamptz(6)
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  token_transactions    TokenTransaction[]
+  milestone_definitions MilestoneDefinition @relation(fields: [milestone_def_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pregnancy             Pregnancy?          @relation(fields: [pregnancyId], references: [id], onUpdate: NoAction)
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  verifications         Verification[]
+
+  @@unique([userId, pregnancyId, milestone_def_id], map: "user_milestones_unique")
+  @@index([milestone_def_id], map: "idx_user_milestones_def_id")
+  @@index([pregnancyId], map: "idx_user_milestones_pregnancy_id")
+  @@index([status], map: "idx_user_milestones_status")
+  @@index([userId], map: "idx_user_milestones_user_id")
+  @@map("user_milestones")
+}
+
+model Verifier {
+  id                  String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId              String?        @map("user_id") @db.Uuid
+  facilityId          String?        @map("facility_id") @db.Uuid
+  verifier_type       verifier_type
+  verificationCode    String         @unique(map: "verifiers_code_unique") @map("verification_code") @db.VarChar(20)
+  name                String         @db.VarChar(200)
+  credential_number   String?        @db.VarChar(100)
+  credential_verified Boolean        @default(false)
+  total_verifications Int            @default(0)
+  isActive            Boolean        @default(true) @map("is_active")
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  verifications       Verification[]
+  facility            Facility?      @relation(fields: [facilityId], references: [id], onUpdate: NoAction)
+  user                User?          @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([verificationCode], map: "idx_verifiers_code")
+  @@index([facilityId], map: "idx_verifiers_facility_id")
+  @@index([verifier_type], map: "idx_verifiers_type")
+  @@index([userId], map: "idx_verifiers_user_id")
+  @@map("verifiers")
+}
+
+model Verification {
+  id               String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userMilestoneId  String            @map("user_milestone_id") @db.Uuid
+  verifierId       String?           @map("verifier_id") @db.Uuid
+  verificationType verification_type @map("verification_type")
+  verificationHash String            @map("verification_hash") @db.VarChar(64)
+  qrCodeData       String?           @map("qr_code_data")
+  signature        Bytes?
+  metadata         Json?
+  latitude         Decimal?          @db.Decimal(10, 8)
+  longitude        Decimal?          @db.Decimal(11, 8)
+  verified_at      DateTime          @default(now()) @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  userMilestone    UserMilestone     @relation(fields: [userMilestoneId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  verifier         Verifier?         @relation(fields: [verifierId], references: [id], onUpdate: NoAction)
+
+  @@index([verificationHash], map: "idx_verifications_hash")
+  @@index([userMilestoneId], map: "idx_verifications_milestone_id")
+  @@index([verified_at], map: "idx_verifications_verified_at")
+  @@index([verifierId], map: "idx_verifications_verifier_id")
+  @@map("verifications")
+}
+
+model TokenTransaction {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  type            token_tx_type
+  status          token_tx_status @default(pending)
+  amount          Int
+  tx_hash         String?         @db.VarChar(64)
+  stellar_tx_id   String?         @db.VarChar(64)
+  milestoneId     String?         @map("milestone_id") @db.Uuid
+  redemptionId    String?         @map("redemption_id") @db.Uuid
+  errorMessage    String?         @map("error_message")
+  retryCount      Int             @default(0) @map("retry_count")
+  processed_at    DateTime?       @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  user_milestones UserMilestone?  @relation(fields: [milestoneId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  redemption      Redemption?     @relation(fields: [redemptionId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "token_transactions_redemption_fk")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_token_tx_created_at")
+  @@index([milestoneId], map: "idx_token_tx_milestone_id")
+  @@index([status], map: "idx_token_tx_status")
+  @@index([type], map: "idx_token_tx_type")
+  @@index([userId], map: "idx_token_tx_user_id")
+  @@map("token_transactions")
+}
+
+model Partner {
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String           @db.VarChar(200)
+  type            partner_type
+  country         country_code
+  logoUrl         String?          @map("logo_url") @db.VarChar(500)
+  description     String?
+  api_endpoint    String?          @db.VarChar(500)
+  apiKeyEncrypted Bytes?           @map("api_key_encrypted")
+  webhookUrl      String?          @map("webhook_url") @db.VarChar(500)
+  config          Json?
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  products        PartnerProduct[]
+  redemptions     Redemption[]
+
+  @@index([country], map: "idx_partners_country")
+  @@index([type], map: "idx_partners_type")
+  @@map("partners")
+}
+
+model PartnerProduct {
+  id                   String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  partnerId            String           @map("partner_id") @db.Uuid
+  name                 String           @db.VarChar(200)
+  description          String?
+  category             product_category
+  tokenCost            Int              @map("token_cost")
+  external_product_id  String?          @db.VarChar(100)
+  imageUrl             String?          @map("image_url") @db.VarChar(500)
+  is_available         Boolean          @default(true)
+  stockQuantity        Int?             @map("stock_quantity")
+  max_per_user_daily   Int?
+  max_per_user_monthly Int?
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  partner              Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  redemptions          RedemptionItem[]
+
+  @@index([category], map: "idx_partner_products_category")
+  @@index([partnerId], map: "idx_partner_products_partner_id")
+  @@map("partner_products")
+}
+
+model Redemption {
+  id                String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  partner_id        String             @db.Uuid
+  type              partner_type
+  totalTokens       Int                @map("total_tokens")
+  status            redemption_status  @default(pending)
+  external_ref      String?            @db.VarChar(100)
+  disbursement_ref  String?            @db.VarChar(100)
+  recipient_phone   String?            @db.VarChar(20)
+  recipient_name    String?            @db.VarChar(100)
+  burn_tx_hash      String?            @db.VarChar(64)
+  burn_confirmed_at DateTime?          @db.Timestamptz(6)
+  completedAt       DateTime?          @map("completed_at") @db.Timestamptz(6)
+  error_message     String?
+  retry_count       Int                @default(0)
+  expiresAt         DateTime?          @map("expires_at") @db.Timestamptz(6)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  items             RedemptionItem[]
+  partners          Partner            @relation(fields: [partner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions      TokenTransaction[]
+
+  @@index([createdAt], map: "idx_redemptions_created_at")
+  @@index([partner_id], map: "idx_redemptions_partner_id")
+  @@index([status], map: "idx_redemptions_status")
+  @@index([userId], map: "idx_redemptions_user_id")
+  @@map("redemptions")
+}
+
+model RedemptionItem {
+  id                 String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  redemptionId       String         @map("redemption_id") @db.Uuid
+  productId          String         @map("product_id") @db.Uuid
+  quantity           Int            @default(1)
+  tokenCost          Int            @map("token_cost")
+  voucherCode        String?        @map("voucher_code") @db.VarChar(100)
+  voucher_expires_at DateTime?      @db.Timestamptz(6)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  product            PartnerProduct @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  redemption         Redemption     @relation(fields: [redemptionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([productId], map: "idx_redemption_items_product_id")
+  @@index([redemptionId], map: "idx_redemption_items_redemption_id")
+  @@map("redemption_items")
+}
+
+model SupportCircle {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  owner_id     String         @db.Uuid
+  pregnancy_id String?        @db.Uuid
+  name         String         @default("My Support Circle") @db.VarChar(100)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  members      CircleMember[]
+  users        User           @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pregnancies  Pregnancy?     @relation(fields: [pregnancy_id], references: [id], onUpdate: NoAction)
+
+  @@index([owner_id], map: "idx_support_circles_owner_id")
+  @@index([pregnancy_id], map: "idx_support_circles_pregnancy_id")
+  @@map("support_circles")
+}
+
+model CircleMember {
+  id                                     String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  circleId                               String              @map("circle_id") @db.Uuid
+  userId                                 String?             @map("user_id") @db.Uuid
+  phone                                  String?             @db.VarChar(20)
+  name                                   String?             @db.VarChar(100)
+  role                                   circle_role
+  permissions                            circle_permission[] @default([view_health, receive_alerts])
+  invited_by                             String?             @db.Uuid
+  invited_at                             DateTime            @default(now()) @db.Timestamptz(6)
+  accepted_at                            DateTime?           @db.Timestamptz(6)
+  is_active                              Boolean             @default(true)
+  created_at                             DateTime            @default(now()) @db.Timestamptz(6)
+  circle                                 SupportCircle       @relation(fields: [circleId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_circle_members_invited_byTousers User?               @relation("circle_members_invited_byTousers", fields: [invited_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                                   User?               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([circleId, phone], map: "circle_members_phone_unique")
+  @@unique([circleId, userId], map: "circle_members_unique")
+  @@index([circleId], map: "idx_circle_members_circle_id")
+  @@index([userId], map: "idx_circle_members_user_id")
+  @@map("circle_members")
+}
+
+model DigitalDoula {
+  id                                      String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                                 String          @unique(map: "digital_doulas_user_unique") @db.Uuid
+  display_name                            String          @db.VarChar(100)
+  bio                                     String?
+  avatarUrl                               String?         @map("avatar_url") @db.VarChar(500)
+  specializations                         String[]        @db.VarChar(100)
+  languages                               language_code[] @default([en])
+  years_experience                        Int?
+  certifications                          Json?
+  rating                                  Decimal?        @db.Decimal(3, 2)
+  total_ratings                           Int             @default(0)
+  total_supports                          Int             @default(0)
+  total_tokens_earned                     Int             @default(0)
+  isAvailable                             Boolean         @default(true) @map("is_available")
+  max_active_mothers                      Int             @default(10)
+  current_active_mothers                  Int             @default(0)
+  is_verified                             Boolean         @default(false)
+  verified_at                             DateTime?       @db.Timestamptz(6)
+  verified_by                             String?         @db.Uuid
+  is_active                               Boolean         @default(true)
+  createdAt                               DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                               DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users_digital_doulas_user_idTousers     User            @relation("digital_doulas_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_digital_doulas_verified_byTousers User?           @relation("digital_doulas_verified_byTousers", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([languages], map: "idx_digital_doulas_languages", type: Gin)
+  @@index([rating(sort: Desc)], map: "idx_digital_doulas_rating")
+  @@index([user_id], map: "idx_digital_doulas_user_id")
+  @@map("digital_doulas")
+}
+
+model Article {
+  id                 String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title              String           @db.VarChar(200)
+  slug               String           @db.VarChar(200)
+  summary            String?
+  content            String
+  category           content_category
+  tags               String[]         @db.VarChar(50)
+  country            country_code?
+  language           language_code    @default(en)
+  gestationalWeekMin Int?             @map("gestational_week_min")
+  gestationalWeekMax Int?             @map("gestational_week_max")
+  thumbnail_url      String?          @db.VarChar(500)
+  audioUrl           String?          @map("audio_url") @db.VarChar(500)
+  read_time_mins     Int?
+  author             String?          @db.VarChar(100)
+  source             String?          @db.VarChar(200)
+  source_url         String?          @db.VarChar(500)
+  isPublished        Boolean          @default(false) @map("is_published")
+  publishedAt        DateTime?        @map("published_at") @db.Timestamptz(6)
+  meta_title         String?          @db.VarChar(200)
+  meta_description   String?          @db.VarChar(500)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([slug, language], map: "articles_slug_lang_unique")
+  @@index([category], map: "idx_articles_category")
+  @@index([country], map: "idx_articles_country")
+  @@index([gestationalWeekMin, gestationalWeekMax], map: "idx_articles_gestational")
+  @@index([language], map: "idx_articles_language")
+  @@index([slug], map: "idx_articles_slug")
+  @@index([tags], map: "idx_articles_tags", type: Gin)
+  @@map("articles")
+}
+
+model Quiz {
+  id                    String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title                 String               @db.VarChar(200)
+  description           String?
+  category              content_category
+  difficulty            quiz_difficulty      @default(beginner)
+  country               country_code?
+  language              language_code        @default(en)
+  time_limit_mins       Int?
+  pass_threshold        Int                  @default(70)
+  reward_amount         Int                  @default(0)
+  milestone_def_id      String?              @db.Uuid
+  is_active             Boolean              @default(true)
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  attempts              QuizAttempt[]
+  questions             QuizQuestion[]
+  milestone_definitions MilestoneDefinition? @relation(fields: [milestone_def_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([category], map: "idx_quizzes_category")
+  @@index([country], map: "idx_quizzes_country")
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  quizId         String        @map("quiz_id") @db.Uuid
+  questionText   String        @map("question_text")
+  questionType   question_type @map("question_type")
+  options        Json
+  correct_answer Json
+  explanation    String?
+  sortOrder      Int           @default(0) @map("sort_order")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  quiz           Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([quizId, sortOrder], map: "idx_quiz_questions_order")
+  @@index([quizId], map: "idx_quiz_questions_quiz_id")
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  quizId           String   @map("quiz_id") @db.Uuid
+  score            Int
+  passed           Boolean
+  answers          Json
+  started_at       DateTime @db.Timestamptz(6)
+  completedAt      DateTime @map("completed_at") @db.Timestamptz(6)
+  duration_seconds Int?
+  rewardGranted    Boolean  @default(false) @map("reward_granted")
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  quiz             Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([quizId], map: "idx_quiz_attempts_quiz_id")
+  @@index([userId], map: "idx_quiz_attempts_user_id")
+  @@map("quiz_attempts")
+}
+
+model Notification {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  type         String    @db.VarChar(50)
+  title        String    @db.VarChar(200)
+  body         String
+  data         Json?
+  channel      String    @db.VarChar(20)
+  status       String    @default("pending") @db.VarChar(20)
+  sentAt       DateTime? @map("sent_at") @db.Timestamptz(6)
+  delivered_at DateTime? @db.Timestamptz(6)
+  readAt       DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_notifications_created_at")
+  @@index([status], map: "idx_notifications_status")
+  @@index([type], map: "idx_notifications_type")
+  @@index([userId], map: "idx_notifications_user_id")
+  @@map("notifications")
+}
+
+model SmsMessage {
+  id                  String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id             String?   @db.Uuid
+  phone               String    @db.VarChar(20)
+  message             String
+  template            String?   @db.VarChar(50)
+  provider            String    @db.VarChar(50)
+  provider_message_id String?   @db.VarChar(100)
+  status              String    @default("pending") @db.VarChar(20)
+  cost                Decimal?  @db.Decimal(10, 4)
+  currency            String?   @db.VarChar(3)
+  sentAt              DateTime? @map("sent_at") @db.Timestamptz(6)
+  deliveredAt         DateTime? @map("delivered_at") @db.Timestamptz(6)
+  failed_at           DateTime? @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  users               User?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([phone], map: "idx_sms_messages_phone")
+  @@index([provider_message_id], map: "idx_sms_messages_provider_id")
+  @@index([status], map: "idx_sms_messages_status")
+  @@index([user_id], map: "idx_sms_messages_user_id")
+  @@map("sms_messages")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_logs {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id     String?  @db.Uuid
+  action      String   @db.VarChar(50)
+  entity_type String   @db.VarChar(50)
+  entity_id   String?  @db.Uuid
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?  @db.Inet
+  user_agent  String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  users       User?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([action], map: "idx_audit_logs_action")
+  @@index([created_at], map: "idx_audit_logs_created_at")
+  @@index([entity_type, entity_id], map: "idx_audit_logs_entity")
+  @@index([user_id], map: "idx_audit_logs_user_id")
+}
+
+enum appointment_status {
+  scheduled
+  confirmed
+  completed
+  cancelled
+  no_show
+  rescheduled
+}
+
+enum appointment_type {
+  anc_visit
+  ultrasound
+  lab_test
+  specialist
+  delivery
+  postnatal
+  emergency
+}
+
+enum blood_type {
+  A_positive  @map("A+")
+  A_negative  @map("A-")
+  B_positive  @map("B+")
+  B_negative  @map("B-")
+  AB_positive @map("AB+")
+  AB_negative @map("AB-")
+  O_positive  @map("O+")
+  O_negative  @map("O-")
+  unknown
+}
+
+enum circle_permission {
+  view_health
+  view_location
+  receive_alerts
+  contribute_tokens
+}
+
+enum circle_role {
+  owner
+  partner
+  family
+  friend
+  doula
+}
+
+enum condition_status {
+  active
+  resolved
+  managed
+}
+
+enum condition_type {
+  chronic
+  pregnancy
+  allergy
+  medication
+  surgical
+  family_history
+}
+
+enum consent_type {
+  terms_of_service
+  privacy_policy
+  health_data_processing
+  marketing_communications
+  data_sharing_research
+  biometric_data
+}
+
+enum content_category {
+  pregnancy_basics
+  nutrition
+  exercise
+  mental_health
+  labor_delivery
+  breastfeeding
+  newborn_care
+  postpartum
+  danger_signs
+  family_planning
+}
+
+enum country_code {
+  ZA
+  UG
+  KE
+}
+
+enum facility_type {
+  hospital
+  clinic
+  health_center
+  pharmacy
+  laboratory
+  private_practice
+}
+
+enum language_code {
+  en
+  zu
+  xh
+  st
+  tn
+  lg
+  sw
+}
+
+enum milestone_category {
+  clinical
+  wellness
+  education
+  community
+}
+
+enum milestone_status {
+  locked
+  available
+  in_progress
+  pending_verification
+  completed
+  expired
+}
+
+enum otp_purpose {
+  registration
+  login
+  password_reset
+  phone_change
+  verification
+}
+
+enum partner_type {
+  mobile_money
+  transport
+  retail
+  healthcare
+  nutrition
+}
+
+enum pregnancy_status {
+  active
+  delivered
+  loss
+  terminated
+}
+
+enum product_category {
+  transport_voucher
+  mobile_money
+  data_bundle
+  nutrition_pack
+  pharmacy_voucher
+  clinic_credit
+  baby_supplies
+}
+
+enum question_type {
+  multiple_choice
+  true_false
+  multi_select
+}
+
+enum quiz_difficulty {
+  beginner
+  intermediate
+  advanced
+}
+
+enum redemption_status {
+  pending
+  processing
+  awaiting_burn
+  completed
+  failed
+  cancelled
+  expired
+}
+
+enum token_tx_status {
+  pending
+  processing
+  confirmed
+  failed
+}
+
+enum token_tx_type {
+  mint_milestone
+  mint_referral
+  mint_grant
+  burn_redemption
+  burn_expired
+  transfer_in
+  transfer_out
+}
+
+enum triage_level {
+  red
+  orange
+  yellow
+  green
+  blue
+}
+
+enum user_role {
+  mother
+  support
+  doula
+  chw
+  clinician
+  admin
+}
+
+enum user_status {
+  pending
+  active
+  suspended
+  deactivated
+}
+
+enum verification_type {
+  qr_scan
+  provider_signature
+  system_automatic
+  photo_proof
+  self_reported
+}
+
+enum verifier_type {
+  clinic
+  chw
+  digital_doula
+  system
+}

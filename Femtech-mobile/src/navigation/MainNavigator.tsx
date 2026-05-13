@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -39,7 +39,7 @@ const ProfileStack = createNativeStackNavigator();
 // Home Stack Navigator
 function HomeStackNavigator() {
   return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+    <HomeStack.Navigator id="HomeStack" screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
       <HomeStack.Screen name="QuizList" component={QuizListScreen} />
       <HomeStack.Screen name="QuizDetail" component={QuizDetailScreen} />
@@ -52,7 +52,7 @@ function HomeStackNavigator() {
 // Learn Stack Navigator
 function LearnStackNavigator() {
   return (
-    <LearnStack.Navigator screenOptions={{ headerShown: false }}>
+    <LearnStack.Navigator id="LearnStack" screenOptions={{ headerShown: false }}>
       <LearnStack.Screen name="QuizListMain" component={QuizListScreen} />
       <LearnStack.Screen name="QuizDetail" component={QuizDetailScreen} />
     </LearnStack.Navigator>
@@ -62,7 +62,7 @@ function LearnStackNavigator() {
 // Wallet Stack Navigator
 function WalletStackNavigator() {
   return (
-    <WalletStack.Navigator screenOptions={{ headerShown: false }}>
+    <WalletStack.Navigator id="WalletStack" screenOptions={{ headerShown: false }}>
       <WalletStack.Screen name="WalletMain" component={WalletScreen} />
       <WalletStack.Screen name="Redeem" component={RedeemScreen} />
       <WalletStack.Screen name="VoucherList" component={VoucherListScreen} />
@@ -74,7 +74,7 @@ function WalletStackNavigator() {
 // Profile Stack Navigator
 function ProfileStackNavigator() {
   return (
-    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+    <ProfileStack.Navigator id="ProfileStack" screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
@@ -110,6 +110,7 @@ function TabNavigator() {
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
+        id="MainTabs"
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
@@ -189,7 +190,7 @@ function TabNavigator() {
 // Main Navigator with Root Stack (for modals like AI Chat)
 export default function MainNavigator() {
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Navigator id="MainStack" screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Tabs" component={TabNavigator} />
       <RootStack.Screen 
         name="AIChat" 
