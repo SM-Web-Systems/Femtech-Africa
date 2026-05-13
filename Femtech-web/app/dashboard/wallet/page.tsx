@@ -1,10 +1,11 @@
 ﻿'use client';
 
 import { Card } from '@/app/components/common/Card';
-import { Button } from '@/app/components/common/Button';
 import { useWalletBalance, useWalletTransactions } from '@/app/lib/hooks/useWallet';
+import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 
 export default function WalletPage() {
+  const { t } = useLanguage();
   const { data: balance, isLoading: balanceLoading } = useWalletBalance();
   const { data: transactions, isLoading: txLoading } = useWalletTransactions();
 
@@ -13,18 +14,18 @@ export default function WalletPage() {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Recently';
+      if (isNaN(date.getTime())) return t('common.recently');
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffMins = Math.floor(diffMs / (1000 * 60));
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      if (diffDays < 7) return `${diffDays}d ago`;
+      if (diffMins < 1) return t('common.justNow');
+      if (diffMins < 60) return `${diffMins}m ${t('common.ago')}`;
+      if (diffHours < 24) return `${diffHours}h ${t('common.ago')}`;
+      if (diffDays < 7) return `${diffDays}d ${t('common.ago')}`;
       return date.toLocaleDateString();
-    } catch { return 'Recently'; }
+    } catch { return t('common.recently'); }
   };
 
   const formatFullDate = (dateString: string) => {
@@ -37,9 +38,18 @@ export default function WalletPage() {
 
   const getTxDescription = (type: string) => {
     switch (type) {
-      case 'mint_milestone': return 'Quiz/Milestone Reward';
-      case 'burn_redemption': return 'Token Redemption';
+      case 'mint_milestone': return t('wallet.quizMilestoneReward');
+      case 'burn_redemption': return t('wallet.tokenRedemption');
       default: return type.replace(/_/g, ' ');
+    }
+  };
+
+  const getTxStatus = (status: string) => {
+    switch (status) {
+      case 'confirmed': case 'completed': return t('transactions.confirmed');
+      case 'pending': return t('transactions.pending');
+      case 'failed': return t('transactions.failed');
+      default: return status;
     }
   };
 
@@ -47,12 +57,12 @@ export default function WalletPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Wallet</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('wallet.title')}</h1>
 
       <Card className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0 shadow-lg">
         <div className="space-y-6">
           <div>
-            <p className="text-blue-100 text-sm font-semibold">Available Balance</p>
+            <p className="text-blue-100 text-sm font-semibold">{t('wallet.availableBalance')}</p>
             <div className="flex items-baseline gap-2 mt-2">
               <p className="text-5xl font-bold">{balanceLoading ? '...' : mamaBalance}</p>
               <p className="text-2xl text-blue-100">MAMA</p>
@@ -65,16 +75,16 @@ export default function WalletPage() {
           )}
           {!balance?.hasWallet && !balanceLoading && (
             <div className="pt-4 border-t border-blue-400">
-              <p className="text-blue-200 text-sm">No wallet created yet. Create one to start earning tokens.</p>
+              <p className="text-blue-200 text-sm">{t('wallet.noWallet')}</p>
             </div>
           )}
         </div>
       </Card>
 
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Transaction History</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('wallet.transactions')}</h2>
 
       {txLoading ? (
-        <Card><p className="text-gray-600 text-center py-12">Loading transactions...</p></Card>
+        <Card><p className="text-gray-600 text-center py-12">{t('wallet.loadingTransactions')}</p></Card>
       ) : transactions && transactions.length > 0 ? (
         <div className="grid gap-3">
           {transactions.map((tx) => (
@@ -100,18 +110,14 @@ export default function WalletPage() {
                   <span className={`text-xs font-semibold ${
                     tx.status === 'confirmed' || tx.status === 'completed' ? 'text-green-600' :
                     tx.status === 'pending' ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                  </span>
+                  }`}>{getTxStatus(tx.status)}</span>
                 </div>
               </div>
             </Card>
           ))}
         </div>
       ) : (
-        <Card>
-          <p className="text-gray-600 text-center py-12">No transactions yet. Complete quizzes and milestones to earn MAMA tokens!</p>
-        </Card>
+        <Card><p className="text-gray-600 text-center py-12">{t('wallet.noTransactions')}</p></Card>
       )}
     </div>
   );

@@ -1,25 +1,20 @@
 ﻿'use client';
 
 import { Card } from '@/app/components/common/Card';
-import { Button } from '@/app/components/common/Button';
 import { useWalletBalance } from '@/app/lib/hooks/useWallet';
 import { useMilestoneDefinitions, useMilestones } from '@/app/lib/hooks/useMilestones';
 import { useGetProfile } from '@/app/lib/hooks/useProfile';
 import { useMyQuizAttempts } from '@/app/lib/hooks/useQuizzes';
 import { useAuthStore } from '@/app/lib/store/auth.store';
+import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 import Link from 'next/link';
 
-const iconMap: Record<string, string> = {
-  hospital: '🏥', scan: '🔍', test: '🧪', vaccine: '💉', calendar: '📅',
-  baby: '👶', scale: '⚖️', heart: '❤️', book: '📖', alert: '⚠️',
-  user: '👤', users: '👥', share: '🔗', gift: '🎁',
-};
-
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const user = useAuthStore((state) => state.user);
-  const { data: profileData, isLoading: profileLoading } = useGetProfile(true);
+  const { data: profileData } = useGetProfile(true);
   const { data: balance, isLoading: balanceLoading } = useWalletBalance();
-  const { data: userMilestones, isLoading: milestonesLoading } = useMilestones();
+  const { data: userMilestones } = useMilestones();
   const { data: milestoneDefinitions } = useMilestoneDefinitions();
   const { data: quizAttempts } = useMyQuizAttempts();
 
@@ -36,10 +31,8 @@ export default function DashboardPage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          Welcome back, {displayName}! 👋
-        </h1>
-        <p className="text-gray-600 text-lg">Continue your journey to better maternal health</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('dashboard.welcomeBack')} {displayName}! 👋</h1>
+        <p className="text-gray-600 text-lg">{t('dashboard.continueJourney')}</p>
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
@@ -47,12 +40,12 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-blue-100 text-sm">MAMA Balance</p>
+                <p className="text-blue-100 text-sm">{t('dashboard.mamaBalance')}</p>
                 <p className="text-4xl font-bold mt-2">{balanceLoading ? '...' : mamaBalance}</p>
               </div>
               <div className="text-4xl">💰</div>
             </div>
-            <p className="text-blue-100 text-sm">{balance?.hasWallet ? 'Stellar Wallet Active' : 'No Wallet'}</p>
+            <p className="text-blue-100 text-sm">{balance?.hasWallet ? t('dashboard.stellarWalletActive') : t('dashboard.noWallet')}</p>
           </div>
         </Card>
 
@@ -60,12 +53,12 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-green-100 text-sm">Milestones</p>
+                <p className="text-green-100 text-sm">{t('dashboard.milestones')}</p>
                 <p className="text-4xl font-bold mt-2">{completedCount}</p>
               </div>
               <div className="text-4xl">✅</div>
             </div>
-            <p className="text-green-100 text-sm">of {totalDefinitions} available</p>
+            <p className="text-green-100 text-sm">{t('common.of')} {totalDefinitions} {t('common.available')}</p>
           </div>
         </Card>
 
@@ -73,12 +66,12 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-purple-100 text-sm">Quizzes Passed</p>
+                <p className="text-purple-100 text-sm">{t('dashboard.quizzesPassed')}</p>
                 <p className="text-4xl font-bold mt-2">{passedQuizzes}</p>
               </div>
               <div className="text-4xl">🧠</div>
             </div>
-            <p className="text-purple-100 text-sm">{totalAttempts} total attempts</p>
+            <p className="text-purple-100 text-sm">{totalAttempts} {t('dashboard.totalAttempts')}</p>
           </div>
         </Card>
 
@@ -86,7 +79,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-orange-100 text-sm">Progress</p>
+                <p className="text-orange-100 text-sm">{t('dashboard.progress')}</p>
                 <p className="text-4xl font-bold mt-2">{completionRate}%</p>
               </div>
               <div className="text-4xl">📈</div>
@@ -98,17 +91,16 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
         <div className="grid md:grid-cols-3 gap-4">
           <Link href="/dashboard/quizzes">
             <Card hover className="cursor-pointer">
               <div className="flex items-center gap-4">
                 <span className="text-4xl">🧠</span>
                 <div>
-                  <p className="font-bold text-gray-900">Take a Quiz</p>
-                  <p className="text-sm text-gray-600">Earn tokens by testing your knowledge</p>
+                  <p className="font-bold text-gray-900">{t('dashboard.takeQuiz')}</p>
+                  <p className="text-sm text-gray-600">{t('dashboard.takeQuizDesc')}</p>
                 </div>
               </div>
             </Card>
@@ -118,8 +110,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4">
                 <span className="text-4xl">💰</span>
                 <div>
-                  <p className="font-bold text-gray-900">View Wallet</p>
-                  <p className="text-sm text-gray-600">Check balance and transactions</p>
+                  <p className="font-bold text-gray-900">{t('dashboard.viewWallet')}</p>
+                  <p className="text-sm text-gray-600">{t('dashboard.viewWalletDesc')}</p>
                 </div>
               </div>
             </Card>
@@ -129,8 +121,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4">
                 <span className="text-4xl">✅</span>
                 <div>
-                  <p className="font-bold text-gray-900">Milestones</p>
-                  <p className="text-sm text-gray-600">Track your pregnancy journey</p>
+                  <p className="font-bold text-gray-900">{t('dashboard.milestonesAction')}</p>
+                  <p className="text-sm text-gray-600">{t('dashboard.milestonesActionDesc')}</p>
                 </div>
               </div>
             </Card>
