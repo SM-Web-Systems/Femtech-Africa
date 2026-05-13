@@ -6,69 +6,22 @@ import { useWalletBalance } from '@/app/lib/hooks/useWallet';
 import { useState } from 'react';
 
 const redemptionItems = [
-  {
-    id: '1',
-    name: 'Prenatal Checkup',
-    description: 'Professional prenatal check with certified midwife or doctor',
-    cost: 200,
-    provider: 'HealthCare Plus',
-    category: 'Medical',
-    icon: '🏥',
-  },
-  {
-    id: '2',
-    name: 'Nutritional Consultation',
-    description: 'One-on-one session with a certified nutrition specialist',
-    cost: 150,
-    provider: 'Wellness Center',
-    category: 'Wellness',
-    icon: '🥗',
-  },
-  {
-    id: '3',
-    name: 'Prenatal Yoga Class',
-    description: '5 sessions of guided prenatal yoga for flexibility and relaxation',
-    cost: 100,
-    provider: 'Yoga Studio',
-    category: 'Wellness',
-    icon: '🧘‍♀️',
-  },
-  {
-    id: '4',
-    name: 'Mental Health Counseling',
-    description: '3 sessions with a certified perinatal psychologist',
-    cost: 250,
-    provider: 'Mental Health Clinic',
-    category: 'Mental Health',
-    icon: '🧠',
-  },
-  {
-    id: '5',
-    name: 'Vitamin & Mineral Pack',
-    description: 'Prenatal vitamins and minerals for healthy pregnancy',
-    cost: 75,
-    provider: 'Pharmacy Partner',
-    category: 'Supplements',
-    icon: '💊',
-  },
-  {
-    id: '6',
-    name: 'Ultrasound Scan',
-    description: 'Detailed ultrasound scan with certified technician',
-    cost: 300,
-    provider: 'Diagnostic Center',
-    category: 'Medical',
-    icon: '📡',
-  },
+  { id: '1', name: 'Prenatal Checkup', description: 'Professional prenatal check with certified midwife or doctor', cost: 200, provider: 'HealthCare Plus', category: 'Medical', icon: '🏥' },
+  { id: '2', name: 'Nutritional Consultation', description: 'One-on-one session with a certified nutrition specialist', cost: 150, provider: 'Wellness Center', category: 'Wellness', icon: '🥗' },
+  { id: '3', name: 'Prenatal Yoga Class', description: '5 sessions of guided prenatal yoga for flexibility and relaxation', cost: 100, provider: 'Yoga Studio', category: 'Wellness', icon: '🧘‍♀️' },
+  { id: '4', name: 'Mental Health Counseling', description: '3 sessions with a certified perinatal psychologist', cost: 250, provider: 'Mental Health Clinic', category: 'Mental Health', icon: '🧠' },
+  { id: '5', name: 'Vitamin & Mineral Pack', description: 'Prenatal vitamins and minerals for healthy pregnancy', cost: 75, provider: 'Pharmacy Partner', category: 'Supplements', icon: '💊' },
+  { id: '6', name: 'Ultrasound Scan', description: 'Detailed ultrasound scan with certified technician', cost: 300, provider: 'Diagnostic Center', category: 'Medical', icon: '📡' },
 ];
 
 export default function RedemptionsPage() {
   const { data: balance } = useWalletBalance();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const mamaBalance = balance ? parseFloat(balance.mamaBalance || '0') : 0;
+
   const handleRedeem = (id: string) => {
     setSelectedId(id);
-    // In a real app, this would process the redemption
     setTimeout(() => setSelectedId(null), 2000);
   };
 
@@ -79,25 +32,23 @@ export default function RedemptionsPage() {
         <p className="text-gray-600 mt-2">Use your MAMA tokens for quality maternal health services</p>
       </div>
 
-      {/* Balance Alert */}
-      <Card className={`mb-8 ${balance && balance.balance > 0 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+      <Card className={`mb-8 ${mamaBalance > 0 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
         <div className="flex justify-between items-center">
           <div>
-            <p className={`font-semibold ${balance && balance.balance > 0 ? 'text-green-900' : 'text-yellow-900'}`}>
+            <p className={`font-semibold ${mamaBalance > 0 ? 'text-green-900' : 'text-yellow-900'}`}>
               Your Current Balance
             </p>
-            <p className={`text-sm mt-1 ${balance && balance.balance > 0 ? 'text-green-700' : 'text-yellow-700'}`}>
-              You have {balance?.balance || 0} {balance?.currency} tokens available
+            <p className={`text-sm mt-1 ${mamaBalance > 0 ? 'text-green-700' : 'text-yellow-700'}`}>
+              You have {mamaBalance} MAMA tokens available
             </p>
           </div>
-          <p className="text-4xl font-bold text-green-600">{balance?.balance || 0}</p>
+          <p className="text-4xl font-bold text-green-600">{mamaBalance}</p>
         </div>
       </Card>
 
-      {/* Redemption Items */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {redemptionItems.map((item) => {
-          const canRedeem = balance && balance.balance >= item.cost;
+          const canRedeem = mamaBalance >= item.cost;
           const isSelected = selectedId === item.id;
 
           return (
@@ -109,7 +60,6 @@ export default function RedemptionsPage() {
                     {item.cost} MAMA
                   </span>
                 </div>
-
                 <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
                   <p className="text-gray-600 text-sm mt-2">{item.description}</p>
@@ -118,7 +68,6 @@ export default function RedemptionsPage() {
                     <p>📁 {item.category}</p>
                   </div>
                 </div>
-
                 <Button
                   variant={canRedeem ? 'primary' : 'secondary'}
                   disabled={!canRedeem}
@@ -134,7 +83,6 @@ export default function RedemptionsPage() {
         })}
       </div>
 
-      {/* Tips */}
       <Card className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
         <div className="space-y-3">
           <p className="font-semibold text-gray-900">💡 Redemption Tips</p>
