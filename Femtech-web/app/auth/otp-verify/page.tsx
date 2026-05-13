@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -37,7 +37,7 @@ export default function OtpVerifyPage() {
     try {
       const response = await verifyOtpMutation.mutateAsync({ phone, otp });
       
-      const userData = response.users;
+      const userData = response.user;
       
       localStorage.setItem('auth_token', response.token);
       localStorage.setItem('user_data', JSON.stringify(userData));
@@ -77,7 +77,7 @@ export default function OtpVerifyPage() {
         </div>
 
         {error && (
-          <div className={`p-3 rounded-lg text-sm ${error.includes('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`p-3 rounded-lg text-sm ${error.includes('?') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {error}
           </div>
         )}
@@ -103,7 +103,7 @@ export default function OtpVerifyPage() {
       </div>
 
       <div className="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-700 space-y-1">
-        <p>💡 <strong>Test Mode:</strong></p>
+        <p>?? <strong>Test Mode:</strong></p>
         <p>Phone: {phone}</p>
         <p>OTP: <strong>123456</strong></p>
       </div>

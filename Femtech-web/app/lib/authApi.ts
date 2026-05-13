@@ -9,7 +9,7 @@ export interface OtpVerifyResponse {
     success: boolean;
     token: string;
     message: string;
-    users: {
+    user: {
         id: string;
         phone: string;
         country: string;
