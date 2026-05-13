@@ -4,7 +4,7 @@ import { Providers } from '@/components/providers/Providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Femtech Africa - Maternal Health Platform',
+  title: 'Mamatokens - Maternal Health Platform',
   description: 'AI-powered maternal health tracking and token rewards platform',
   icons: {
     icon: '/favicon.ico',

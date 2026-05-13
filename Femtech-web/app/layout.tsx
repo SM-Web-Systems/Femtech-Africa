@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { Inter } from "next/font/google"
-import Navigation from './components/Navigation';
+import Navigation from './components/navigation';
 import { Providers } from './components/providers';
 import "./globals.css";
 
@@ -27,3 +27,4 @@ export default function RootLayout({
     </html>
   );
 }
+
