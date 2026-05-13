@@ -40,6 +40,7 @@ export default function QuizzCard({ quizz, isAuthenticated, isExpanded, onToggle
                 {/* Attempts Section */}
                 {isAuthenticated ? (
                     quizz.totalAttempts > 0 ? (
+                        <div>attempt history here</div>
                     ) : (
                         <div className="bg-blue-50 rounded-lg p-4 text-center">
                             <p className="text-sm text-gray-600">Not attempted yet</p>
