@@ -37,7 +37,7 @@ export default function OtpVerifyPage() {
     try {
       const response = await verifyOtpMutation.mutateAsync({ phone, otp });
       
-      const userData = response.user || response.users;
+      const userData = response.users;
       
       localStorage.setItem('auth_token', response.token);
       localStorage.setItem('user_data', JSON.stringify(userData));
