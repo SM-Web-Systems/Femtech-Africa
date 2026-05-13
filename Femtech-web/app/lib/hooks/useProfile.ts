@@ -15,7 +15,12 @@ export const useGetProfile = (enabled = true) => {
 
 export const useUpdateProfile = () => {
   return useMutation({
-    mutationFn: async (data: { firstName?: string; lastName?: string; dateOfBirth?: string; avatarUrl?: string }) => {
+    mutationFn: async (data: {
+      firstName?: string;
+      lastName?: string;
+      dateOfBirth?: string;
+      avatarUrl?: string;
+    }) => {
       const response = await apiClient.put('/profile', data);
       return response.data;
     },

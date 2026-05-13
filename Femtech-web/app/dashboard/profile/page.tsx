@@ -1,20 +1,36 @@
 ﻿'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/app/components/common/Card';
 import { Button } from '@/app/components/common/Button';
 import { useAuthStore } from '@/app/lib/store/auth.store';
-import { useGetProfile } from '@/app/lib/hooks/useProfile';
+import { useGetProfile, useUpdateProfile } from '@/app/lib/hooks/useProfile';
 import { useWalletBalance } from '@/app/lib/hooks/useWallet';
-import { useMyQuizAttempts } from '@/app/lib/hooks/useQuizzes';
-import { useRouter } from 'next/navigation';
+import { useLanguage, languages as langList } from '@/app/lib/i18n/LanguageContext';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t, language, setLanguage } = useLanguage();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const { data: profileData, isLoading } = useGetProfile(true);
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGetProfile();
   const { data: balance } = useWalletBalance();
-  const { data: attempts } = useMyQuizAttempts();
+  const updateProfileMutation = useUpdateProfile();
+
+  const [editing, setEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (profile && profile.exists) {
+      setFirstName(profile.firstName || '');
+      setLastName(profile.lastName || '');
+      setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '');
+    }
+  }, [profile]);
 
   const handleLogout = () => {
     logout();
@@ -23,91 +39,199 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const displayName = profileData?.firstName
-    ? `${profileData.firstName} ${profileData.lastName || ''}`.trim()
-    : user?.phone || 'User';
+  const handleSave = async () => {
+    try {
+      await updateProfileMutation.mutateAsync({ firstName, lastName, dateOfBirth: dateOfBirth || undefined });
+      setEditing(false);
+      setMessage(t('common.success'));
+      refetchProfile();
+      setTimeout(() => setMessage(''), 3000);
+    } catch {
+      setMessage(t('common.error'));
+    }
+  };
 
-  const passedQuizzes = attempts?.filter(a => a.passed).length || 0;
-
-  if (isLoading) {
+  if (profileLoading) {
     return (
-      <div className="p-8">
-        <div className="text-center py-12">
-          <div className="animate-spin"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto"></div></div>
-          <p className="text-gray-600 mt-4">Loading profile...</p>
-        </div>
+      <div className="flex justify-center items-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
 
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Your Profile</h1>
+  const showForm = editing || !profile?.exists;
 
-      <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-        <div className="flex items-center gap-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-5xl">👤</div>
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">{displayName}</h2>
-            <p className="text-gray-600 mt-1">{user?.phone || 'N/A'}</p>
-            <p className="text-sm text-blue-600 font-semibold mt-2">{passedQuizzes} quizzes passed</p>
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">{t('profile.title')}</h1>
+
+      {message && (
+        <div className={`p-3 rounded-lg text-sm ${message === t('common.error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+          {message}
+        </div>
+      )}
+
+      {/* Profile Form / Display */}
+      {!profile?.exists && (
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+          <p className="text-yellow-800 font-medium">{t('profile.completeProfile')}</p>
+        </div>
+      )}
+
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {profile?.exists ? (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : t('profile.editProfile')) : t('profile.editProfile')}
+          </h2>
+          {profile?.exists && !editing && (
+            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+              {t('profile.editBtn')}
+            </Button>
+          )}
+        </div>
+
+        {showForm ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.firstName')}</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.lastName')}</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.dateOfBirth')}</label>
+              <input
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                isLoading={updateProfileMutation.isPending}
+              >
+                {t('profile.saveProfile')}
+              </Button>
+              {editing && (
+                <Button variant="secondary" onClick={() => setEditing(false)}>
+                  {t('profile.cancelBtn')}
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Card>
+
+      {/* Account Info */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.account')}</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-600">{t('profile.phone')}</span>
+            <span className="font-medium">{user?.phone || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{t('profile.email')}</span>
+            <span className="font-medium">{user?.email || 'Not set'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{t('profile.country')}</span>
+            <span className="font-medium">{user?.country ? t(`countries.${user.country}`) : 'N/A'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{t('profile.memberSince')}</span>
+            <span className="font-medium">
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{t('wallet.address')}</span>
+            <span className="font-medium text-xs break-all max-w-[200px]">
+              {balance?.stellarAddress || user?.walletAddress || t('wallet.noWallet')}
+            </span>
           </div>
         </div>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
-        <Card>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Account Information</h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 font-semibold">Phone Number</p>
-              <p className="text-gray-900 font-semibold mt-1">{user?.phone || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-semibold">Country</p>
-              <p className="text-gray-900 font-semibold mt-1">{user?.country || 'N/A'}</p>
-            </div>
-            {profileData?.firstName && (
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Name</p>
-                <p className="text-gray-900 font-semibold mt-1">{profileData.firstName} {profileData.lastName}</p>
+      {/* Language Selection */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.language')}</h2>
+        <p className="text-sm text-gray-600 mb-3">{t('profile.selectLanguage')}</p>
+        <div className="grid grid-cols-2 gap-3">
+          {langList.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code)}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition ${
+                language === lang.code
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+              }`}
+            >
+              <span className="text-2xl">{lang.flag}</span>
+              <div className="text-left">
+                <div className="font-medium">{lang.native}</div>
+                <div className="text-xs text-gray-500">{lang.name}</div>
               </div>
-            )}
-            {user?.createdAt && (
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Account Created</p>
-                <p className="text-gray-900 font-semibold mt-1">{new Date(user.createdAt).toLocaleDateString()}</p>
-              </div>
-            )}
-          </div>
-        </Card>
+              {language === lang.code && <span className="ml-auto text-blue-600 font-bold">✓</span>}
+            </button>
+          ))}
+        </div>
+      </Card>
 
-        <Card>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Wallet</h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 font-semibold">Status</p>
-              <p className="text-gray-900 font-semibold mt-1">{balance?.hasWallet ? 'Active' : 'Not created'}</p>
-            </div>
-            {balance?.stellarAddress && (
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Stellar Address</p>
-                <p className="text-gray-900 font-mono text-xs mt-1 break-all">{balance.stellarAddress}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-sm text-gray-500 font-semibold">MAMA Balance</p>
-              <p className="text-gray-900 font-semibold mt-1">{balance ? parseFloat(balance.mamaBalance || '0') : 0} MAMA</p>
-            </div>
+      {/* Preferences */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.preferences')}</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">{t('profile.notifications')}</span>
+            <span className="text-sm text-green-600 font-medium">Enabled</span>
           </div>
-        </Card>
-      </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">{t('profile.theme')}</span>
+            <span className="text-sm text-gray-600 font-medium">{t('profile.lightMode')}</span>
+          </div>
+        </div>
+      </Card>
 
-      <Card className="border-red-200 bg-red-50">
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold text-red-900">Account</h3>
-          <Button variant="danger" onClick={handleLogout} className="w-full">
-            🚪 Logout
+      {/* Support */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.support')}</h2>
+        <div className="space-y-2">
+          <Button variant="secondary" size="sm" className="w-full">
+            {t('profile.faq')}
+          </Button>
+          <Button variant="secondary" size="sm" className="w-full">
+            {t('profile.contactUs')}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="p-6 border-red-200">
+        <h2 className="text-lg font-semibold text-red-700 mb-4">{t('profile.dangerZone')}</h2>
+        <p className="text-sm text-gray-600 mb-4">{t('auth.logoutConfirm')}</p>
+        <div className="flex gap-3">
+          <Button variant="secondary" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
+            {t('profile.deleteAccount')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleLogout}>
+            {t('auth.logout')}
           </Button>
         </div>
       </Card>

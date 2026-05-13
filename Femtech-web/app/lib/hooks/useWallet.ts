@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { WalletBalance, Transaction } from '../types';
 
@@ -17,6 +17,15 @@ export const useWalletTransactions = () => {
     queryKey: ['walletTransactions'],
     queryFn: async (): Promise<Transaction[]> => {
       const response = await apiClient.get('/wallet/transactions');
+      return response.data;
+    },
+  });
+};
+
+export const useCreateWallet = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post('/wallet/create');
       return response.data;
     },
   });
