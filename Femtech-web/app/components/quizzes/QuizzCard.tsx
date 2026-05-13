@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { QuizzWithAttempts, QuizzAttempt } from '../../lib/services/useQuizzes';
 import { formatDate, getStatusIcon, getButtonText } from '../../lib/utils/quizzUtils';
-import AttemptHistory from './AttemptHistory';
+
 
 interface QuizzCardProps {
     quizz: QuizzWithAttempts;
