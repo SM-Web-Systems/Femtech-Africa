@@ -73,3 +73,4 @@ export default function QuizzCard({ quizz, isAuthenticated, isExpanded, onToggle
     );
 }
 
+
