@@ -171,7 +171,116 @@ export interface ProfileData {
   updatedAt?: string;
 }
 
-// Redemption Types
+
+
+// Redemption & Voucher Types
+export interface Partner {
+  id: string;
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+  type: string;
+  country: string | null;
+}
+
+export interface PartnerProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  tokenCost: number;
+  stockQuantity: number | null;
+  category: string | null;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  barcode: string;
+  qrCode: string | null;
+  tokensBurned: number;
+  value: { amount: number; currency: string };
+  partner: { name: string; logoUrl: string | null; type?: string };
+  product: { name: string; imageUrl: string | null } | null;
+  status: 'active' | 'used' | 'expired' | 'cancelled';
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+  txHash?: string;
+  usedAtLocation?: string | null;
+}
+
+export interface RedeemResponse {
+  success: boolean;
+  message: string;
+  voucher: Voucher;
+  newBalance: { mamaBalance: string; xlmBalance: string };
+}
+
+export interface RedemptionItem {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  image?: string;
+  provider: string;
+}
+
+export interface Redemption {
+  id: string;
+  itemId: string;
+  itemName: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  redeemedAt: string;
+  provider: string;
+}
+
+// Redemption & Voucher Types
+export interface Partner {
+  id: string;
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+  type: string;
+  country: string | null;
+}
+
+export interface PartnerProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  tokenCost: number;
+  stockQuantity: number | null;
+  category: string | null;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  barcode: string;
+  qrCode: string | null;
+  tokensBurned: number;
+  value: { amount: number; currency: string };
+  partner: { name: string; logoUrl: string | null; type?: string };
+  product: { name: string; imageUrl: string | null } | null;
+  status: 'active' | 'used' | 'expired' | 'cancelled';
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+  txHash?: string;
+  usedAtLocation?: string | null;
+}
+
+export interface RedeemResponse {
+  success: boolean;
+  message: string;
+  voucher: Voucher;
+  newBalance: { mamaBalance: string; xlmBalance: string };
+}
+
 export interface RedemptionItem {
   id: string;
   name: string;

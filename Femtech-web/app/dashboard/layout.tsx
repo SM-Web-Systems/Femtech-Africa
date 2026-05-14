@@ -64,6 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NavLink href="/dashboard/milestones" label={`✅ ${t('nav.milestones')}`} />
             <NavLink href="/dashboard/quizzes" label={`🧠 ${t('nav.quizzes')}`} />
             <NavLink href="/dashboard/redemptions" label={`🎁 ${t('nav.redemptions')}`} />
+            <NavLink href="/dashboard/vouchers" label={`🎟️ Vouchers`} />
             <NavLink href="/dashboard/profile" label={`👤 ${t('nav.profile')}`} />
           </div>
         </nav>
