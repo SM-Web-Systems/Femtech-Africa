@@ -206,10 +206,10 @@ export default function ProfilePage() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.support')}</h2>
         <div className="space-y-2">
-          <Button variant="secondary" size="sm" className="w-full">
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push("/dashboard/faq")}>
             {t('profile.faq')}
           </Button>
-          <Button variant="secondary" size="sm" className="w-full">
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => router.push("/dashboard/contact")}>
             {t('profile.contactUs')}
           </Button>
         </div>
