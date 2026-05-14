@@ -151,7 +151,7 @@ export default function ProfilePage() {
             <span className="text-gray-600">{t('profile.memberSince')}</span>
             <span className="font-medium">
               {(profile?.memberSince || user?.createdAt)
-                ? new Date(profile?.memberSince || user?.createdAt).toLocaleDateString()
+                ? new Date(String(profile?.memberSince || user?.createdAt)).toLocaleDateString()
                 : 'N/A'}
             </span>
           </div>
