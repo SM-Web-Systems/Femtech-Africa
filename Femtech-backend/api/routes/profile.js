@@ -17,11 +17,14 @@ router.get('/', authenticateToken, async (req, res) => {
       return res.json({ exists: false });
     }
 
-    // Safely decrypt fields (handle null values)
+    // Safely decrypt fields — convert Buffer to string first
     const decryptField = (encryptedValue) => {
       if (!encryptedValue) return null;
       try {
-        return decrypt(encryptedValue);
+        const str = Buffer.isBuffer(encryptedValue) 
+          ? encryptedValue.toString('utf8') 
+          : encryptedValue;
+        return decrypt(str);
       } catch (e) {
         return null;
       }
@@ -46,10 +49,11 @@ router.put('/', authenticateToken, async (req, res) => {
   try {
     const { firstName, lastName, dateOfBirth, avatarUrl } = req.body;
 
-    // Safely encrypt fields (handle null/empty values)
+    // Encrypt and convert to Buffer for Prisma Bytes fields
     const encryptField = (value) => {
       if (!value || value.trim() === '') return null;
-      return encrypt(value);
+      const encrypted = encrypt(value);
+      return Buffer.from(encrypted, 'utf8');
     };
 
     const profile = await prisma.userProfile.upsert({
@@ -83,7 +87,6 @@ router.delete('/', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     console.log('Deleting profile for user:', userId);
 
-    // Models with userId field (mapped via @map to user_id in DB)
     await prisma.voucher.deleteMany({ where: { userId: userId } });
     await prisma.tokenTransaction.deleteMany({ where: { userId: userId } });
     await prisma.quizAttempt.deleteMany({ where: { userId: userId } });
@@ -97,7 +100,6 @@ router.delete('/', authenticateToken, async (req, res) => {
     await prisma.session.deleteMany({ where: { userId: userId } });
     await prisma.userProfile.deleteMany({ where: { userId: userId } });
 
-    // Models with user_id field (no @map, field name = column name)
     await prisma.supportCircle.deleteMany({ where: { owner_id: userId } });
     await prisma.appointment.deleteMany({ where: { user_id: userId } });
     await prisma.kickSession.deleteMany({ where: { user_id: userId } });
@@ -106,7 +108,6 @@ router.delete('/', authenticateToken, async (req, res) => {
     await prisma.digitalDoula.deleteMany({ where: { user_id: userId } });
     await prisma.smsMessage.deleteMany({ where: { user_id: userId } });
 
-    // Finally delete user
     await prisma.user.delete({ where: { id: userId } });
 
     console.log('Profile deleted successfully for user:', userId);
