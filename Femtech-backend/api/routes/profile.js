@@ -13,16 +13,24 @@ router.get('/', authenticateToken, async (req, res) => {
       where: { userId: req.user.userId }
     });
 
+    // Also fetch user for email and createdAt
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { createdAt: true }
+    });
+
     if (!profile) {
-      return res.json({ exists: false });
+      return res.json({
+        exists: false,
+        memberSince: user?.createdAt || null
+      });
     }
 
-    // Safely decrypt fields — convert Buffer to string first
     const decryptField = (encryptedValue) => {
       if (!encryptedValue) return null;
       try {
-        const str = Buffer.isBuffer(encryptedValue) 
-          ? encryptedValue.toString('utf8') 
+        const str = Buffer.isBuffer(encryptedValue)
+          ? encryptedValue.toString('utf8')
           : encryptedValue;
         return decrypt(str);
       } catch (e) {
@@ -35,7 +43,9 @@ router.get('/', authenticateToken, async (req, res) => {
       firstName: decryptField(profile.firstNameEncrypted),
       lastName: decryptField(profile.lastNameEncrypted),
       dateOfBirth: decryptField(profile.dateOfBirthEncrypted),
+      email: profile.email || null,
       avatarUrl: profile.avatarUrl,
+      memberSince: user?.createdAt || null,
       updatedAt: profile.updatedAt
     });
   } catch (error) {
@@ -47,9 +57,8 @@ router.get('/', authenticateToken, async (req, res) => {
 // Update profile
 router.put('/', authenticateToken, async (req, res) => {
   try {
-    const { firstName, lastName, dateOfBirth, avatarUrl } = req.body;
+    const { firstName, lastName, dateOfBirth, email, avatarUrl } = req.body;
 
-    // Encrypt and convert to Buffer for Prisma Bytes fields
     const encryptField = (value) => {
       if (!value || value.trim() === '') return null;
       const encrypted = encrypt(value);
@@ -62,6 +71,7 @@ router.put('/', authenticateToken, async (req, res) => {
         firstNameEncrypted: encryptField(firstName),
         lastNameEncrypted: encryptField(lastName),
         dateOfBirthEncrypted: encryptField(dateOfBirth),
+        email: email || null,
         avatarUrl: avatarUrl || null,
         updatedAt: new Date()
       },
@@ -70,6 +80,7 @@ router.put('/', authenticateToken, async (req, res) => {
         firstNameEncrypted: encryptField(firstName),
         lastNameEncrypted: encryptField(lastName),
         dateOfBirthEncrypted: encryptField(dateOfBirth),
+        email: email || null,
         avatarUrl: avatarUrl || null
       }
     });
@@ -81,7 +92,7 @@ router.put('/', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE profile - permanently delete user and all associated data
+// DELETE profile
 router.delete('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;

@@ -7,10 +7,8 @@ const { authenticateToken } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 
-// Test code for development
 const TEST_OTP = '123456';
 
-// Hash OTP for storage
 const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
 // Request OTP
@@ -34,7 +32,6 @@ router.post('/otp/request', async (req, res) => {
       }
     });
 
-    // TODO: Send SMS via Africa's Talking
     console.log(`OTP for ${phone}: ${otp}`);
 
     res.json({ success: true, message: 'OTP sent successfully', hint: 'Use 123456 for testing' });
@@ -49,7 +46,6 @@ router.post('/otp/verify', async (req, res) => {
   try {
     const { phone, otp, country } = req.body;
 
-    // Allow test code in development
     const isTestCode = otp === TEST_OTP;
 
     if (!isTestCode) {
@@ -68,19 +64,16 @@ router.post('/otp/verify', async (req, res) => {
         return res.status(400).json({ error: 'Invalid or expired OTP' });
       }
 
-      // Check max attempts
       if (otpRecord.attempts >= otpRecord.maxAttempts) {
         return res.status(400).json({ error: 'Too many attempts. Request a new OTP.' });
       }
 
-      // Mark as verified
       await prisma.otpCode.update({
         where: { id: otpRecord.id },
         data: { verified_at: new Date() }
       });
     }
 
-    // Find or create user
     let user = await prisma.user.findUnique({ where: { phone } });
 
     if (!user) {
@@ -99,7 +92,17 @@ router.post('/otp/verify', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ token, user: { id: user.id, phone: user.phone, country: user.country } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        country: user.country,
+        language: user.language,
+        walletAddress: user.walletAddress,
+        createdAt: user.createdAt
+      }
+    });
   } catch (error) {
     console.error('OTP verify error:', error);
     res.status(500).json({ error: error.message });
@@ -117,7 +120,17 @@ router.get('/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    res.json({
+      id: user.id,
+      phone: user.phone,
+      country: user.country,
+      language: user.language,
+      status: user.status,
+      role: user.role,
+      walletAddress: user.walletAddress,
+      walletCreatedAt: user.walletCreatedAt,
+      createdAt: user.createdAt
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

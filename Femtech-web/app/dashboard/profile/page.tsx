@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,6 +21,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [message, setMessage] = useState('');
 
@@ -28,6 +29,7 @@ export default function ProfilePage() {
     if (profile && profile.exists) {
       setFirstName(profile.firstName || '');
       setLastName(profile.lastName || '');
+      setEmail(profile.email || '');
       setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '');
     }
   }, [profile]);
@@ -41,7 +43,12 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      await updateProfileMutation.mutateAsync({ firstName, lastName, dateOfBirth: dateOfBirth || undefined });
+      await updateProfileMutation.mutateAsync({
+        firstName,
+        lastName,
+        email: email || undefined,
+        dateOfBirth: dateOfBirth || undefined
+      });
       setEditing(false);
       setMessage(t('common.success'));
       refetchProfile();
@@ -71,7 +78,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Profile Form / Display */}
       {!profile?.exists && (
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
           <p className="text-yellow-800 font-medium">{t('profile.completeProfile')}</p>
@@ -107,6 +113,16 @@ export default function ProfilePage() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.email')}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -147,7 +163,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">{t('profile.email')}</span>
-            <span className="font-medium">{user?.email || 'Not set'}</span>
+            <span className="font-medium">{profile?.email || 'Not set'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">{t('profile.country')}</span>
@@ -156,7 +172,9 @@ export default function ProfilePage() {
           <div className="flex justify-between">
             <span className="text-gray-600">{t('profile.memberSince')}</span>
             <span className="font-medium">
-              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+              {(profile?.memberSince || user?.createdAt)
+                ? new Date(profile?.memberSince || user?.createdAt).toLocaleDateString()
+                : 'N/A'}
             </span>
           </div>
           <div className="flex justify-between">
