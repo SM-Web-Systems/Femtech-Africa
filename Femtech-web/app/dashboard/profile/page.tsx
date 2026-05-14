@@ -100,47 +100,26 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.firstName')}</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.lastName')}</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.email')}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('profile.dateOfBirth')}</label>
-              <input
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                isLoading={updateProfileMutation.isPending}
-              >
+              <Button variant="primary" onClick={handleSave} isLoading={updateProfileMutation.isPending}>
                 {t('profile.saveProfile')}
               </Button>
               {editing && (
@@ -153,7 +132,6 @@ export default function ProfilePage() {
         ) : null}
       </Card>
 
-      {/* Account Info */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.account')}</h2>
         <div className="space-y-3">
@@ -186,7 +164,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Language Selection */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.language')}</h2>
         <p className="text-sm text-gray-600 mb-3">{t('profile.selectLanguage')}</p>
@@ -212,7 +189,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Preferences */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.preferences')}</h2>
         <div className="space-y-3">
@@ -227,7 +203,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Support */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.support')}</h2>
         <div className="space-y-2">
@@ -240,7 +215,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Danger Zone */}
       <Card className="p-6 border-red-200">
         <h2 className="text-lg font-semibold text-red-700 mb-4">{t('profile.dangerZone')}</h2>
         <p className="text-sm text-gray-600 mb-4">{t('auth.logoutConfirm')}</p>
