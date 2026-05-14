@@ -887,6 +887,7 @@ enum facility_type {
 
 enum language_code {
   en
+  fr
   zu
   xh
   st
