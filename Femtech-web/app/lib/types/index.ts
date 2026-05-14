@@ -166,6 +166,8 @@ export interface ProfileData {
   lastName?: string | null;
   dateOfBirth?: string | null;
   avatarUrl?: string | null;
+  email?: string | null;
+  memberSince?: string | null;
   updatedAt?: string;
 }
 
