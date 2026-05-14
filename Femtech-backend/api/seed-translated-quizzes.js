@@ -1,259 +1,283 @@
 require('dotenv').config();
-const { PrismaClient } = require('./generated/prisma-client');
+const { PrismaClient, language_code } = require('./generated/prisma-client');
 const prisma = new PrismaClient();
 
 // Translation maps for quiz content
 const translations = {
   fr: {
-    titles: {
-      'Nutrition Basics': 'Bases de la Nutrition',
-      'Mental Health During Pregnancy': 'Santé Mentale Pendant la Grossesse',
-      'Prenatal Care Essentials': 'Soins Prénataux Essentiels',
-      'Safe Exercise During Pregnancy': 'Exercice Sûr Pendant la Grossesse',
-      'Breastfeeding Basics': 'Bases de l\'Allaitement',
-      'Understanding Labor Signs': 'Comprendre les Signes du Travail',
-      'Newborn Care': 'Soins du Nouveau-né',
-      'Danger Signs in Pregnancy': 'Signes de Danger Pendant la Grossesse',
+    quizTitles: {
+      'Pregnancy Nutrition Basics': 'Bases de la nutrition pendant la grossesse',
+      'First Trimester Health': 'Santé du premier trimestre',
+      'Safe Exercise During Pregnancy': 'Exercices sûrs pendant la grossesse',
+      'Prenatal Care Essentials': 'Essentiels des soins prénataux',
+      'Labor and Delivery Preparation': 'Préparation au travail et à l\'accouchement',
+      'Newborn Care Basics': 'Bases des soins du nouveau-né',
+      'Breastfeeding Fundamentals': 'Fondamentaux de l\'allaitement',
+      'Postpartum Recovery': 'Récupération post-partum',
     },
-    descriptions: {
-      'Learn about essential nutrients': 'Apprenez les nutriments essentiels pour une grossesse saine',
-      'Taking care of your emotional wellbeing': 'Prendre soin de votre bien-être émotionnel pendant la grossesse',
-      'Understanding the importance of prenatal visits': 'Comprendre l\'importance des visites prénatales',
-      'Stay active safely during pregnancy': 'Restez active en toute sécurité pendant la grossesse',
-      'Prepare for breastfeeding your baby': 'Préparez-vous à allaiter votre bébé',
-      'Know when labor is approaching': 'Savoir quand le travail approche',
-      'Essential care for your newborn': 'Soins essentiels pour votre nouveau-né',
-      'Recognize warning signs that need immediate attention': 'Reconnaître les signes d\'alerte nécessitant une attention immédiate',
+    quizDescriptions: {
+      'Test your knowledge about proper nutrition during pregnancy': 'Testez vos connaissances sur la nutrition pendant la grossesse',
+      'Learn about the important health considerations in your first trimester': 'Découvrez les considérations de santé importantes au premier trimestre',
+      'Discover safe ways to stay active during pregnancy': 'Découvrez des façons sûres de rester active pendant la grossesse',
+      'Understanding the key aspects of prenatal care': 'Comprendre les aspects clés des soins prénataux',
+      'Prepare yourself for labor and delivery': 'Préparez-vous au travail et à l\'accouchement',
+      'Essential knowledge for caring for your newborn': 'Connaissances essentielles pour prendre soin de votre nouveau-né',
+      'Learn the basics of successful breastfeeding': 'Apprenez les bases d\'un allaitement réussi',
+      'Understanding your body\'s recovery after childbirth': 'Comprendre la récupération de votre corps après l\'accouchement',
     },
     questions: {
-      'Which vitamin is essential for preventing neural tube defects?': 'Quelle vitamine est essentielle pour prévenir les anomalies du tube neural ?',
-      'How many servings of fruits and vegetables should a pregnant woman eat daily?': 'Combien de portions de fruits et légumes une femme enceinte devrait-elle manger par jour ?',
-      'Which mineral is important for blood production during pregnancy?': 'Quel minéral est important pour la production de sang pendant la grossesse ?',
-      'What is a common sign of dehydration during pregnancy?': 'Quel est un signe courant de déshydratation pendant la grossesse ?',
+      'Which nutrient is essential for preventing neural tube defects?': 'Quel nutriment est essentiel pour prévenir les anomalies du tube neural ?',
+      'How many additional calories per day are recommended during the second trimester?': 'Combien de calories supplémentaires par jour sont recommandées pendant le deuxième trimestre ?',
       'Which food should be avoided during pregnancy?': 'Quel aliment doit être évité pendant la grossesse ?',
+      'What is the recommended daily intake of water during pregnancy?': 'Quelle est la consommation d\'eau quotidienne recommandée pendant la grossesse ?',
+      'Which vitamin is important for iron absorption?': 'Quelle vitamine est importante pour l\'absorption du fer ?',
     },
     options: {
       'Folic acid': 'Acide folique',
       'Vitamin C': 'Vitamine C',
-      'Vitamin D': 'Vitamine D',
-      'Vitamin E': 'Vitamine E',
+      'Calcium': 'Calcium',
       'Iron': 'Fer',
-      'Zinc': 'Zinc',
-      'Copper': 'Cuivre',
-      'Sodium': 'Sodium',
-      'Dark urine': 'Urine foncée',
-      'Frequent urination': 'Miction fréquente',
-      'Increased appetite': 'Appétit accru',
-      'Weight gain': 'Prise de poids',
+      '100 calories': '100 calories',
+      '340 calories': '340 calories',
+      '500 calories': '500 calories',
+      '750 calories': '750 calories',
       'Raw sushi': 'Sushi cru',
-      'Cooked chicken': 'Poulet cuit',
-      'Bananas': 'Bananes',
-      'Brown rice': 'Riz complet',
-      '2-3': '2-3',
-      '5-9': '5-9',
-      '10-12': '10-12',
-      '1': '1',
+      'Cooked vegetables': 'Légumes cuits',
+      'Whole grains': 'Grains entiers',
+      'Lean meat': 'Viande maigre',
+      '4-6 glasses': '4-6 verres',
+      '8-12 glasses': '8-12 verres',
+      '2-3 glasses': '2-3 verres',
+      '15 glasses': '15 verres',
+      'Vitamin A': 'Vitamine A',
+      'Vitamin B12': 'Vitamine B12',
+      'Vitamin D': 'Vitamine D',
     },
   },
   sw: {
-    titles: {
-      'Nutrition Basics': 'Misingi ya Lishe',
-      'Mental Health During Pregnancy': 'Afya ya Akili Wakati wa Ujauzito',
-      'Prenatal Care Essentials': 'Mambo Muhimu ya Huduma ya Ujauzito',
+    quizTitles: {
+      'Pregnancy Nutrition Basics': 'Misingi ya Lishe ya Ujauzito',
+      'First Trimester Health': 'Afya ya Trimesta ya Kwanza',
       'Safe Exercise During Pregnancy': 'Mazoezi Salama Wakati wa Ujauzito',
-      'Breastfeeding Basics': 'Misingi ya Kunyonyesha',
-      'Understanding Labor Signs': 'Kuelewa Ishara za Uchungu',
-      'Newborn Care': 'Huduma ya Mtoto Mchanga',
-      'Danger Signs in Pregnancy': 'Ishara za Hatari Wakati wa Ujauzito',
+      'Prenatal Care Essentials': 'Mambo Muhimu ya Huduma ya Kabla ya Kuzaa',
+      'Labor and Delivery Preparation': 'Maandalizi ya Uchungu na Kujifungua',
+      'Newborn Care Basics': 'Misingi ya Huduma ya Mtoto Mchanga',
+      'Breastfeeding Fundamentals': 'Misingi ya Kunyonyesha',
+      'Postpartum Recovery': 'Kupona Baada ya Kujifungua',
     },
-    descriptions: {
-      'Learn about essential nutrients': 'Jifunze kuhusu virutubisho muhimu kwa ujauzito wenye afya',
-      'Taking care of your emotional wellbeing': 'Kutunza ustawi wako wa kihisia wakati wa ujauzito',
-      'Understanding the importance of prenatal visits': 'Kuelewa umuhimu wa ziara za kabla ya kujifungua',
-      'Stay active safely during pregnancy': 'Kaa hai kwa usalama wakati wa ujauzito',
-      'Prepare for breastfeeding your baby': 'Jiandae kunyonyesha mtoto wako',
-      'Know when labor is approaching': 'Jua wakati uchungu unakaribia',
-      'Essential care for your newborn': 'Huduma muhimu kwa mtoto wako mchanga',
-      'Recognize warning signs that need immediate attention': 'Tambua ishara za onyo zinazohitaji umakini wa haraka',
+    quizDescriptions: {
+      'Test your knowledge about proper nutrition during pregnancy': 'Jaribu ujuzi wako kuhusu lishe sahihi wakati wa ujauzito',
+      'Learn about the important health considerations in your first trimester': 'Jifunze kuhusu mambo muhimu ya afya katika trimesta yako ya kwanza',
+      'Discover safe ways to stay active during pregnancy': 'Gundua njia salama za kubaki hai wakati wa ujauzito',
+      'Understanding the key aspects of prenatal care': 'Kuelewa mambo muhimu ya huduma ya kabla ya kuzaa',
+      'Prepare yourself for labor and delivery': 'Jiandae kwa uchungu na kujifungua',
+      'Essential knowledge for caring for your newborn': 'Ujuzi muhimu wa kutunza mtoto wako mchanga',
+      'Learn the basics of successful breastfeeding': 'Jifunze misingi ya kunyonyesha kwa mafanikio',
+      'Understanding your body\'s recovery after childbirth': 'Kuelewa kupona kwa mwili wako baada ya kujifungua',
     },
     questions: {
-      'Which vitamin is essential for preventing neural tube defects?': 'Ni vitamini gani muhimu kwa kuzuia kasoro za mirija ya neva?',
-      'How many servings of fruits and vegetables should a pregnant woman eat daily?': 'Mama mjamzito anapaswa kula sehemu ngapi za matunda na mboga kwa siku?',
-      'Which mineral is important for blood production during pregnancy?': 'Ni madini gani muhimu kwa uzalishaji wa damu wakati wa ujauzito?',
-      'What is a common sign of dehydration during pregnancy?': 'Ni ishara gani ya kawaida ya upungufu wa maji wakati wa ujauzito?',
+      'Which nutrient is essential for preventing neural tube defects?': 'Ni lishe gani muhimu kwa kuzuia kasoro za mirija ya neva?',
+      'How many additional calories per day are recommended during the second trimester?': 'Kalori ngapi za ziada kwa siku zinapendekezwa wakati wa trimesta ya pili?',
       'Which food should be avoided during pregnancy?': 'Ni chakula gani kinapaswa kuepukwa wakati wa ujauzito?',
+      'What is the recommended daily intake of water during pregnancy?': 'Kiwango cha maji kinachopendekezwa kwa siku wakati wa ujauzito ni kiasi gani?',
+      'Which vitamin is important for iron absorption?': 'Ni vitamini gani muhimu kwa ufyonzaji wa chuma?',
     },
     options: {
       'Folic acid': 'Asidi ya foliki',
       'Vitamin C': 'Vitamini C',
-      'Vitamin D': 'Vitamini D',
-      'Vitamin E': 'Vitamini E',
+      'Calcium': 'Kalsiamu',
       'Iron': 'Chuma',
-      'Zinc': 'Zinki',
-      'Copper': 'Shaba',
-      'Sodium': 'Sodiamu',
-      'Dark urine': 'Mkojo mweusi',
-      'Frequent urination': 'Kukojoa mara kwa mara',
-      'Increased appetite': 'Hamu ya kula iliyoongezeka',
-      'Weight gain': 'Kupata uzito',
+      '100 calories': 'Kalori 100',
+      '340 calories': 'Kalori 340',
+      '500 calories': 'Kalori 500',
+      '750 calories': 'Kalori 750',
       'Raw sushi': 'Sushi mbichi',
-      'Cooked chicken': 'Kuku aliyepikwa',
-      'Bananas': 'Ndizi',
-      'Brown rice': 'Mchele wa kahawia',
-      '2-3': '2-3',
-      '5-9': '5-9',
-      '10-12': '10-12',
-      '1': '1',
+      'Cooked vegetables': 'Mboga zilizopikwa',
+      'Whole grains': 'Nafaka nzima',
+      'Lean meat': 'Nyama isiyo na mafuta',
+      '4-6 glasses': 'Glasi 4-6',
+      '8-12 glasses': 'Glasi 8-12',
+      '2-3 glasses': 'Glasi 2-3',
+      '15 glasses': 'Glasi 15',
+      'Vitamin A': 'Vitamini A',
+      'Vitamin B12': 'Vitamini B12',
+      'Vitamin D': 'Vitamini D',
     },
   },
   zu: {
-    titles: {
-      'Nutrition Basics': 'Izisekelo Zokondla',
-      'Mental Health During Pregnancy': 'Ezempilo Yengqondo Ngesikhathi Sokukhulelwa',
-      'Prenatal Care Essentials': 'Okubalulekile Kokunakekelwa Kwangaphambi Kokubeletha',
+    quizTitles: {
+      'Pregnancy Nutrition Basics': 'Izisekelo Zokudla Ngesikhathi Sokukhulelwa',
+      'First Trimester Health': 'Impilo Ye-Trimester Yokuqala',
       'Safe Exercise During Pregnancy': 'Ukuzivocavoca Okuphephile Ngesikhathi Sokukhulelwa',
-      'Breastfeeding Basics': 'Izisekelo Zokuncelisa',
-      'Understanding Labor Signs': 'Ukuqonda Izimpawu Zomshikashika',
-      'Newborn Care': 'Ukunakekela Ingane Esanda Kuzalwa',
-      'Danger Signs in Pregnancy': 'Izimpawu Zengozi Ngesikhathi Sokukhulelwa',
+      'Prenatal Care Essentials': 'Izidingo Zokunakekelwa Ngaphambi Kokuzalwa',
+      'Labor and Delivery Preparation': 'Ukulungiselela Ukubeletha Nokuzala',
+      'Newborn Care Basics': 'Izisekelo Zokunakekela Ingane Esanda Kuzalwa',
+      'Breastfeeding Fundamentals': 'Izisekelo Zokuncelisa',
+      'Postpartum Recovery': 'Ukululama Ngemva Kokuzala',
     },
-    descriptions: {
-      'Learn about essential nutrients': 'Funda ngezakha mzimba ezibalulekile ukuze ukhulelwe ngempilo',
-      'Taking care of your emotional wellbeing': 'Ukunakekela inhlalakahle yakho yemizwa ngesikhathi sokukhulelwa',
-      'Understanding the importance of prenatal visits': 'Ukuqonda ukubaluleka kokuvakashela kwangaphambi kokubeletha',
-      'Stay active safely during pregnancy': 'Hlala usebenza ngokuphepha ngesikhathi sokukhulelwa',
-      'Prepare for breastfeeding your baby': 'Zilungiselele ukuncelisa ingane yakho',
-      'Know when labor is approaching': 'Yazi uma umshikashika usondela',
-      'Essential care for your newborn': 'Ukunakekelwa okubalulekile kwengane yakho esanda kuzalwa',
-      'Recognize warning signs that need immediate attention': 'Bona izimpawu zesixwayiso ezidinga ukunakwa ngokushesha',
+    quizDescriptions: {
+      'Test your knowledge about proper nutrition during pregnancy': 'Hlola ulwazi lwakho mayelana nokudla okufanele ngesikhathi sokukhulelwa',
+      'Learn about the important health considerations in your first trimester': 'Funda ngezinto ezibalulekile zempilo ku-trimester yakho yokuqala',
+      'Discover safe ways to stay active during pregnancy': 'Thola izindlela eziphephile zokuhlala umatasa ngesikhathi sokukhulelwa',
+      'Understanding the key aspects of prenatal care': 'Ukuqonda izinto ezibalulekile zokunakekelwa ngaphambi kokuzalwa',
+      'Prepare yourself for labor and delivery': 'Zilungiselele ukubeletha nokuzala',
+      'Essential knowledge for caring for your newborn': 'Ulwazi olubalulekile lokunakekela ingane yakho esanda kuzalwa',
+      'Learn the basics of successful breastfeeding': 'Funda izisekelo zokuncelisa ngempumelelo',
+      'Understanding your body\'s recovery after childbirth': 'Ukuqonda ukululama komzimba wakho ngemva kokuzala',
     },
     questions: {
-      'Which vitamin is essential for preventing neural tube defects?': 'Iyiphi ivithamini ebalulekile ukuvimbela amaphutha ethumbu yemithambo?',
-      'How many servings of fruits and vegetables should a pregnant woman eat daily?': 'Owesifazane okhulelwe kufanele adle iziphi izingxenye zezithelo nemifino nsuku zonke?',
-      'Which mineral is important for blood production during pregnancy?': 'Iyiphi iminerali ebalulekile ekukhiqizeni igazi ngesikhathi sokukhulelwa?',
-      'What is a common sign of dehydration during pregnancy?': 'Iyiphi isibonakaliso esivamile sokushoda kwamanzi ngesikhathi sokukhulelwa?',
+      'Which nutrient is essential for preventing neural tube defects?': 'Yisiphi isondlo esibalulekile sokuvimbela ukukhubazeka kwe-neural tube?',
+      'How many additional calories per day are recommended during the second trimester?': 'Mangaki amakhalori engeziwe ngosuku ancezelwe nge-trimester yesibili?',
       'Which food should be avoided during pregnancy?': 'Yikuphi ukudla okufanele kugwenywe ngesikhathi sokukhulelwa?',
+      'What is the recommended daily intake of water during pregnancy?': 'Yini inani lamanzi elicezelwe nsuku zonke ngesikhathi sokukhulelwa?',
+      'Which vitamin is important for iron absorption?': 'Iyiphi ivithamini ebalulekile ekumunceni insimbi?',
     },
     options: {
-      'Folic acid': 'I-asidi ye-foliki',
+      'Folic acid': 'I-Folic acid',
       'Vitamin C': 'Ivithamini C',
-      'Vitamin D': 'Ivithamini D',
-      'Vitamin E': 'Ivithamini E',
+      'Calcium': 'Ikhalsiamu',
       'Iron': 'Insimbi',
-      'Zinc': 'I-zinki',
-      'Copper': 'Ithusi',
-      'Sodium': 'I-sodiamu',
-      'Dark urine': 'Umchamo omnyama',
-      'Frequent urination': 'Ukuchama kaningi',
-      'Increased appetite': 'Isifiso sokudla esandile',
-      'Weight gain': 'Ukukhuphuka kwesisindo',
+      '100 calories': 'Amakhalori angu-100',
+      '340 calories': 'Amakhalori angu-340',
+      '500 calories': 'Amakhalori angu-500',
+      '750 calories': 'Amakhalori angu-750',
       'Raw sushi': 'I-sushi eluhlaza',
-      'Cooked chicken': 'Inkukhu ephekiwe',
-      'Bananas': 'Ubhanana',
-      'Brown rice': 'Ilayisi elintsundu',
-      '2-3': '2-3',
-      '5-9': '5-9',
-      '10-12': '10-12',
-      '1': '1',
+      'Cooked vegetables': 'Imifino ephekiwe',
+      'Whole grains': 'Ukusanhlamvu okuphelele',
+      'Lean meat': 'Inyama engenamafutha',
+      '4-6 glasses': 'Izingilazi ezi-4-6',
+      '8-12 glasses': 'Izingilazi ezi-8-12',
+      '2-3 glasses': 'Izingilazi ezi-2-3',
+      '15 glasses': 'Izingilazi ezingu-15',
+      'Vitamin A': 'Ivithamini A',
+      'Vitamin B12': 'Ivithamini B12',
+      'Vitamin D': 'Ivithamini D',
     },
   },
 };
 
-function translateText(text, langMap) {
-  return langMap[text] || text;
+// Helper to translate text with fallback
+function translate(text, dict) {
+  if (!text || !dict) return text;
+  return dict[text] || dict[text.trim()] || text;
 }
 
-function translateOptions(options, langMap) {
-  if (!Array.isArray(options)) return options;
-  return options.map(opt => translateText(opt, langMap));
+// Helper to translate quiz options (JSON array of strings)
+function translateOptions(options, optionsDict) {
+  if (!options || !optionsDict) return options;
+  if (Array.isArray(options)) {
+    return options.map(opt => optionsDict[opt] || opt);
+  }
+  return options;
+}
+
+// Helper to translate correct_answer (could be string or JSON)
+function translateAnswer(answer, optionsDict) {
+  if (!answer || !optionsDict) return answer;
+  if (typeof answer === 'string') {
+    return optionsDict[answer] || answer;
+  }
+  if (Array.isArray(answer)) {
+    return answer.map(a => optionsDict[a] || a);
+  }
+  return answer;
 }
 
 async function seedTranslatedQuizzes() {
-  const targetLanguages = ['fr', 'sw', 'zu'];
-  
-  // Get all English quizzes with their questions
+  // *** KEY FIX: Use the enum constant, not a raw string ***
+  const targetLanguages = [
+    { code: language_code.fr, key: 'fr' },
+    { code: language_code.sw, key: 'sw' },
+    { code: language_code.zu, key: 'zu' },
+  ];
+
+  // Fetch all English quizzes with their questions
   const englishQuizzes = await prisma.quiz.findMany({
-    where: { language: 'en' },
-    include: { questions: { orderBy: { sortOrder: 'asc' } } },
+    where: { language: language_code.en },
+    include: {
+      questions: {
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
   });
 
-  console.log(`Found ${englishQuizzes.length} English quizzes to translate`);
+  console.log(`Found ${englishQuizzes.length} English quizzes to translate\n`);
 
-  for (const lang of targetLanguages) {
-    const t = translations[lang];
-    console.log(`\n--- Seeding ${lang.toUpperCase()} quizzes ---`);
+  if (englishQuizzes.length === 0) {
+    console.log('No English quizzes found. Seed English quizzes first.');
+    return;
+  }
+
+  for (const { code: langEnum, key: langKey } of targetLanguages) {
+    console.log(`--- Seeding ${langKey.toUpperCase()} quizzes ---`);
+    const langData = translations[langKey];
+    let created = 0;
+    let skipped = 0;
 
     for (const quiz of englishQuizzes) {
-      // Check if this quiz already exists in this language
+      // Check if translated quiz already exists
       const existing = await prisma.quiz.findFirst({
         where: {
           category: quiz.category,
-          language: lang,
-          title: { contains: translateText(quiz.title, t.titles).substring(0, 20) },
+          language: langEnum,     // <-- enum, not string
+          title: {
+            contains: translate(quiz.title, langData.quizTitles).substring(0, 20),
+          },
         },
       });
 
       if (existing) {
-        console.log(`  SKIP: "${quiz.title}" already exists in ${lang}`);
+        console.log(`  SKIP: "${quiz.title}" already exists in ${langKey.toUpperCase()}`);
+        skipped++;
         continue;
       }
 
-      const translatedTitle = translateText(quiz.title, t.titles);
-      const translatedDesc = quiz.description
-        ? translateText(quiz.description, t.descriptions)
-        : null;
-
-      // Create the translated quiz
-      const newQuiz = await prisma.quiz.create({
+      // Create translated quiz
+      const translatedQuiz = await prisma.quiz.create({
         data: {
-          title: translatedTitle,
-          description: translatedDesc,
+          title: translate(quiz.title, langData.quizTitles),
+          description: translate(quiz.description, langData.quizDescriptions),
           category: quiz.category,
           difficulty: quiz.difficulty,
           country: quiz.country,
-          language: lang,
+          language: langEnum,     // <-- enum, not string
           time_limit_mins: quiz.time_limit_mins,
           pass_threshold: quiz.pass_threshold,
           reward_amount: quiz.reward_amount,
           milestone_def_id: quiz.milestone_def_id,
-          is_active: true,
+          is_active: quiz.is_active,
         },
       });
 
       // Create translated questions
-      for (const q of quiz.questions) {
-        const translatedQuestion = translateText(q.questionText, t.questions);
-        const translatedOpts = translateOptions(q.options, t.options);
-
+      for (const question of quiz.questions) {
         await prisma.quizQuestion.create({
           data: {
-            quizId: newQuiz.id,
-            questionText: translatedQuestion,
-            questionType: q.questionType,
-            options: translatedOpts,
-            correct_answer: q.correct_answer, // index stays the same
-            explanation: q.explanation, // keep English for now
-            sortOrder: q.sortOrder,
+            quizId: translatedQuiz.id,
+            questionText: translate(question.questionText, langData.questions),
+            questionType: question.questionType,
+            options: translateOptions(question.options, langData.options),
+            correct_answer: translateAnswer(question.correct_answer, langData.options),
+            explanation: question.explanation,
+            sortOrder: question.sortOrder,
           },
         });
       }
 
-      console.log(`  OK: "${translatedTitle}" (${lang}) - ${quiz.questions.length} questions`);
+      console.log(`  CREATED: "${translatedQuiz.title}" (${langKey.toUpperCase()})`);
+      created++;
     }
-  }
 
-  // Summary
-  for (const lang of ['en', ...targetLanguages]) {
-    const count = await prisma.quiz.count({ where: { language: lang } });
-    console.log(`\n${lang.toUpperCase()}: ${count} quizzes`);
+    console.log(`${langKey.toUpperCase()} summary: ${created} created, ${skipped} skipped\n`);
   }
-
-  await prisma.$disconnect();
-  console.log('\nDone!');
 }
 
-seedTranslatedQuizzes().catch(err => {
-  console.error('Seed error:', err);
-  prisma.$disconnect();
-  process.exit(1);
-});
+seedTranslatedQuizzes()
+  .then(() => {
+    console.log('Done!');
+    return prisma.$disconnect();
+  })
+  .catch((err) => {
+    console.error('Seed error:', err);
+    return prisma.$disconnect();
+  });
