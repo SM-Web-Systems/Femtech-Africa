@@ -19,6 +19,7 @@ export const useUpdateProfile = () => {
       firstName?: string;
       lastName?: string;
       dateOfBirth?: string;
+      email?: string;
       avatarUrl?: string;
     }) => {
       const response = await apiClient.put('/profile', data);
