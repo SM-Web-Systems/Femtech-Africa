@@ -150,7 +150,20 @@ MoSCoW is a prioritization framework that categorizes features into:
 
 ### Mobile App Structure
 
-Femtech-mobile/ ├── App.tsx # Main entry point ├── app.json # Expo configuration ├── src/ │ ├── api/ # API services (auth, wallet, milestones, redemptions) │ ├── components/ # Reusable UI (Button, Card, Header, Input) │ ├── constants/ # Theme colors, config, storage keys │ ├── navigation/ # Root, Auth, Main navigators │ ├── screens/ # 10 screens across 6 categories │ ├── store/ # Zustand + Context state management │ ├── types/ # TypeScript definitions │ └── utils/ # Helper functions └── package.json # Dependencies
+Femtech-mobile/
+├── App.tsx                    # Main entry point
+├── app.json                   # Expo configuration
+├── src/
+│   ├── api/                   # API services (auth, wallet, milestones, redemptions)
+│   ├── components/            # Reusable UI (Button, Card, Header, Input)
+│   ├── constants/             # Theme colors, config, storage keys
+│   ├── navigation/            # Root, Auth, Main navigators
+│   ├── screens/               # 10 screens across 6 categories
+│   ├── store/                 # Zustand + Context state management
+│   ├── types/                 # TypeScript definitions
+│   └── utils/                 # Helper functions
+└── package.json               # Dependencies
+
 
 
 ### Test Results
