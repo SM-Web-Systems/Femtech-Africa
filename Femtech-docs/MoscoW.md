@@ -73,18 +73,16 @@ MoSCoW is a prioritization framework that categorizes features into:
 
 ## COULD HAVE (Nice to Have, Future Sprints)
 
-| Feature                      | Priority | Effort  | Notes                          |
-|------------------------------|----------|---------|--------------------------------|
-
-| Community Forum              | LOW      | 1 week  | User-to-user support           |
-| Telemedicine Integration     | LOW      | 2 weeks | Video consultations            |
-| Wearable Device Sync         | LOW      | 2 weeks | Fitbit, Apple Watch data       |
-| Gamification (Badges/Levels) | LOW      | 3 days  | Engagement features            |
-| Family/Partner Access        | LOW      | 3 days  | Share pregnancy with spouse    |
-| Offline Mode                 | LOW      | 1 week  | Work without internet          |
-| Analytics Dashboard          | LOW      | 3 days  | User insights for mothers      |
-| Social Sharing               | LOW      | 1 day   | Share milestones on WhatsApp   |
-
+| Feature | Priority | Effort | Notes |
+| :--- | :--- | :--- | :--- |
+| **Community Forum** | LOW | 1 week | User-to-user support |
+| **Telemedicine Integration** | LOW | 2 weeks | Video consultations |
+| **Wearable Device Sync** | LOW | 2 weeks | Fitbit, Apple Watch data |
+| **Gamification (Badges/Levels)** | LOW | 3 days | Engagement features |
+| **Family/Partner Access** | LOW | 3 days | Share pregnancy with spouse |
+| **Offline Mode** | LOW | 1 week | Work without internet |
+| **Analytics Dashboard** | LOW | 3 days | User insights for mothers |
+| **Social Sharing** | LOW | 1 day | Share milestones on WhatsApp |
 
 ---
 
@@ -163,8 +161,6 @@ Femtech-mobile/
 │   ├── types/                 # TypeScript definitions
 │   └── utils/                 # Helper functions
 └── package.json               # Dependencies
-
-
 
 ### Test Results
 
