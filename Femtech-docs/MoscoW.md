@@ -148,6 +148,7 @@ MoSCoW is a prioritization framework that categorizes features into:
 
 ### Mobile App Structure
 
+```text
 Femtech-mobile/
 ├── App.tsx                    # Main entry point
 ├── app.json                   # Expo configuration
@@ -161,6 +162,8 @@ Femtech-mobile/
 │   ├── types/                 # TypeScript definitions
 │   └── utils/                 # Helper functions
 └── package.json               # Dependencies
+```
+
 
 ### Test Results
 
