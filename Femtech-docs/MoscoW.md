@@ -106,8 +106,17 @@ MoSCoW is a prioritization framework that categorizes features into:
 ## MVP Feature Matrix
 
 ### Core User Journey
-┌─────────────────────────────────────────────────────────────┐ │ MVP USER JOURNEY │ ├─────────────────────────────────────────────────────────────┤ │ │ │ 1. ONBOARDING │ │ ├── Phone verification (OTP) ✅ │ │ ├── Profile creation ✅ │ │ ├── Pregnancy info ✅ │ │ ├── Emergency contact ✅ │ │ └── Wallet creation ✅ │ │ │ │ 2. DAILY ENGAGEMENT │ │ ├── View milestones ✅ │ │ ├── Track pregnancy progress ✅ │ │ ├── Complete health tasks ✅ │ │ └── Earn MAMA tokens ✅ │ │ │ │ 3. HEALTHCARE │ │ ├── Book appointments ✅ │ │ ├── Appointment reminders 🔲 │ │ ├── Verify clinic visits 🔲 │ │ └── Track medical history ✅ │ │ │ │ 4. REWARDS │ │ ├── View token balance ✅ │ │ ├── Browse partners ✅ │ │ ├── Redeem for airtime/data ✅ │ │ └── Transaction history ✅ │ │ │ │ 5. MOBILE APP │ │ ├── Welcome & Auth screens ✅ │ │ ├── Home dashboard ✅ │ │ ├── Milestones & claiming ✅ │ │ ├── Wallet & transactions ✅ │ │ ├── Redemption flow ✅ │ │ └── Profile management ✅ │ │ │ │ ✅ = Completed 🔲 = Pending MVP │ └─────────────────────────────────────────────────────────────┘
 
+| Feature | Priority | Effort | Notes |
+| :--- | :--- | :--- | :--- |
+| **Community Forum** | LOW | 1 week | User-to-user support |
+| **Telemedicine Integration** | LOW | 2 weeks | Video consultations |
+| **Wearable Device Sync** | LOW | 2 weeks | Fitbit, Apple Watch data |
+| **Gamification (Badges/Levels)** | LOW | 3 days | Engagement features |
+| **Family/Partner Access** | LOW | 3 days | Share pregnancy with spouse |
+| **Offline Mode** | LOW | 1 week | Work without internet |
+| **Analytics Dashboard** | LOW | 3 days | User insights for mothers |
+| **Social Sharing** | LOW | 1 day | Share milestones on WhatsApp |
 
 ---
 
